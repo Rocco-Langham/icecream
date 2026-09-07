@@ -1,0 +1,8 @@
+# Visual Studio workspace cache / local state
+.vs/
+
+# macOS
+.DS_Store
+
+# build artefacts / local archives
+*.zip

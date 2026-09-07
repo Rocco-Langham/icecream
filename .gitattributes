@@ -1,0 +1,4 @@
+# Normalise line endings in the repo so Windows and macOS checkouts don't
+# produce whole-file diffs every time the project moves between machines.
+* text=auto
+*.html text eol=lf
