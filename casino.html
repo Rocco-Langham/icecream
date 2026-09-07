@@ -2660,6 +2660,7 @@ var pkCanvas = $("plinkoCanvas"), pkCtx = pkCanvas.getContext("2d");
 var pkW = 700, pkH = 420;
 var pkRows = 12, pkRisk = "medium", pkStake = 25;
 var pkMults = [], pkBalls = [], pkFlash = {}, pkHits = {}, pkClock = 0;
+var pkCooldown = 0, PK_COOLDOWN = 0.75;                // seconds between drops
 
 /* C(n,k) / 2^n — the chance of finishing in bucket k, done in log space so the
    binomial coefficient doesn't overflow at high row counts. */
@@ -2822,6 +2823,12 @@ function pkRender(){
 
 function pkStep(dt){
   pkClock += dt;
+
+  if(pkCooldown > 0){
+    pkCooldown = Math.max(0, pkCooldown - dt);
+    if(pkCooldown === 0) syncPlinkoUI();
+  }
+
   var g = pkGeo(), settledAny = false;
   pkBalls.forEach(function(ball){
     if(ball.done) return;
@@ -2894,14 +2901,13 @@ function pkAirborne(){
   return false;
 }
 function syncPlinkoUI(){
-  /* Drop is never gated — you can stack up as many balls as you can click for.
-     Board shape stays locked while anything is falling, since changing it would
-     invalidate the paths already in flight. */
+  /* board shape is locked while anything is falling, but the Drop button only
+     waits out the short cooldown so balls can be stacked up */
   var flying = pkAirborne();
   $("pkRowsVal").textContent = pkRows;
   $("pkMinus").disabled = flying || pkRows <= 8;
   $("pkPlus").disabled  = flying || pkRows >= 16;
-  $("pkDrop").disabled  = false;
+  $("pkDrop").disabled  = pkCooldown > 0;
   Array.prototype.forEach.call(document.querySelectorAll("#pkRiskSeg button"), function(b){
     b.classList.toggle("on", b.dataset.risk === pkRisk);
     b.disabled = flying;
@@ -2939,6 +2945,7 @@ $("pkClear").addEventListener("click", function(){
 });
 
 $("pkDrop").addEventListener("click", function(){
+  if(pkCooldown > 0) return;
   if(pkStake > bank){ msg($("pkMsg"), "Not enough chips for that bet.", "lose"); return; }
 
   setBank(bank - pkStake, -1);
@@ -2974,6 +2981,7 @@ $("pkDrop").addEventListener("click", function(){
     stake: pkStake, mults: pkMults.slice(),
     segDur: Math.max(0.055, 0.115 - N*0.002)
   });
+  pkCooldown = PK_COOLDOWN;
   playChip();
   msg($("pkMsg"), "Dropping…", "info");
   syncPlinkoUI();
