@@ -1281,6 +1281,24 @@
   </div>
 </div>
 
+<!-- Last in the opening queue. Once per version PER DEVICE, which is the right
+     cadence here: localStorage is per-device, so a second device shows this
+     exactly when the risk it describes becomes real. -->
+<div class="modal-overlay" id="multiWarn">
+  <div class="modal simple">
+    <button class="modal-close" id="multiWarnClose" aria-label="Close">&times;</button>
+    <h2>One device at a time</h2>
+    <p class="sub">
+      If you are planning to use this website on 2 or more devices, make sure to only
+      have it open on one device, otherwise progress can save and chips can be lost easily.
+    </p>
+    <p class="modal-note">We are working on a fix for this.</p>
+    <div class="modal-actions">
+      <button class="btn sm" id="multiWarnOk">Got it</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="codes">
   <div class="modal simple">
     <button class="modal-close" id="codesClose" aria-label="Close">&times;</button>
@@ -1757,25 +1775,47 @@ function renderChangelog(){
 function maybeShowChangelog(){
   var seen = null;
   try{ seen = localStorage.getItem(CHANGELOG_KEY); }catch(e){}
-  if(seen === CHANGELOG.version) return;
+  if(seen === CHANGELOG.version) return false;
   renderChangelog();
   $("changelog").classList.add("on");
+  return true;
 }
 function closeChangelog(){
   $("changelog").classList.remove("on");
   try{ localStorage.setItem(CHANGELOG_KEY, CHANGELOG.version); }catch(e){}
+  openingSequence();                                 /* the warning is next in the queue */
 }
+
+/* ---- one-device warning ---- */
+var MULTIWARN_KEY = "sparxmaths-casino-multiwarn";
+function maybeShowMultiWarn(){
+  var seen = null;
+  try{ seen = localStorage.getItem(MULTIWARN_KEY); }catch(e){}
+  if(seen === CHANGELOG.version) return;
+  $("multiWarn").classList.add("on");
+}
+function closeMultiWarn(){
+  $("multiWarn").classList.remove("on");
+  try{ localStorage.setItem(MULTIWARN_KEY, CHANGELOG.version); }catch(e){}
+}
+$("multiWarnClose").addEventListener("click", closeMultiWarn);
+$("multiWarnOk").addEventListener("click", function(){ playClick(); closeMultiWarn(); });
+$("multiWarn").addEventListener("click", function(e){ if(e.target === $("multiWarn")) closeMultiWarn(); });
 /* The opening popups are a queue, not a stack: each one only runs once the
    ones before it are out of the way. */
 function openingSequence(){
   if($("betaOverlay").classList.contains("on")) return;
   if(gatePending || $("gate").classList.contains("on")) return;
-  maybeShowChangelog();
+  if($("changelog").classList.contains("on") || $("codes").classList.contains("on")) return;
+  if(maybeShowChangelog()) return;                   /* warning waits its turn */
+  maybeShowMultiWarn();
 }
 $("changelogClose").addEventListener("click", function(){ closeChangelog(); });
 $("changelogOk").addEventListener("click", function(){ playClick(); closeChangelog(); });
 $("changelog").addEventListener("click", function(e){ if(e.target === $("changelog")) closeChangelog(); });
-$("changelogCodes").addEventListener("click", function(){ playClick(); closeChangelog(); openCodes(); });
+/* Open codes BEFORE closing the changelog: closing advances the queue, and the
+   queue only defers to codes if codes is already marked open. */
+$("changelogCodes").addEventListener("click", function(){ playClick(); openCodes(); closeChangelog(); });
 /* Opened deliberately from Settings, so it ignores the once-per-version rule
    that governs the automatic showing. */
 $("settingsChangelog").addEventListener("click", function(){
@@ -1792,7 +1832,10 @@ function openCodes(){
   renderCodes();
   $("codes").classList.add("on");
 }
-function closeCodes(){ $("codes").classList.remove("on"); }
+function closeCodes(){
+  $("codes").classList.remove("on");
+  openingSequence();                                 /* rejoin the queue after the detour */
+}
 /* A noticeboard: it lists what exists and what has been taken. Redeeming is
    done in the Code box in Settings, so there is only one place to type one. */
 function renderCodes(){
