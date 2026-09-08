@@ -2328,7 +2328,12 @@ function cloudPushSoon(){
 }
 /* On sign-in one side has to win. hands only ever counts up, so the bigger
    count is the more-played save — that keeps a fresh device from wiping a
-   real one, and a real one from being wiped by a fresh cloud row. */
+   real one, and a real one from being wiped by a fresh cloud row.
+   A tie goes to the cloud. hands increments on every hand played, so equal
+   counts mean this device has done nothing since it last synced, and the cloud
+   is at least as current. Letting the device win a tie cost real chips: claim a
+   code (which the server pays, without touching hands), then sign in somewhere
+   else, and the device's untouched 1000 was written over the 1500 on file. */
 /* Signing out has to clear the progress still sitting in memory. Without this,
    signing in as somebody else on the same device carries the previous player's
    figures along, and "whoever has more hands wins" then pushes them straight
@@ -2356,7 +2361,7 @@ function cloudSync(){
   sb.from("scores").select("*").eq("user_id", sbUser.id).maybeSingle().then(function(res){
     if(res.error){ acctSay(res.error.message, "bad"); return; }
     var row = res.data;
-    if(row && row.hands > stats.hands){
+    if(row && row.hands >= stats.hands){
       applyCloudRow(row);
       acctSay("Loaded your cloud save (" + fmt(row.hands) + " hands).", "good");
       $("acctSync").textContent = "Loaded";
