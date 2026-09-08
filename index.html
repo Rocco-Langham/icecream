@@ -68,6 +68,24 @@
     color:var(--gold);text-shadow:0 2px 10px rgba(var(--gold-rgb),.25);word-break:break-word;
   }
   .sidebar-brand small{display:block;font-size:9px;letter-spacing:calc(3px * var(--ui-track));color:var(--gold-dim);text-transform:var(--ui-case)}
+  /* ---------- daily streak badge ---------- */
+  /* Desktop stacks the sidebar vertically, so the badge is pinned to the top
+     right of the brand block to sit beside the name rather than under it. The
+     brand reserves room for it so a long casino name ellipsises instead of
+     colliding. */
+  .streak{
+    display:flex;align-items:center;gap:5px;
+    padding:5px 9px;border-radius:999px;
+    border:1px solid rgba(var(--gold-rgb),.35);background:rgba(var(--gold-rgb),.12);
+    font-size:12px;font-weight:700;line-height:1;color:var(--gold);
+    font-variant-numeric:tabular-nums;white-space:nowrap;
+  }
+  .streak .flame{font-size:13px;line-height:1}
+  /* top:16px puts it level with the suits, above the name, so the name keeps the
+     full column width — reserving space for it made it break mid-word */
+  .sidebar{position:relative}
+  .streak{position:absolute;top:16px;right:14px}
+
   .sidebar-nav{display:flex;flex-direction:column}
   .sidebar-section{display:flex;flex-direction:column;gap:2px;padding:0 10px}
   .sidebar-label{padding:10px 8px 6px;font-size:10px;letter-spacing:calc(2px * var(--ui-track));text-transform:var(--ui-case);color:rgba(var(--cream-rgb),.35)}
@@ -662,6 +680,9 @@
     .sidebar-link{width:auto;padding:8px 10px;font-size:11px;flex:0 0 auto;white-space:nowrap}
     .sidebar-link .ic{font-size:14px;width:auto}
     .sidebar-spacer{display:none}
+    /* back into the flow here, centred in the gap the auto-margin opens up
+       between the menu button and the settings pair */
+    .streak{position:static;margin:0 auto}
     .sidebar-bottom{border-top:none;margin-top:0;padding:0;flex:0 0 auto;flex-direction:row;align-items:center;gap:8px}
     /* out of flow: stacked in flow it would push this bar past 76px and it would
        stop sitting flush with the chips bar below */
@@ -717,6 +738,10 @@
 
     <button class="iconbtn menu-btn" id="menuBtn" aria-label="Open menu"
             aria-expanded="false" aria-controls="navSheet">&#9776;</button>
+
+    <!-- After the menu button so it falls into the gap on the mobile bar; the
+         desktop column pins it beside the brand instead. Hidden until earned. -->
+    <div class="streak" id="streak" hidden><span class="flame">&#128293;</span><b id="streakNum">0</b></div>
 
     <div class="sidebar-nav">
       <div class="sidebar-section">
@@ -1291,7 +1316,7 @@ function load(){
 }
 function save(){
   var data = {
-    bank:bank, stats:stats, gameNet:gameNet, theme:currentTheme, font:currentFont, soundOn:soundOn,
+    bank:bank, stats:stats, gameNet:gameNet, streak:streak, theme:currentTheme, font:currentFont, soundOn:soundOn,
     soundVolume:soundVolume, casinoName:CASINO_NAME,
     rigUser:rigUser, rigHost:rigHost
   };
@@ -1317,6 +1342,7 @@ var bank         = saved && typeof saved.bank === "number" ? saved.bank : 100;
 var stats        = (saved && saved.stats) || {hands:0, won:0, big:0, peak:100};
 var gameNet      = (saved && saved.gameNet) || {};
 GAMES.forEach(function(g){ if(typeof gameNet[g.key] !== "number") gameNet[g.key] = 0; });
+var streak       = (saved && saved.streak) || {count:0, best:0, last:null};
 var soundOn      = saved && typeof saved.soundOn === "boolean" ? saved.soundOn : true;
 var soundVolume  = saved && typeof saved.soundVolume === "number" ? saved.soundVolume : 45;
 var CASINO_NAME  = saved && typeof saved.casinoName === "string" ? saved.casinoName : "SparxMaths";
@@ -1412,8 +1438,40 @@ function setBank(next, delta){
 }
 function wager(amount, game){                       // amount = chips staked, straight off the balance
   gameNet[game] = (gameNet[game] || 0) - amount;
+  touchStreak();                                     /* the one choke point every game stakes through */
   renderLeaderboard();
   setBank(bank - amount, -1);
+}
+
+/* ---- daily play streak ---- */
+/* Local-calendar day number. Comparing plain integers keeps "was that
+   yesterday?" to last === today - 1, with no timezone or DST arithmetic. */
+function dayNum(d){
+  d = d || new Date();
+  return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000);
+}
+/* A streak is only alive if it was fed today or yesterday; older than that and
+   it reads 0 rather than showing a number the player no longer has. */
+function liveStreak(){
+  if(streak.last === null) return 0;
+  var gap = dayNum() - streak.last;
+  return gap <= 1 ? streak.count : 0;
+}
+function renderStreak(){
+  var n = liveStreak();
+  $("streak").hidden = n === 0;
+  $("streakNum").textContent = n;
+  $("streak").title = n === 0
+    ? "Play today to start a streak"
+    : n + (n === 1 ? " day streak" : " day streak") + " — best " + streak.best;
+}
+function touchStreak(){
+  var today = dayNum();
+  if(streak.last === today) return;                  /* already counted, idempotent per day */
+  streak.count = streak.last === today - 1 ? streak.count + 1 : 1;
+  streak.last = today;
+  if(streak.count > streak.best) streak.best = streak.count;
+  renderStreak();
 }
 function payout(amount, game){                      // amount = chips returned to the player
   if(amount > stats.big) stats.big = amount;
@@ -1682,16 +1740,24 @@ function applyCloudRow(row){
   stats.hands = row.hands; stats.won = row.won; stats.big = row.big; stats.peak = row.peak;
   gameNet = row.net || {};
   GAMES.forEach(function(g){ if(typeof gameNet[g.key] !== "number") gameNet[g.key] = 0; });
+  streak = {
+    count: row.streak_count || 0,
+    best:  row.streak_best  || 0,
+    last:  typeof row.streak_last === "number" ? row.streak_last : null
+  };
   setBank(row.bank, 0);                              /* re-renders the footer stats and saves locally */
   renderStatsPanel();
   renderLeaderboard();
+  renderStreak();
 }
 function cloudPush(){
   if(!sbUser) return;
   $("acctSync").textContent = "Saving…";
   sb.from("scores").upsert({
     user_id: sbUser.id, bank: bank, hands: stats.hands, won: stats.won,
-    big: stats.big, peak: stats.peak, net: gameNet, updated_at: new Date().toISOString()
+    big: stats.big, peak: stats.peak, net: gameNet,
+    streak_count: streak.count, streak_best: streak.best, streak_last: streak.last,
+    updated_at: new Date().toISOString()
   }).then(function(res){
     $("acctSync").textContent = res.error ? "Failed" : "Saved";
     if(res.error) acctSay(res.error.message, "bad");
@@ -4266,6 +4332,7 @@ applyCasinoName(CASINO_NAME);
 setBank(bank, 0);
 renderBets();
 renderLeaderboard();
+renderStreak();
 $("versionTag").textContent = VERSION;
 $("betaVersion").textContent = VERSION;
 betaOverlay.classList.add("on");
