@@ -297,6 +297,9 @@
     font:inherit;font-size:11px;font-weight:600;letter-spacing:calc(2px * var(--ui-track));text-transform:var(--ui-case);
     color:rgba(var(--cream-rgb),.5);transition:.15s;
   }
+  /* the rail is a flex column, so an auto top margin drops this to the bottom
+     edge and separates the account from the settings proper */
+  .subtab-foot{margin-top:auto}
   .subtab:hover{color:var(--cream);background:rgba(var(--panel-tint-rgb),.18)}
   .subtab.on{color:var(--gold);border-left-color:var(--gold);background:rgba(var(--gold-rgb),.1)}
   .modal-content{flex:1;min-width:0;padding:28px;overflow-y:auto}
@@ -710,6 +713,9 @@
        up rather than scrolling underneath it */
     .modal-sidebar{flex-direction:row;flex:0 0 auto;overflow-x:auto;border-right:none;border-bottom:1px solid var(--edge);padding:8px 46px 8px 8px}
     .subtab{border-left:none;border-bottom:3px solid transparent;flex:0 0 auto;white-space:nowrap;padding:11px 9px;letter-spacing:.5px}
+    /* the rail is a row here, where an auto top margin would shove it out of
+       line with its siblings rather than to the end */
+    .subtab-foot{margin-top:0}
     .subtab.on{border-left-color:transparent;border-bottom-color:var(--gold)}
     .theme-grid{grid-template-columns:1fr}
     /* fonts stay three across as designed, just tighter — the note is illegible
@@ -1031,7 +1037,7 @@
     <div class="modal-sidebar">
       <button class="subtab on" data-subtab="general">General</button>
       <button class="subtab" data-subtab="appearance">Appearance</button>
-      <button class="subtab" data-subtab="account">Account</button>
+      <button class="subtab subtab-foot" data-subtab="account">Account</button>
     </div>
 
     <div class="modal-content">
@@ -1061,7 +1067,7 @@
           <div class="stat-cell"><span>Won</span><b id="statsWon">0</b></div>
           <div class="stat-cell"><span>Biggest hit</span><b id="statsBig">0</b></div>
           <div class="stat-cell"><span>Peak bank</span><b id="statsPeak">0</b></div>
-          <div class="stat-cell"><span>Chips now</span><b id="statsBank">0</b></div>
+          <div class="stat-cell"><span>Best streak</span><b id="statsStreak">0</b></div>
         </div>
         <p class="modal-note">Totals since your last reset. Peak bank is the highest balance you have held.</p>
 
@@ -1676,8 +1682,8 @@ function renderStatsPanel(){
   $("statsHands").textContent = fmt(stats.hands);
   $("statsWon").textContent   = fmt(stats.won);
   $("statsBig").textContent   = fmt(stats.big);
-  $("statsPeak").textContent  = fmt(stats.peak);
-  $("statsBank").textContent  = fmt(bank);
+  $("statsPeak").textContent   = fmt(stats.peak);
+  $("statsStreak").textContent = fmt(streak.best);
 }
 
 var resetStats1 = $("resetStats1"), resetStats2 = $("resetStats2");
