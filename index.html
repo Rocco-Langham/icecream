@@ -81,6 +81,9 @@
     font-variant-numeric:tabular-nums;white-space:nowrap;
   }
   .streak .flame{font-size:13px;line-height:1}
+  /* display:flex above outranks the browser's [hidden]{display:none}, so an
+     unearned streak would otherwise sit in the bar reading "0" */
+  .streak[hidden]{display:none}
   /* top:16px puts it level with the suits, above the name, so the name keeps the
      full column width — reserving space for it made it break mid-word */
   .sidebar{position:relative}
@@ -101,6 +104,19 @@
     color:var(--ink);background:linear-gradient(135deg,var(--gold),var(--pop));
     box-shadow:0 6px 16px rgba(var(--gold-rgb),.22);
   }
+  /* ---------- changelog & codes ---------- */
+  .changelog-list{margin:0 0 4px;padding:0 0 0 18px;font-size:12.5px;line-height:1.65;color:rgba(var(--cream-rgb),.72)}
+  .changelog-list li{margin-bottom:5px}
+  .changelog-list li::marker{color:var(--gold-dim)}
+  .claimed-list{display:flex;flex-wrap:wrap;gap:6px}
+  .claimed-code{
+    display:flex;align-items:center;gap:6px;
+    padding:5px 10px;border-radius:999px;
+    border:1px solid rgba(var(--gold-rgb),.35);background:rgba(var(--gold-rgb),.1);
+    font-size:11px;font-weight:700;color:var(--gold);white-space:nowrap;
+  }
+  .claimed-code small{font-size:10px;font-weight:400;color:rgba(var(--cream-rgb),.5);text-transform:none;letter-spacing:0}
+
   /* ---------- show/hide password ---------- */
   /* .field .pw-wrap input outranks .field input, so the right padding that keeps
      the text clear of the button actually sticks */
@@ -785,7 +801,7 @@
   <header>
     <div class="chipstack">
       <span class="lbl">Chips</span>
-      <span class="amt" id="bank">100</span>
+      <span class="amt" id="bank">1000</span>
     </div>
   </header>
 
@@ -1027,7 +1043,7 @@
     <span>Hands <b id="stHands">0</b></span>
     <span>Won <b id="stWon">0</b></span>
     <span>Biggest hit <b id="stBig">0</b></span>
-    <span>Peak bank <b id="stPeak">100</b></span>
+    <span>Peak bank <b id="stPeak">1000</b></span>
   </div>
   <b>No real money.</b> Chips are imaginary and saved only in your own browser.<br>
   Built as a single file &mdash; nothing is uploaded anywhere.
@@ -1060,6 +1076,14 @@
           <input type="range" id="volumeSlider" min="0" max="100" step="5" value="45">
         </div>
         <p class="modal-note">Chip clicks, dealing, spins, and win/lose cues.</p>
+
+        <!-- the changelog only appears once per version, so codes need a way
+             back that does not depend on having kept that popup open -->
+        <div class="section-head">
+          <div class="section-title">Codes</div>
+          <button class="btn ghost sm" id="settingsCodes">Redeem</button>
+        </div>
+        <p class="modal-note">Claim a code for chips and other rewards.</p>
 
         <div class="section-head">
           <div class="section-title">Stats</div>
@@ -1242,6 +1266,40 @@
   </div>
 </div>
 
+<!-- Shown once per version, after the beta notice and the sign-in gate. -->
+<div class="modal-overlay" id="changelog">
+  <div class="modal simple">
+    <button class="modal-close" id="changelogClose" aria-label="Close">&times;</button>
+    <h2>What&rsquo;s new</h2>
+    <p class="sub" id="changelogVersion"></p>
+    <ul class="changelog-list" id="changelogBody"></ul>
+    <div class="modal-actions">
+      <button class="btn ghost sm" id="changelogCodes">Codes</button>
+      <button class="btn sm" id="changelogOk">Play</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="codes">
+  <div class="modal simple">
+    <button class="modal-close" id="codesClose" aria-label="Close">&times;</button>
+    <h2>Codes</h2>
+    <p class="sub">Enter a code to claim a reward. Each one can be claimed once.</p>
+    <div class="field">
+      <label for="codeInput">Code</label>
+      <input type="text" id="codeInput" autocomplete="off" spellcheck="false" placeholder="Type a code">
+    </div>
+    <div class="modal-actions">
+      <button class="btn sm" id="codesRedeem">Redeem</button>
+    </div>
+    <p class="modal-note" id="codesNote"></p>
+    <div id="codesClaimed" hidden>
+      <div class="section-title">Claimed</div>
+      <div class="claimed-list" id="codesList"></div>
+    </div>
+  </div>
+</div>
+
 <!-- Mobile navigation. Contents are rendered from the same list that drives the
      leaderboard, so the two can't list different games. -->
 <div class="navsheet-overlay" id="navSheet">
@@ -1325,7 +1383,8 @@ function load(){
 }
 function save(){
   var data = {
-    bank:bank, stats:stats, gameNet:gameNet, streak:streak, theme:currentTheme, font:currentFont, soundOn:soundOn,
+    bank:bank, stats:stats, gameNet:gameNet, streak:streak, redeemed:redeemed,
+    theme:currentTheme, font:currentFont, soundOn:soundOn,
     soundVolume:soundVolume, casinoName:CASINO_NAME,
     rigUser:rigUser, rigHost:rigHost
   };
@@ -1347,11 +1406,12 @@ var GAMES = [
 ];
 
 var saved        = load() || mem;
-var bank         = saved && typeof saved.bank === "number" ? saved.bank : 100;
-var stats        = (saved && saved.stats) || {hands:0, won:0, big:0, peak:100};
+var bank         = saved && typeof saved.bank === "number" ? saved.bank : 1000;
+var stats        = (saved && saved.stats) || {hands:0, won:0, big:0, peak:1000};
 var gameNet      = (saved && saved.gameNet) || {};
 GAMES.forEach(function(g){ if(typeof gameNet[g.key] !== "number") gameNet[g.key] = 0; });
 var streak       = (saved && saved.streak) || {count:0, best:0, last:null};
+var redeemed     = (saved && saved.redeemed) || [];
 var soundOn      = saved && typeof saved.soundOn === "boolean" ? saved.soundOn : true;
 var soundVolume  = saved && typeof saved.soundVolume === "number" ? saved.soundVolume : 45;
 var CASINO_NAME  = saved && typeof saved.casinoName === "string" ? saved.casinoName : "SparxMaths";
@@ -1673,12 +1733,104 @@ var betaOverlay = $("betaOverlay");
 function closeBeta(){
   betaOverlay.classList.remove("on");
   if(typeof gateFlush === "function") gateFlush();
+  if(typeof openingSequence === "function") openingSequence();
 }
 $("betaClose").addEventListener("click", closeBeta);
 $("betaOk").addEventListener("click", function(){ playClick(); closeBeta(); });
 betaOverlay.addEventListener("click", function(e){
   if(e.target === betaOverlay) closeBeta();
 });
+
+/* ---- changelog ---- */
+var CHANGELOG_KEY = "sparxmaths-casino-changelog";
+var CHANGELOG = {
+  version: VERSION,
+  notes: [
+    "Six tables: Slots, Blackjack, Roulette, Racing, Plinko and Flappy.",
+    "Accounts &mdash; your chips, stats and streak follow you between devices.",
+    "Leaderboard ranking how far up or down you are on each table.",
+    "Daily play streaks, with your best kept in Settings.",
+    "Themes and fonts, and a menu button on phones.",
+    "New players now start with 1,000 chips."
+  ]
+};
+function renderChangelog(){
+  $("changelogVersion").textContent = CHANGELOG.version;
+  $("changelogBody").innerHTML = CHANGELOG.notes.map(function(n){ return "<li>" + n + "</li>"; }).join("");
+}
+/* Once per version: a changelog on every launch is noise, which is also why
+   Settings carries its own way into the codes popup. */
+function maybeShowChangelog(){
+  var seen = null;
+  try{ seen = localStorage.getItem(CHANGELOG_KEY); }catch(e){}
+  if(seen === CHANGELOG.version) return;
+  renderChangelog();
+  $("changelog").classList.add("on");
+}
+function closeChangelog(){
+  $("changelog").classList.remove("on");
+  try{ localStorage.setItem(CHANGELOG_KEY, CHANGELOG.version); }catch(e){}
+}
+/* The opening popups are a queue, not a stack: each one only runs once the
+   ones before it are out of the way. */
+function openingSequence(){
+  if($("betaOverlay").classList.contains("on")) return;
+  if(gatePending || $("gate").classList.contains("on")) return;
+  maybeShowChangelog();
+}
+$("changelogClose").addEventListener("click", function(){ closeChangelog(); });
+$("changelogOk").addEventListener("click", function(){ playClick(); closeChangelog(); });
+$("changelog").addEventListener("click", function(e){ if(e.target === $("changelog")) closeChangelog(); });
+$("changelogCodes").addEventListener("click", function(){ playClick(); closeChangelog(); openCodes(); });
+
+/* ---- redeemable codes ---- */
+var CODES = {
+  "RELEASE26!": {chips: 500, label: "Release bonus"}
+};
+function openCodes(){
+  $("codeInput").value = "";
+  codesSay("");
+  renderCodes();
+  $("codes").classList.add("on");
+}
+function closeCodes(){ $("codes").classList.remove("on"); }
+function codesSay(text, kind){
+  var n = $("codesNote");
+  n.textContent = text || "";
+  n.style.color = kind === "bad" ? "var(--bad)" : kind === "good" ? "var(--good)" : "";
+}
+function renderCodes(){
+  $("codesClaimed").hidden = redeemed.length === 0;
+  $("codesList").innerHTML = redeemed.map(function(c){
+    var reward = CODES[c];
+    return '<span class="claimed-code">' + c +
+             (reward ? " <small>" + fmt(reward.chips) + " chips</small>" : "") +
+           '</span>';
+  }).join("");
+}
+function redeemCode(raw){
+  var code = String(raw || "").trim().toUpperCase();
+  if(!code) return codesSay("Enter a code first.", "bad");
+  if(!CODES[code]) return codesSay("That code is not valid.", "bad");
+  if(redeemed.indexOf(code) !== -1) return codesSay("You have already claimed that one.", "bad");
+
+  var reward = CODES[code];
+  redeemed.push(code);
+  /* setBank rather than payout: a code is a gift, not a win, and routing it
+     through payout would inflate "won" and possibly "biggest hit". */
+  setBank(bank + reward.chips, 1);
+  playWin("big");
+  setTimeout(playCoin, 90);
+  renderCodes();
+  save();
+  codesSay(reward.label + " — " + fmt(reward.chips) + " chips added.", "good");
+  $("codeInput").value = "";
+}
+$("codesClose").addEventListener("click", closeCodes);
+$("codes").addEventListener("click", function(e){ if(e.target === $("codes")) closeCodes(); });
+$("codesRedeem").addEventListener("click", function(){ playClick(); redeemCode($("codeInput").value); });
+$("codeInput").addEventListener("keydown", function(e){ if(e.key === "Enter") redeemCode(this.value); });
+$("settingsCodes").addEventListener("click", function(){ playClick(); openCodes(); });
 
 /* ---- stats panel + two-step reset ---- */
 function renderStatsPanel(){
@@ -1754,6 +1906,10 @@ function applyCloudRow(row){
     best:  row.streak_best  || 0,
     last:  typeof row.streak_last === "number" ? row.streak_last : null
   };
+  /* Union, not replace: a claim is permanent, so a code redeemed on the losing
+     side of a sync must not become claimable again. */
+  (row.redeemed || []).forEach(function(c){ if(redeemed.indexOf(c) === -1) redeemed.push(c); });
+  renderCodes();
   setBank(row.bank, 0);                              /* re-renders the footer stats and saves locally */
   renderStatsPanel();
   renderLeaderboard();
@@ -1766,7 +1922,7 @@ function cloudPush(){
     user_id: sbUser.id, bank: bank, hands: stats.hands, won: stats.won,
     big: stats.big, peak: stats.peak, net: gameNet,
     streak_count: streak.count, streak_best: streak.best, streak_last: streak.last,
-    updated_at: new Date().toISOString()
+    redeemed: redeemed, updated_at: new Date().toISOString()
   }).then(function(res){
     $("acctSync").textContent = res.error ? "Failed" : "Saved";
     if(res.error) acctSay(res.error.message, "bad");
@@ -1834,7 +1990,11 @@ function gateShow(view){
   gateSay("");
   $("gate").classList.add("on");
 }
-function gateClose(){ $("gate").classList.remove("on"); gateSay(""); }
+function gateClose(){
+  $("gate").classList.remove("on");
+  gateSay("");
+  openingSequence();                                 /* the changelog is next in the queue */
+}
 
 /* Defer to the beta notice if it is still up; closeBeta() calls gateFlush(). */
 var gatePending = false;
