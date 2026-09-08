@@ -119,6 +119,25 @@
   #friendsBoard .board-game{font-weight:700}
   #friendsBoard .board-row.you{border-color:var(--gold);background:rgba(var(--gold-rgb),.1)}
 
+  /* the panel becomes the positioning context so the button can sit in its
+     corner without pushing the title or subtitle around */
+  #tab-leaderboard .table{position:relative}
+  /* the button is out of flow, so the heading text has to be told to keep
+     clear of it — without this the subtitle wraps underneath it on a phone */
+  #tab-leaderboard .title,#lbSub{padding-right:44px}
+  .lb-refresh{
+    position:absolute;top:14px;right:14px;
+    width:30px;height:30px;border-radius:50%;cursor:pointer;
+    font-size:15px;line-height:1;color:var(--gold);
+    background:transparent;border:1px solid var(--edge);
+    display:flex;align-items:center;justify-content:center;
+    transition:background .18s,border-color .18s,opacity .18s;
+  }
+  .lb-refresh:hover{background:rgba(var(--gold-rgb),.12);border-color:var(--gold)}
+  .lb-refresh:disabled{opacity:.5;cursor:default}
+  /* spin the glyph, not the button, so the border stays still */
+  .lb-refresh.spin > span{display:block;animation:wheelSpin .6s linear infinite}
+
   /* ---------- changelog & codes ---------- */
   .changelog-list{margin:0 0 4px;padding:0 0 0 18px;font-size:12.5px;line-height:1.65;color:rgba(var(--cream-rgb),.72)}
   .changelog-list li{margin-bottom:5px}
@@ -1052,6 +1071,7 @@
   <section class="game" id="tab-leaderboard">
     <div class="table">
       <h2 class="title">Leaderboard</h2>
+      <button type="button" class="lb-refresh" id="lbRefresh" title="Refresh" aria-label="Refresh leaderboard"><span>&#8635;</span></button>
       <p class="sub" id="lbSub">Every chip staked and won, per table &middot; up is profit, down is loss</p>
 
       <div class="field-inline">
@@ -1955,17 +1975,21 @@ function totalProfit(net){
   for(var k in net){ if(typeof net[k] === "number") sum += net[k]; }
   return sum;
 }
-function renderFriendsBoard(){
+/* done() fires once the board has actually been painted, whichever way it got
+   there, so the refresh button knows when to stop spinning. */
+function renderFriendsBoard(done){
+  var fin = function(){ if(done) done(); };
   var board = $("friendsBoard");
-  if(!board) return;
+  if(!board){ fin(); return; }
   if(!CLOUD_OK || !sbUser){
     board.innerHTML = '<div class="people-empty">Sign in to see your friends here.</div>';
+    fin();
     return;
   }
   /* no filter: the scores policy already returns your row and your accepted
      friends' rows, and nothing else */
   sb.from("scores").select("user_id, net").then(function(res){
-    if(res.error){ board.innerHTML = '<div class="people-empty">' + res.error.message + '</div>'; return; }
+    if(res.error){ board.innerHTML = '<div class="people-empty">' + res.error.message + '</div>'; fin(); return; }
     var rows = res.data || [];
     namesFor(rows.map(function(r){ return r.user_id; }), function(names){
       var ranked = rows.map(function(r){
@@ -1988,9 +2012,37 @@ function renderFriendsBoard(){
                      '<b class="board-amt ' + (r.profit > 0 ? "up" : r.profit < 0 ? "down" : "flat") + '">' + signed(r.profit) + '</b>' +
                    '</div>';
           }).join("");
+      fin();
     });
   });
 }
+/* Spins the button and hands back the stopper. maxMs is a dead-request guard:
+   if a fetch never comes back the button still frees itself. */
+var lbSpinTimer = null;
+function lbSpin(maxMs){
+  var btn = $("lbRefresh"), stopped = false;
+  btn.classList.add("spin");
+  btn.disabled = true;
+  clearTimeout(lbSpinTimer);
+  var stop = function(){
+    if(stopped) return;
+    stopped = true;
+    clearTimeout(lbSpinTimer);
+    btn.classList.remove("spin");
+    btn.disabled = false;
+  };
+  lbSpinTimer = setTimeout(stop, maxMs);
+  return stop;
+}
+$("lbRefresh").addEventListener("click", function(){
+  playClick();
+  renderLeaderboard();                        /* local, and free */
+  if($("friendsBoard").hidden){
+    lbSpin(400);                              /* nothing to wait for — just show it happened */
+  }else{
+    renderFriendsBoard(lbSpin(6000));         /* the one that actually goes to the network */
+  }
+});
 Array.prototype.forEach.call(document.querySelectorAll("#lbSeg button"), function(b){
   b.addEventListener("click", function(){
     playClick();
