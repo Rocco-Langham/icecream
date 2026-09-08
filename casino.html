@@ -27,12 +27,16 @@
     --pop:var(--gold-dim);
     --panel:rgba(0,0,0,.32);
     --edge:rgba(var(--gold-rgb),.28);
+    --panel-tint-rgb:0,0,0;
+    --ui-font:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+    --ui-case:uppercase;                /* the alternative fonts set this to none */
+    --ui-track:1;                       /* tracking multiplier — caps want more air than lowercase */
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0}
   body{
     min-height:100vh;
-    font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+    font-family:var(--ui-font);
     color:var(--cream);
     background:
       radial-gradient(900px 520px at 50% -10%, var(--bg-glow) 0%, transparent 60%),
@@ -46,56 +50,59 @@
     background-image:radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px);
     background-size:3px 3px;
   }
-  .app-shell{position:relative;max-width:1100px;margin:0 auto;padding:18px 16px 60px;display:flex;align-items:stretch;gap:18px}
+  .app-shell{position:relative;max-width:1100px;margin:0 auto;padding:18px 16px 0;display:flex;align-items:stretch;gap:18px}
   .main{flex:1;min-width:0}
 
   /* ---------- sidebar menu bar ---------- */
   .sidebar{
     flex:0 0 220px;display:flex;flex-direction:column;
     border:1px solid var(--edge);border-radius:14px;padding:18px 0;
-    background:linear-gradient(180deg,rgba(0,0,0,.42),rgba(0,0,0,.22));
+    background:linear-gradient(180deg,rgba(var(--panel-tint-rgb),.42),rgba(var(--panel-tint-rgb),.22));
     box-shadow:0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
   }
   .sidebar-brand{padding:0 18px 16px;margin-bottom:8px;border-bottom:1px solid rgba(var(--gold-rgb),.15)}
-  .sidebar-brand .suits{font-size:20px;letter-spacing:2px}
+  .sidebar-brand .suits{font-size:20px;letter-spacing:calc(2px * var(--ui-track))}
   .sidebar-brand .suits .r{color:var(--red)}
   .sidebar-brand h1{
-    margin:8px 0 2px;font-size:18px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+    margin:8px 0 2px;font-size:18px;font-weight:700;letter-spacing:calc(2px * var(--ui-track));text-transform:var(--ui-case);
     color:var(--gold);text-shadow:0 2px 10px rgba(var(--gold-rgb),.25);word-break:break-word;
   }
-  .sidebar-brand small{display:block;font-size:9px;letter-spacing:3px;color:var(--gold-dim);text-transform:uppercase}
+  .sidebar-brand small{display:block;font-size:9px;letter-spacing:calc(3px * var(--ui-track));color:var(--gold-dim);text-transform:var(--ui-case)}
   .sidebar-section{display:flex;flex-direction:column;gap:2px;padding:0 10px}
-  .sidebar-label{padding:10px 8px 6px;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:rgba(var(--cream-rgb),.35)}
+  .sidebar-label{padding:10px 8px 6px;font-size:10px;letter-spacing:calc(2px * var(--ui-track));text-transform:var(--ui-case);color:rgba(var(--cream-rgb),.35)}
   .sidebar-link{
     display:flex;align-items:center;gap:10px;width:100%;
     padding:11px 12px;border-radius:10px;border:none;cursor:pointer;text-align:left;
-    font:inherit;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+    font:inherit;font-size:12px;font-weight:700;letter-spacing:calc(1.5px * var(--ui-track));text-transform:var(--ui-case);
     color:var(--gold-dim);background:transparent;transition:.15s;
   }
   .sidebar-link .ic{font-size:16px;width:18px;text-align:center;flex:0 0 auto}
-  .sidebar-link:hover{color:var(--cream);background:rgba(0,0,0,.25)}
+  .sidebar-link:hover{color:var(--cream);background:rgba(var(--panel-tint-rgb),.25)}
   .sidebar-link.on{
     color:var(--ink);background:linear-gradient(135deg,var(--gold),var(--pop));
     box-shadow:0 6px 16px rgba(var(--gold-rgb),.22);
   }
   .sidebar-spacer{flex:1}
-  .sidebar-bottom{padding:10px 10px 14px;margin-top:8px;border-top:1px solid rgba(var(--gold-rgb),.15)}
+  .sidebar-bottom{
+    padding:10px 10px 14px;margin-top:8px;border-top:1px solid rgba(var(--gold-rgb),.15);
+    display:flex;flex-direction:column;align-items:flex-start;gap:8px;
+  }
+  .sidebar-actions{display:flex;align-items:center;gap:8px}
 
   /* ---------- header ---------- */
   header{
     display:flex;align-items:center;gap:14px;
     padding:10px 14px;margin-bottom:16px;
     border:1px solid var(--edge);border-radius:14px;
-    background:linear-gradient(180deg,rgba(0,0,0,.42),rgba(0,0,0,.22));
+    background:linear-gradient(180deg,rgba(var(--panel-tint-rgb),.42),rgba(var(--panel-tint-rgb),.22));
     box-shadow:0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
   }
-  header .iconbtn{flex:0 0 auto}
   .chipstack{
     flex:1;display:flex;align-items:center;justify-content:center;gap:12px;
     padding:12px 16px;border-radius:12px;
-    border:1px solid var(--edge);background:rgba(0,0,0,.35);
+    border:1px solid var(--edge);background:rgba(var(--panel-tint-rgb),.35);
   }
-  .chipstack .lbl{font-size:11px;letter-spacing:3px;color:var(--gold-dim);text-transform:uppercase}
+  .chipstack .lbl{font-size:11px;letter-spacing:calc(3px * var(--ui-track));color:var(--gold-dim);text-transform:var(--ui-case)}
   .chipstack .amt{font-size:28px;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums;line-height:1}
   .chipstack .amt.flash-up{animation:flashUp .6s ease}
   .chipstack .amt.flash-dn{animation:flashDn .6s ease}
@@ -114,13 +121,13 @@
     box-shadow:0 16px 40px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.05);
   }
   h2.title{
-    margin:0 0 4px;font-size:15px;letter-spacing:4px;text-transform:uppercase;color:var(--gold);
+    margin:0 0 4px;font-size:15px;letter-spacing:calc(4px * var(--ui-track));text-transform:var(--ui-case);color:var(--gold);
   }
   p.sub{margin:0 0 18px;font-size:12px;color:rgba(var(--cream-rgb),.5)}
 
   .msg{
     min-height:26px;margin:14px 0 0;text-align:center;
-    font-size:15px;font-weight:600;letter-spacing:1px;
+    font-size:15px;font-weight:600;letter-spacing:calc(1px * var(--ui-track));
   }
   .msg.win{color:var(--good)}
   .msg.lose{color:var(--bad)}
@@ -131,7 +138,7 @@
     display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;
     margin-top:18px;padding-top:16px;border-top:1px solid rgba(var(--gold-rgb),.15);
   }
-  .betbar .lbl{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--gold-dim)}
+  .betbar .lbl{font-size:10px;letter-spacing:calc(2px * var(--ui-track));text-transform:var(--ui-case);color:var(--gold-dim)}
   .chipbtn{
     width:52px;height:52px;border-radius:50%;cursor:pointer;
     font:inherit;font-size:13px;font-weight:700;color:#fff;
@@ -146,12 +153,12 @@
   .chipbtn[data-v="100"]{background:radial-gradient(circle at 35% 30%,#3a3a3a,#111)}
   .chipbtn[data-v="500"]{background:radial-gradient(circle at 35% 30%,#7f5ad6,#42227e)}
   .stake{
-    padding:10px 18px;border-radius:10px;border:1px solid var(--edge);background:rgba(0,0,0,.4);
+    padding:10px 18px;border-radius:10px;border:1px solid var(--edge);background:rgba(var(--panel-tint-rgb),.4);
     font-size:20px;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums;min-width:110px;text-align:center;
   }
   .custom-bet{
     width:92px;padding:10px 10px;border-radius:10px;border:1px solid var(--edge);
-    background:rgba(0,0,0,.4);color:var(--gold);font:inherit;font-size:14px;font-weight:700;
+    background:rgba(var(--panel-tint-rgb),.4);color:var(--gold);font:inherit;font-size:14px;font-weight:700;
     text-align:center;font-variant-numeric:tabular-nums;transition:.15s;
   }
   .custom-bet::placeholder{color:rgba(var(--cream-rgb),.35);font-weight:400;letter-spacing:0}
@@ -161,7 +168,7 @@
   .custom-bet[type="number"]{-moz-appearance:textfield}
   .btn{
     padding:12px 26px;cursor:pointer;font:inherit;font-size:13px;font-weight:700;
-    letter-spacing:2px;text-transform:uppercase;border-radius:10px;
+    letter-spacing:calc(2px * var(--ui-track));text-transform:var(--ui-case);border-radius:10px;
     color:var(--ink);background:linear-gradient(135deg,var(--gold),var(--pop));
     border:1px solid var(--gold);box-shadow:0 6px 16px rgba(var(--gold-rgb),.2);
     transition:.15s;
@@ -190,28 +197,28 @@
   }
   .modal-overlay.on{display:flex}
   .modal{
-    width:100%;max-width:560px;max-height:min(600px, 90vh);border-radius:14px;
+    width:100%;max-width:780px;max-height:min(740px, 92vh);border-radius:14px;
     background:linear-gradient(180deg,var(--modal-a),var(--modal-b));
     border:1px solid var(--edge);
     box-shadow:0 20px 50px rgba(0,0,0,.5);
     display:flex;overflow:hidden;position:relative;
   }
   .modal-sidebar{
-    flex:0 0 150px;padding:18px 0;display:flex;flex-direction:column;gap:2px;
-    background:rgba(0,0,0,.22);border-right:1px solid var(--edge);overflow-y:auto;
+    flex:0 0 150px;padding:22px 0;display:flex;flex-direction:column;gap:2px;
+    background:rgba(var(--panel-tint-rgb),.22);border-right:1px solid var(--edge);overflow-y:auto;
   }
   .subtab{
     background:transparent;border:none;border-left:3px solid transparent;
     text-align:left;padding:12px 18px;cursor:pointer;
-    font:inherit;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;
+    font:inherit;font-size:11px;font-weight:600;letter-spacing:calc(2px * var(--ui-track));text-transform:var(--ui-case);
     color:rgba(var(--cream-rgb),.5);transition:.15s;
   }
-  .subtab:hover{color:var(--cream);background:rgba(0,0,0,.18)}
+  .subtab:hover{color:var(--cream);background:rgba(var(--panel-tint-rgb),.18)}
   .subtab.on{color:var(--gold);border-left-color:var(--gold);background:rgba(var(--gold-rgb),.1)}
-  .modal-content{flex:1;min-width:0;padding:22px;overflow-y:auto}
+  .modal-content{flex:1;min-width:0;padding:28px;overflow-y:auto}
   .modal-close{
     position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;
-    border:1px solid var(--edge);background:rgba(0,0,0,.25);color:var(--cream);
+    border:1px solid var(--edge);background:rgba(var(--panel-tint-rgb),.25);color:var(--cream);
     cursor:pointer;font-size:15px;line-height:1;
     display:flex;align-items:center;justify-content:center;transition:.15s;z-index:2;
   }
@@ -219,17 +226,17 @@
   .subpanel{display:none}
   .subpanel.on{display:block;animation:fade .25s ease}
   .modal h2{
-    margin:0 0 4px;font-size:15px;letter-spacing:4px;text-transform:uppercase;color:var(--gold);
+    margin:0 0 4px;font-size:15px;letter-spacing:calc(4px * var(--ui-track));text-transform:var(--ui-case);color:var(--gold);
   }
   .modal p.sub{margin:0 0 18px}
   .field{margin-bottom:16px}
   .field label{
-    display:block;font-size:10px;letter-spacing:2px;text-transform:uppercase;
+    display:block;font-size:10px;letter-spacing:calc(2px * var(--ui-track));text-transform:var(--ui-case);
     color:var(--gold-dim);margin-bottom:6px;
   }
   .field input{
     width:100%;padding:10px 12px;border-radius:8px;
-    border:1px solid var(--edge);background:rgba(0,0,0,.4);
+    border:1px solid var(--edge);background:rgba(var(--panel-tint-rgb),.4);
     color:var(--cream);font:inherit;font-size:15px;font-variant-numeric:tabular-nums;
   }
   .field input:focus{outline:none;border-color:var(--gold)}
@@ -242,7 +249,7 @@
   .switch input{opacity:0;width:0;height:0;position:absolute}
   .slider-track{
     position:absolute;inset:0;cursor:pointer;border-radius:999px;
-    background:rgba(0,0,0,.4);border:1px solid var(--edge);transition:.2s;
+    background:rgba(var(--panel-tint-rgb),.4);border:1px solid var(--edge);transition:.2s;
   }
   .slider-track::before{
     content:"";position:absolute;height:16px;width:16px;left:3px;top:2px;
@@ -252,13 +259,27 @@
   .switch input:checked + .slider-track::before{transform:translateX(20px);background:var(--ink)}
 
   .section-title{
-    font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+    font-size:10px;font-weight:700;letter-spacing:calc(2px * var(--ui-track));text-transform:var(--ui-case);
     color:var(--gold-dim);margin:20px 0 8px;
   }
   .section-title:first-of-type{margin-top:2px}
+  /* the margin lives on the wrapper, because :first-of-type above would match
+     the nested title as the first div of this flex row and collapse it to 2px */
+  .section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:20px 0 8px}
+  .section-head .section-title{margin:0}
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:10px}
+  .stat-cell{
+    padding:10px 12px;border-radius:10px;
+    border:1px solid var(--edge);background:rgba(var(--panel-tint-rgb),.4);
+  }
+  .stat-cell span{
+    display:block;font-size:9.5px;letter-spacing:calc(2px * var(--ui-track));
+    text-transform:var(--ui-case);color:var(--gold-dim);margin-bottom:4px;
+  }
+  .stat-cell b{font-size:17px;color:var(--gold);font-variant-numeric:tabular-nums}
   input[type="range"]{
     -webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:999px;
-    background:rgba(0,0,0,.4);border:1px solid var(--edge);cursor:pointer;
+    background:rgba(var(--panel-tint-rgb),.4);border:1px solid var(--edge);cursor:pointer;
   }
   input[type="range"]::-webkit-slider-thumb{
     -webkit-appearance:none;appearance:none;width:16px;height:16px;border-radius:50%;
@@ -281,13 +302,49 @@
   .theme-card .swatch-label{
     position:relative;width:100%;padding:7px 10px;
     background:linear-gradient(0deg, rgba(0,0,0,.8), transparent);
-    font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#fff;
+    font-size:10.5px;font-weight:700;letter-spacing:calc(1px * var(--ui-track));text-transform:var(--ui-case);color:#fff;
   }
   .theme-card .swatch-tag{display:block;font-size:9px;font-weight:400;letter-spacing:.5px;text-transform:none;color:rgba(255,255,255,.7);margin-top:2px}
   .theme-card .check{
     position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:50%;
     background:#fff;color:#111;font-size:11px;font-weight:800;
     display:flex;align-items:center;justify-content:center;
+  }
+
+  /* ---------- appearance / font picker ---------- */
+  /* minmax(0,…) so a long name like Trebuchet MS can't widen its own column */
+  .font-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:2px}
+  .font-card{
+    position:relative;min-height:96px;padding:14px 10px;border-radius:12px;cursor:pointer;
+    border:1px solid var(--edge);background:rgba(var(--panel-tint-rgb),.32);
+    color:var(--cream);display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:6px;text-align:center;transition:.15s;
+  }
+  .font-card:hover{transform:translateY(-2px);border-color:var(--gold)}
+  .font-card.on{border-color:var(--gold);box-shadow:0 0 0 2px rgba(var(--gold-rgb),.35)}
+  /* the name is the sample, so it renders in its own face and never in caps */
+  .font-card .face{font-size:17px;font-weight:700;line-height:1.25;text-transform:none;letter-spacing:0}
+  .font-card .sample{font-size:11px;opacity:.62;text-transform:none;letter-spacing:0}
+  .font-card .check{
+    position:absolute;top:6px;right:6px;width:18px;height:18px;border-radius:50%;
+    background:var(--gold);color:var(--ink);font-size:10px;font-weight:800;
+    display:flex;align-items:center;justify-content:center;
+  }
+
+  /* ---------- appearance: themes | fonts, side by side ---------- */
+  /* Themes take the wider half so their swatches stay legible; the font cards
+     drop to one per row, which is the only way three of them fit a half-panel
+     without the longer names spilling past their own borders. */
+  .appearance-split > div{min-width:0}
+  .appearance-split > div + div .section-title{margin-top:20px}
+  @media(min-width:660px){
+    .appearance-split{display:grid;grid-template-columns:1.4fr 1fr;gap:20px;align-items:start}
+    .appearance-split > div + div .section-title{margin-top:2px}
+    .appearance-split .font-grid{grid-template-columns:minmax(0,1fr)}
+    .appearance-split .font-card{min-height:72px;padding:10px}
+    .appearance-split .theme-card{height:74px}
+    .appearance-split .theme-card .swatch-label{padding:5px 8px;font-size:10px;line-height:1.2}
+    .appearance-split .theme-card .swatch-tag{font-size:8.5px;line-height:1.2;margin-top:1px}
   }
 
   /* ---------- slots ---------- */
@@ -318,18 +375,18 @@
     display:flex;justify-content:space-between;padding:7px 14px;
     color:rgba(var(--cream-rgb),.72);
   }
-  .paytable div:nth-child(odd){background:rgba(0,0,0,.22)}
+  .paytable div:nth-child(odd){background:rgba(var(--panel-tint-rgb),.22)}
   .paytable b{color:var(--gold)}
 
   /* ---------- cards ---------- */
   .seat{margin-bottom:20px}
   .seat h3{
-    margin:0 0 8px;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--gold-dim);
+    margin:0 0 8px;font-size:11px;letter-spacing:calc(3px * var(--ui-track));text-transform:var(--ui-case);color:var(--gold-dim);
     display:flex;align-items:center;gap:10px;
   }
   .seat h3 .score{
-    padding:2px 10px;border-radius:999px;background:rgba(0,0,0,.45);
-    border:1px solid var(--edge);color:var(--gold);font-size:12px;letter-spacing:1px;
+    padding:2px 10px;border-radius:999px;background:rgba(var(--panel-tint-rgb),.45);
+    border:1px solid var(--edge);color:var(--gold);font-size:12px;letter-spacing:calc(1px * var(--ui-track));
   }
   .hand{display:flex;gap:8px;min-height:112px;flex-wrap:wrap}
   .card{
@@ -351,7 +408,7 @@
       repeating-linear-gradient(45deg,#8b2230 0 6px,#6d1a26 6px 12px);
     border:3px solid #f4ead7;
   }
-  .card.back::after{content:"\2660";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px;color:rgba(var(--cream-rgb),.55)}
+  .card.back::after{content:"\2660";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px;color:rgba(244,234,215,.55)}
 
   /* ---------- roulette ---------- */
   .wheelbox{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:6px}
@@ -368,7 +425,7 @@
     background:radial-gradient(circle at 35% 30%,#2b2b2b,#0a0a0a);
     border:2px solid var(--gold-dim);
     display:flex;align-items:center;justify-content:center;
-    font-size:30px;font-weight:700;color:var(--cream);
+    font-size:30px;font-weight:700;color:#f4ead7;
   }
   .board{
     display:grid;grid-template-columns:repeat(12,1fr);gap:4px;margin:14px 0 8px;
@@ -382,7 +439,7 @@
   .cell.red{background:linear-gradient(180deg,#d04045,#a3242a)}
   .cell.black{background:linear-gradient(180deg,#333,#141414)}
   .cell.green{background:linear-gradient(180deg,#12905a,#0a5334);grid-column:span 12}
-  .cell.out{background:rgba(0,0,0,.4);border:1px solid var(--edge);color:var(--cream);grid-column:span 4;padding:11px 0;font-size:11px;letter-spacing:1px}
+  .cell.out{background:rgba(var(--panel-tint-rgb),.4);border:1px solid var(--edge);color:var(--cream);grid-column:span 4;padding:11px 0;font-size:11px;letter-spacing:calc(1px * var(--ui-track))}
   .cell.out.sm{grid-column:span 3}
   .cell .stack{
     position:absolute;top:-7px;right:-7px;min-width:22px;height:22px;line-height:20px;
@@ -394,18 +451,21 @@
     display:flex;flex-wrap:wrap;gap:6px;justify-content:center;min-height:22px;margin-top:6px;
     font-size:11px;color:rgba(var(--cream-rgb),.7);
   }
-  .slips span{padding:3px 9px;border-radius:999px;background:rgba(0,0,0,.4);border:1px solid var(--edge)}
+  .slips span{padding:3px 9px;border-radius:999px;background:rgba(var(--panel-tint-rgb),.4);border:1px solid var(--edge)}
 
   /* ---------- footer ---------- */
+  /* Sits outside .app-shell so the sidebar stretches to the game panel and no
+     further — inside it, the sidebar ran on down beside this caption. */
   footer{
-    margin-top:24px;text-align:center;font-size:11px;line-height:1.7;
+    max-width:1100px;margin:24px auto 0;padding:0 16px 60px;
+    text-align:center;font-size:11px;line-height:1.7;
     color:rgba(var(--cream-rgb),.38);
   }
   footer b{color:var(--gold-dim)}
-  .version-tag{margin-top:10px;font-size:10px;letter-spacing:2px;color:rgba(var(--cream-rgb),.28)}
+  .version-tag{font-size:10px;letter-spacing:calc(2px * var(--ui-track));color:rgba(var(--cream-rgb),.42)}
   .stats{
     display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-bottom:10px;
-    font-size:11px;letter-spacing:1px;text-transform:uppercase;color:rgba(var(--cream-rgb),.45);
+    font-size:11px;letter-spacing:calc(1px * var(--ui-track));text-transform:var(--ui-case);color:rgba(var(--cream-rgb),.45);
   }
   .stats b{color:var(--gold);font-size:13px}
 
@@ -421,23 +481,25 @@
     display:block;width:100%;height:114px;margin-top:10px;
     border-radius:10px;border:1px solid var(--edge);background:#07130d;
   }
+  /* fixed cream/gold, not theme vars: this text overlays the race canvas, which
+     always paints its own dark backdrop regardless of the page theme */
   .track-hint{
     position:absolute;bottom:8px;right:10px;pointer-events:none;
-    font-size:9.5px;letter-spacing:1.5px;text-transform:uppercase;
-    color:rgba(var(--cream-rgb),.4);text-shadow:0 1px 4px rgba(0,0,0,.9);
+    font-size:9.5px;letter-spacing:calc(1.5px * var(--ui-track));text-transform:var(--ui-case);
+    color:rgba(244,234,215,.4);text-shadow:0 1px 4px rgba(0,0,0,.9);
   }
   .race-board{
     position:absolute;top:8px;left:10px;pointer-events:none;
     font-size:11px;line-height:1.6;font-variant-numeric:tabular-nums;
-    color:rgba(var(--cream-rgb),.8);text-shadow:0 1px 4px rgba(0,0,0,.95);
+    color:rgba(244,234,215,.8);text-shadow:0 1px 4px rgba(0,0,0,.95);
   }
   .rb-row{display:flex;align-items:center;gap:6px}
   .rb-dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;border:1px solid rgba(0,0,0,.5)}
-  .rb-you{color:var(--gold);font-weight:700}
+  .rb-you{color:#e8c264;font-weight:700}
   .field-inline{
     display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;margin-top:14px;
   }
-  .field-inline .lbl{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--gold-dim)}
+  .field-inline .lbl{font-size:10px;letter-spacing:calc(2px * var(--ui-track));text-transform:var(--ui-case);color:var(--gold-dim)}
   .horse-pick{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-top:12px}
   .horse-btn{
     width:40px;height:40px;border-radius:50%;cursor:pointer;flex:0 0 auto;
@@ -455,10 +517,28 @@
     display:block;width:100%;height:420px;
     border-radius:14px;border:1px solid var(--edge);background:#07130d;
   }
+
+  /* ---------- flappy ---------- */
+  #flappyCanvas{
+    display:block;width:100%;height:420px;touch-action:none;cursor:pointer;
+    border-radius:14px;border:1px solid var(--edge);background:#070d18;
+  }
+  /* Sits directly under the canvas and spans it: mid-flight your thumb is on the
+     sky, so the cash-out has to be a big target a finger-width away, not a chip
+     in the bet bar. On phones it sticks to the bottom of the viewport too. */
+  .fb-action{
+    display:block;width:100%;margin-top:10px;
+    padding:18px 20px;font-size:14px;letter-spacing:calc(3px * var(--ui-track));
+  }
+  .fb-action.cash{
+    color:#04120a;background:linear-gradient(135deg,#57e08d,#1c9c55);
+    border-color:#57e08d;box-shadow:0 8px 22px rgba(87,224,141,.28);
+  }
+  .fb-action.cash:hover:not(:disabled){box-shadow:0 12px 28px rgba(87,224,141,.42)}
   .segmented{display:flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden}
   .segmented button{
     padding:8px 16px;background:transparent;border:none;cursor:pointer;
-    font:inherit;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+    font:inherit;font-size:11px;font-weight:700;letter-spacing:calc(1px * var(--ui-track));text-transform:var(--ui-case);
     color:rgba(var(--cream-rgb),.55);transition:.15s;
   }
   .segmented button:hover:not(:disabled){color:var(--cream)}
@@ -467,18 +547,43 @@
 
   @media(max-width:760px){
     .app-shell{flex-direction:column;gap:12px}
-    .sidebar{flex-direction:row;flex-wrap:wrap;align-items:center;padding:10px;gap:4px 0;row-gap:8px}
-    .sidebar-brand{display:flex;align-items:center;gap:8px;padding:0 12px 0 0;margin-bottom:0;margin-right:8px;border-bottom:none;border-right:1px solid rgba(var(--gold-rgb),.15)}
-    .sidebar-brand h1{margin:0;font-size:14px;letter-spacing:1px}
+    /* One row that mirrors the chips bar below it — same padding and height.
+       The games scroll sideways instead of wrapping onto extra lines, which is
+       what used to make this bar three times taller than the bar beneath it. */
+    /* flex-basis 220px is a width in the desktop row layout, but the shell is a
+       column here — leave it set and it pins the bar to a 220px *height*. */
+    .sidebar{
+      flex:0 0 auto;position:relative;
+      flex-direction:row;flex-wrap:nowrap;align-items:center;
+      padding:10px 14px;gap:8px;min-height:76px;
+    }
+    /* the brand yields first, otherwise the two chrome buttons squeeze the
+       scrolling games strip down to a sliver on a narrow phone */
+    .sidebar-brand{display:flex;align-items:center;gap:8px;padding:0 12px 0 0;margin-bottom:0;margin-right:0;border-bottom:none;border-right:1px solid rgba(var(--gold-rgb),.15);flex:0 1 auto;min-width:0;max-width:40%}
+    .sidebar-brand h1{margin:0;font-size:14px;letter-spacing:calc(1px * var(--ui-track));min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .sidebar-brand small{display:none}
-    .sidebar-section{flex-direction:row;flex-wrap:wrap;padding:0;gap:4px;row-gap:4px}
+    /* basis 0 so the strip claims only leftover space and scrolls, leaving the
+       brand its natural width until it would exceed its 40% cap */
+    .sidebar-section{flex-direction:row;flex-wrap:nowrap;padding:0;gap:4px;flex:1 1 0;min-width:0;overflow-x:auto}
     .sidebar-label{display:none}
-    .sidebar-link{width:auto;padding:8px 10px;font-size:11px}
+    .sidebar-link{width:auto;padding:8px 10px;font-size:11px;flex:0 0 auto;white-space:nowrap}
     .sidebar-link .ic{font-size:14px;width:auto}
     .sidebar-spacer{display:none}
-    .sidebar-bottom{border-top:none;margin-top:0;padding:0}
+    .sidebar-bottom{border-top:none;margin-top:0;padding:0;flex:0 0 auto;flex-direction:row;align-items:center;gap:8px}
+    /* out of flow: stacked in flow it would push this bar past 76px and it would
+       stop sitting flush with the chips bar below */
+    .sidebar-bottom .version-tag{
+      position:absolute;right:14px;bottom:3px;
+      margin:0;font-size:9px;line-height:1;pointer-events:none;max-width:40%;
+      overflow:hidden;white-space:nowrap;
+    }
+    .fb-action{position:sticky;bottom:10px;z-index:5;padding:22px 20px;font-size:15px}
   }
   @media(max-width:560px){
+    /* the suits cost ~63px the games strip needs more than the decoration does;
+       the casino name stays, since the dev console can rename it */
+    .sidebar-brand .suits{display:none}
+    .sidebar-brand{max-width:34%}
     .chipstack .amt{font-size:22px}
     header{padding:8px 10px;gap:8px}
     .reel{height:88px;font-size:42px}
@@ -488,10 +593,18 @@
     .cell.out{grid-column:span 3}
     .cell.green{grid-column:span 6}
     .modal{flex-direction:column;max-height:85vh}
-    .modal-sidebar{flex-direction:row;flex:0 0 auto;overflow-x:auto;border-right:none;border-bottom:1px solid var(--edge);padding:8px}
-    .subtab{border-left:none;border-bottom:3px solid transparent;flex:0 0 auto;white-space:nowrap}
+    /* the tabs share the strip with the absolute close button, so they tighten
+       up rather than scrolling underneath it */
+    .modal-sidebar{flex-direction:row;flex:0 0 auto;overflow-x:auto;border-right:none;border-bottom:1px solid var(--edge);padding:8px 46px 8px 8px}
+    .subtab{border-left:none;border-bottom:3px solid transparent;flex:0 0 auto;white-space:nowrap;padding:11px 9px;letter-spacing:.5px}
     .subtab.on{border-left-color:transparent;border-bottom-color:var(--gold)}
     .theme-grid{grid-template-columns:1fr}
+    /* fonts stay three across as designed, just tighter — the note is illegible
+       at this width, and the name in its own face is the point of the card */
+    .font-grid{gap:8px}
+    .font-card{min-height:80px;padding:12px 4px}
+    .font-card .face{font-size:14px}
+    .font-card .sample{display:none}
   }
 </style>
 </head>
@@ -512,17 +625,17 @@
       <button class="sidebar-link" data-tab="roulette"><span class="ic">&#127919;</span>Roulette</button>
       <button class="sidebar-link" data-tab="horse"><span class="ic">&#127895;</span>Racing</button>
       <button class="sidebar-link" data-tab="plinko"><span class="ic">&#128315;</span>Plinko</button>
-    </div>
-
-    <div class="sidebar-section">
-      <span class="sidebar-label">Advanced</span>
-      <button class="sidebar-link" id="devModeBtn"><span class="ic">&#128295;</span>Dev&nbsp;Mode</button>
+      <button class="sidebar-link" data-tab="flappy"><span class="ic">&#128038;</span>Flappy</button>
     </div>
 
     <div class="sidebar-spacer"></div>
 
     <div class="sidebar-bottom">
-      <button class="iconbtn" id="settingsBtn" title="Settings" aria-label="Settings">&#9881;</button>
+      <div class="sidebar-actions">
+        <button class="iconbtn" id="settingsBtn" title="Settings" aria-label="Settings">&#9881;</button>
+        <button class="iconbtn" id="muteBtn" title="Mute sound" aria-label="Mute sound">&#128266;</button>
+      </div>
+      <div class="version-tag" id="versionTag"></div>
     </div>
   </aside>
 
@@ -533,7 +646,6 @@
       <span class="lbl">Chips</span>
       <span class="amt" id="bank">100</span>
     </div>
-    <button class="iconbtn" id="muteBtn" title="Mute sound" aria-label="Mute sound">&#128266;</button>
   </header>
 
   <!-- ================= SLOTS ================= -->
@@ -721,20 +833,54 @@
     </div>
   </section>
 
-  <footer>
-    <div class="stats">
-      <span>Hands <b id="stHands">0</b></span>
-      <span>Won <b id="stWon">0</b></span>
-      <span>Biggest hit <b id="stBig">0</b></span>
-      <span>Peak bank <b id="stPeak">100</b></span>
+  <!-- ================= FLAPPY ================= -->
+  <section class="game" id="tab-flappy">
+    <div class="table">
+      <h2 class="title">Flappy</h2>
+      <p class="sub">Starts at 0.50x and compounds with every pipe &middot; it speeds up the longer you stay airborne</p>
+
+      <canvas id="flappyCanvas"></canvas>
+
+      <button class="btn fb-action" id="fbGo">Fly</button>
+
+      <div class="field-inline">
+        <span class="lbl">Multiplier</span>
+        <div class="stake" id="fbMultVal" style="min-width:84px">0.50x</div>
+
+        <span class="lbl">Pipes</span>
+        <div class="stake" id="fbPipeVal" style="min-width:56px">0</div>
+
+        <span class="lbl">Tap the sky or press space to flap &middot; K to bet &amp; cash out</span>
+      </div>
+
+      <div class="msg info" id="fbMsg">Set your stake and take off.</div>
+
+      <div class="betbar">
+        <span class="lbl">Bet</span>
+        <button class="chipbtn" data-v="5">5</button>
+        <button class="chipbtn" data-v="25">25</button>
+        <button class="chipbtn" data-v="100">100</button>
+        <button class="chipbtn" data-v="500">500</button>
+        <input type="number" class="custom-bet" id="fbCustom" min="1" step="1" placeholder="Custom">
+        <div class="stake" id="fbStake">25</div>
+        <button class="btn ghost sm" id="fbClear">Clear</button>
+      </div>
     </div>
-    <b>No real money.</b> Chips are imaginary and saved only in your own browser.<br>
-    Built as a single file &mdash; nothing is uploaded anywhere.
-    <div class="version-tag">v1.0</div>
-  </footer>
+  </section>
 
   </main>
 </div>
+
+<footer>
+  <div class="stats">
+    <span>Hands <b id="stHands">0</b></span>
+    <span>Won <b id="stWon">0</b></span>
+    <span>Biggest hit <b id="stBig">0</b></span>
+    <span>Peak bank <b id="stPeak">100</b></span>
+  </div>
+  <b>No real money.</b> Chips are imaginary and saved only in your own browser.<br>
+  Built as a single file &mdash; nothing is uploaded anywhere.
+</footer>
 
 <div class="modal-overlay" id="settingsOverlay">
   <div class="modal">
@@ -762,35 +908,94 @@
           <input type="range" id="volumeSlider" min="0" max="100" step="5" value="45">
         </div>
         <p class="modal-note">Chip clicks, dealing, spins, and win/lose cues.</p>
+
+        <div class="section-head">
+          <div class="section-title">Stats</div>
+          <button class="btn ghost sm" id="statsResetBtn">Reset</button>
+        </div>
+        <div class="stat-grid">
+          <div class="stat-cell"><span>Hands</span><b id="statsHands">0</b></div>
+          <div class="stat-cell"><span>Won</span><b id="statsWon">0</b></div>
+          <div class="stat-cell"><span>Biggest hit</span><b id="statsBig">0</b></div>
+          <div class="stat-cell"><span>Peak bank</span><b id="statsPeak">0</b></div>
+          <div class="stat-cell"><span>Chips now</span><b id="statsBank">0</b></div>
+        </div>
+        <p class="modal-note">Totals since your last reset. Peak bank is the highest balance you have held.</p>
+
+        <div class="section-title">Code</div>
+        <div class="field">
+          <input type="text" id="devCode" autocomplete="off" spellcheck="false" placeholder="Code">
+        </div>
+        <div class="modal-actions">
+          <button class="btn ghost sm" id="devSubmit">Submit</button>
+        </div>
+        <p class="modal-note" id="devNote"></p>
       </div>
 
       <div class="subpanel" id="sub-appearance">
         <h2>Appearance</h2>
-        <p class="sub">Pick a vibe for the tables.</p>
-        <div class="theme-grid" id="themeGrid"></div>
+        <p class="sub">Pick a vibe for the tables and a typeface for the whole casino.</p>
+        <div class="appearance-split">
+          <div>
+            <div class="section-title">Theme</div>
+            <div class="theme-grid" id="themeGrid"></div>
+          </div>
+          <div>
+            <div class="section-title">Font</div>
+            <div class="font-grid" id="fontGrid"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<div class="modal-overlay" id="devOverlay">
+<div class="modal-overlay" id="betaOverlay">
   <div class="modal simple">
-    <button class="modal-close" id="devClose" aria-label="Close dev mode">&times;</button>
-    <h2>Dev Mode</h2>
-    <p class="sub">This area is locked. Enter the code to continue.</p>
-    <div class="field">
-      <label for="devCode">Enter code</label>
-      <input type="text" id="devCode" autocomplete="off" spellcheck="false" placeholder="Code">
-    </div>
+    <button class="modal-close" id="betaClose" aria-label="Close notice">&times;</button>
+    <h2>Beta</h2>
+    <p class="sub">This game is still in beta. There may be bugs and issues.</p>
+    <p class="modal-note" id="betaVersion"></p>
     <div class="modal-actions">
-      <button class="btn sm" id="devSubmit">Submit</button>
+      <button class="btn sm" id="betaOk">Got it</button>
     </div>
-    <p class="modal-note" id="devNote"></p>
+  </div>
+</div>
+
+<!-- Two separate overlays rather than one with a step counter: a dismissed
+     step-1 can then never leave the dialog primed on step 2. -->
+<div class="modal-overlay" id="resetStats1">
+  <div class="modal simple">
+    <button class="modal-close" id="resetStatsClose1" aria-label="Close">&times;</button>
+    <h2>Reset stats?</h2>
+    <p class="sub">This clears hands, won, biggest hit and peak bank. Your chips are not touched.</p>
+    <div class="modal-actions">
+      <button class="btn ghost sm" id="resetStatsCancel1">Cancel</button>
+      <button class="btn sm" id="resetStatsNext">Continue</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="resetStats2">
+  <div class="modal simple">
+    <button class="modal-close" id="resetStatsClose2" aria-label="Close">&times;</button>
+    <h2>Are you sure?</h2>
+    <p class="sub">Last chance &mdash; this cannot be undone.</p>
+    <p class="modal-note" id="resetStatsSummary"></p>
+    <!-- Destructive action FIRST here, against the usual order: step 1's
+         Continue button sits at the right edge, so the safe button is what
+         lands under a stray second click. -->
+    <div class="modal-actions">
+      <button class="btn sm" id="resetStatsGo">Wipe stats</button>
+      <button class="btn ghost sm" id="resetStatsCancel2">Keep stats</button>
+    </div>
   </div>
 </div>
 
 <script>
 "use strict";
+
+var VERSION = "v1.0";
 
 /* ============ persistence ============ */
 var KEY = "sparxmaths-casino-v1";
@@ -804,7 +1009,7 @@ function load(){
 }
 function save(){
   var data = {
-    bank:bank, stats:stats, theme:currentTheme, soundOn:soundOn,
+    bank:bank, stats:stats, theme:currentTheme, font:currentFont, soundOn:soundOn,
     soundVolume:soundVolume, casinoName:CASINO_NAME,
     rigUser:rigUser, rigHost:rigHost
   };
@@ -1002,6 +1207,10 @@ function switchSubtab(name){
 $("settingsBtn").addEventListener("click", function(){
   playClick();
   switchSubtab("general");
+  devCodeInput.value = "";
+  devNote.textContent = "";
+  devNote.style.color = "";
+  renderStatsPanel();
   settingsOverlay.classList.add("on");
 });
 $("settingsClose").addEventListener("click", function(){
@@ -1018,29 +1227,75 @@ Array.prototype.forEach.call(document.querySelectorAll(".subtab"), function(b){
   });
 });
 
-/* ---- dev mode ---- */
-var devOverlay = $("devOverlay"), devCodeInput = $("devCode"), devNote = $("devNote");
+/* ---- beta notice ---- */
+var betaOverlay = $("betaOverlay");
+function closeBeta(){ betaOverlay.classList.remove("on"); }
+$("betaClose").addEventListener("click", closeBeta);
+$("betaOk").addEventListener("click", function(){ playClick(); closeBeta(); });
+betaOverlay.addEventListener("click", function(e){
+  if(e.target === betaOverlay) closeBeta();
+});
+
+/* ---- stats panel + two-step reset ---- */
+function renderStatsPanel(){
+  $("statsHands").textContent = fmt(stats.hands);
+  $("statsWon").textContent   = fmt(stats.won);
+  $("statsBig").textContent   = fmt(stats.big);
+  $("statsPeak").textContent  = fmt(stats.peak);
+  $("statsBank").textContent  = fmt(bank);
+}
+
+var resetStats1 = $("resetStats1"), resetStats2 = $("resetStats2");
+function closeReset1(){ resetStats1.classList.remove("on"); }
+function closeReset2(){ resetStats2.classList.remove("on"); }
+
+$("statsResetBtn").addEventListener("click", function(){
+  playClick();
+  resetStats1.classList.add("on");
+});
+$("resetStatsClose1").addEventListener("click", closeReset1);
+$("resetStatsCancel1").addEventListener("click", function(){ playClick(); closeReset1(); });
+resetStats1.addEventListener("click", function(e){ if(e.target === resetStats1) closeReset1(); });
+
+$("resetStatsNext").addEventListener("click", function(){
+  playClick();
+  closeReset1();
+  $("resetStatsSummary").textContent =
+    "Clearing " + fmt(stats.hands) + " hands, " + fmt(stats.won) + " won, " +
+    fmt(stats.big) + " biggest hit, " + fmt(stats.peak) + " peak bank.";
+  /* Step 2 replaces step 1 in the same tick, so the second click of a
+     double-click would land on whatever now occupies those pixels. Button order
+     keeps that from being the destructive one; this makes it true regardless of
+     how the labels measure under a different font. */
+  var go = $("resetStatsGo");
+  go.disabled = true;
+  setTimeout(function(){ go.disabled = false; }, 500);
+  resetStats2.classList.add("on");
+});
+$("resetStatsClose2").addEventListener("click", closeReset2);
+$("resetStatsCancel2").addEventListener("click", function(){ playClick(); closeReset2(); });
+resetStats2.addEventListener("click", function(e){ if(e.target === resetStats2) closeReset2(); });
+
+$("resetStatsGo").addEventListener("click", function(){
+  playClick();
+  stats.hands = 0;
+  stats.won = 0;
+  stats.big = 0;
+  stats.peak = bank;                 /* a high-water mark restarts from today's balance, not 0 */
+  renderStats();
+  renderStatsPanel();
+  save();
+  closeReset2();
+});
+
+/* ---- dev mode (unlocked by the Code field in General settings) ---- */
+var devCodeInput = $("devCode"), devNote = $("devNote");
 
 function applyCasinoName(name){
   CASINO_NAME = name;
   document.title = name.toUpperCase() + " Casino";
   $("brandName").textContent = name;
 }
-
-$("devModeBtn").addEventListener("click", function(){
-  playClick();
-  devCodeInput.value = "";
-  devNote.textContent = "";
-  devNote.style.color = "";
-  devOverlay.classList.add("on");
-  setTimeout(function(){ devCodeInput.focus(); }, 60);
-});
-$("devClose").addEventListener("click", function(){
-  devOverlay.classList.remove("on");
-});
-devOverlay.addEventListener("click", function(e){
-  if(e.target === devOverlay) devOverlay.classList.remove("on");
-});
 
 function openDevPopup(){
   var html = [
@@ -1140,6 +1395,7 @@ function openDevPopup(){
     '      print("&nbsp;&nbsp;<b>rig off</b> &mdash; back to fair odds");',
     '      print("&nbsp;&nbsp;<b>clear</b> &mdash; clear this console");',
     '      print("&nbsp;&nbsp;<b>exit</b> &mdash; close this window");',
+    '      print("Chip amounts take k/m/b &mdash; e.g. chips add 1.5m", "out-dim");',
     '      return;',
     '    }',
     '    if(cmd === "clear"){ body.innerHTML = ""; return; }',
@@ -1203,6 +1459,18 @@ function openDevPopup(){
 function escHtml(s){
   return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
+/* "1m" -> 1000000, also k and b, any case, decimals allowed ("1.5k").
+   Anchored, so junk like "1x" or "abc" is NaN rather than a silent 1. Rounded
+   and finite-checked because setBank does no clamping and an Infinity balance
+   would JSON.stringify to null and wipe the save on reload. */
+function parseAmount(s){
+  if(typeof s !== "string") return NaN;
+  var m = /^([+-]?(?:\d+(?:\.\d+)?|\.\d+))([kmb])?$/i.exec(s.trim().replace(/,/g, ""));
+  if(!m) return NaN;
+  var mult = {k:1e3, m:1e6, b:1e9}[(m[2] || "").toLowerCase()] || 1;
+  var v = Math.round(parseFloat(m[1]) * mult);
+  return isFinite(v) ? v : NaN;
+}
 window.addEventListener("message", function(e){
   var data = e.data;
   if(!data || data.type !== "xyz-cmd" || !e.source) return;
@@ -1217,13 +1485,13 @@ window.addEventListener("message", function(e){
     reply("Casino renamed to \"" + escHtml(nm) + "\".", "ok");
   }else if(cmd === "chips"){
     if(args[0] === "add"){
-      var n = Number(args[1]);
-      if(!n){ reply("Usage: chips add &lt;n&gt;", "err"); return; }
+      var n = parseAmount(args[1]);
+      if(isNaN(n) || n === 0){ reply("Usage: chips add &lt;n&gt; &mdash; accepts 1k, 1.5m, 2b", "err"); return; }
       setBank(bank + n, 1);
-      reply("Added " + n + " chips. Balance: " + fmt(bank), "ok");
+      reply("Added " + fmt(n) + " chips. Balance: " + fmt(bank), "ok");
     }else if(args[0] === "set"){
-      var n2 = Number(args[1]);
-      if(!n2 && n2 !== 0){ reply("Usage: chips set &lt;n&gt;", "err"); return; }
+      var n2 = parseAmount(args[1]);
+      if(isNaN(n2)){ reply("Usage: chips set &lt;n&gt; &mdash; accepts 1k, 1.5m, 2b", "err"); return; }
       setBank(n2, 1);
       reply("Balance set to " + fmt(bank), "ok");
     }else{
@@ -1270,7 +1538,7 @@ function submitDevCode(){
       ? "Code accepted — casino renamed. Check the pop-up window."
       : "Code accepted — casino renamed. (Your browser blocked the pop-up.)";
     devNote.style.color = "var(--good)";
-    setTimeout(function(){ devOverlay.classList.remove("on"); }, 900);
+    setTimeout(function(){ settingsOverlay.classList.remove("on"); }, 900);
   }else{
     playLose();
     devNote.textContent = "Incorrect code.";
@@ -1289,42 +1557,56 @@ var THEMES = [
     "--cream":"#f4ead7", "--cream-rgb":"244,234,215", "--ink":"#050807",
     "--bg-glow":"#145b41", "--bg1":"#0b3d2c", "--bg2":"#062419", "--bg3":"#030d09",
     "--bg1-rgb":"11,61,44", "--bg3-rgb":"3,13,9",
-    "--modal-a":"#0e4632", "--modal-b":"#062419", "--pop":"#a8863a"
+    "--modal-a":"#0e4632", "--modal-b":"#062419", "--pop":"#a8863a", "--panel-tint-rgb":"0,0,0"
   }},
   {id:"neon", name:"Neon Nights", tag:"Cyberpunk strip lights", vars:{
     "--gold":"#ff2e9e", "--gold-dim":"#7d1656", "--gold-rgb":"255,46,158",
     "--cream":"#ecfbff", "--cream-rgb":"236,251,255", "--ink":"#0a0014",
     "--bg-glow":"#4d1478", "--bg1":"#1c0736", "--bg2":"#0d0320", "--bg3":"#05010c",
     "--bg1-rgb":"28,7,54", "--bg3-rgb":"5,1,12",
-    "--modal-a":"#3a0f63", "--modal-b":"#0d0320", "--pop":"#22e8ff"
+    "--modal-a":"#3a0f63", "--modal-b":"#0d0320", "--pop":"#22e8ff", "--panel-tint-rgb":"0,0,0"
   }},
   {id:"amethyst", name:"Royal Amethyst", tag:"Velvet purple & gold", vars:{
     "--gold":"#c9a6ff", "--gold-dim":"#7a55b8", "--gold-rgb":"201,166,255",
     "--cream":"#f3ecff", "--cream-rgb":"243,236,255", "--ink":"#0d0616",
     "--bg-glow":"#3d2166", "--bg1":"#26123f", "--bg2":"#150a24", "--bg3":"#0a0512",
     "--bg1-rgb":"38,18,63", "--bg3-rgb":"10,5,18",
-    "--modal-a":"#3a1c5e", "--modal-b":"#150a24", "--pop":"#ffd76a"
+    "--modal-a":"#3a1c5e", "--modal-b":"#150a24", "--pop":"#ffd76a", "--panel-tint-rgb":"0,0,0"
   }},
   {id:"inferno", name:"Inferno", tag:"Fire on the felt", vars:{
     "--gold":"#ffb238", "--gold-dim":"#a5480f", "--gold-rgb":"255,178,56",
     "--cream":"#fff1e0", "--cream-rgb":"255,241,224", "--ink":"#160400",
     "--bg-glow":"#7a1409", "--bg1":"#3d0d06", "--bg2":"#1f0603", "--bg3":"#0d0201",
     "--bg1-rgb":"61,13,6", "--bg3-rgb":"13,2,1",
-    "--modal-a":"#5c1206", "--modal-b":"#1f0603", "--pop":"#ff3d3d"
+    "--modal-a":"#5c1206", "--modal-b":"#1f0603", "--pop":"#ff3d3d", "--panel-tint-rgb":"0,0,0"
   }},
   {id:"sapphire", name:"Sapphire Frost", tag:"Ice-cold high roller", vars:{
     "--gold":"#7cd6ff", "--gold-dim":"#2f6fa0", "--gold-rgb":"124,214,255",
     "--cream":"#eaf7ff", "--cream-rgb":"234,247,255", "--ink":"#020912",
     "--bg-glow":"#0d3a66", "--bg1":"#08213d", "--bg2":"#041224", "--bg3":"#020a14",
     "--bg1-rgb":"8,33,61", "--bg3-rgb":"2,10,20",
-    "--modal-a":"#0c3a5e", "--modal-b":"#041224", "--pop":"#c9f2ff"
+    "--modal-a":"#0c3a5e", "--modal-b":"#041224", "--pop":"#c9f2ff", "--panel-tint-rgb":"0,0,0"
   }},
   {id:"blackout", name:"Blackout Gold", tag:"Midnight high-limit room", vars:{
     "--gold":"#f0c94a", "--gold-dim":"#8a6e1e", "--gold-rgb":"240,201,74",
     "--cream":"#f6f0dd", "--cream-rgb":"246,240,221", "--ink":"#050505",
     "--bg-glow":"#1a1a1a", "--bg1":"#111111", "--bg2":"#080808", "--bg3":"#000000",
     "--bg1-rgb":"17,17,17", "--bg3-rgb":"0,0,0",
-    "--modal-a":"#1c1c1c", "--modal-b":"#080808", "--pop":"#ffffff"
+    "--modal-a":"#1c1c1c", "--modal-b":"#080808", "--pop":"#ffffff", "--panel-tint-rgb":"0,0,0"
+  }},
+  {id:"light", name:"Light", tag:"Plain & bright, no accent color", vars:{
+    "--gold":"#333333", "--gold-dim":"#777777", "--gold-rgb":"51,51,51",
+    "--cream":"#181818", "--cream-rgb":"24,24,24", "--ink":"#ffffff",
+    "--bg-glow":"#ffffff", "--bg1":"#fbfbfb", "--bg2":"#eeeeee", "--bg3":"#dddddd",
+    "--bg1-rgb":"251,251,251", "--bg3-rgb":"221,221,221",
+    "--modal-a":"#ffffff", "--modal-b":"#eeeeee", "--pop":"#555555", "--panel-tint-rgb":"255,255,255"
+  }},
+  {id:"dark", name:"Dark", tag:"Plain & deep, no accent color", vars:{
+    "--gold":"#e8e8e8", "--gold-dim":"#999999", "--gold-rgb":"232,232,232",
+    "--cream":"#f0f0f0", "--cream-rgb":"240,240,240", "--ink":"#111111",
+    "--bg-glow":"#2a2a2a", "--bg1":"#1c1c1c", "--bg2":"#111111", "--bg3":"#000000",
+    "--bg1-rgb":"28,28,28", "--bg3-rgb":"0,0,0",
+    "--modal-a":"#232323", "--modal-b":"#101010", "--pop":"#bbbbbb", "--panel-tint-rgb":"0,0,0"
   }}
 ];
 var currentTheme = "emerald";
@@ -1354,6 +1636,53 @@ function renderThemeGrid(){
     card.addEventListener("click", function(){
       playClick();
       applyTheme(card.dataset.themeId);
+      save();
+    });
+  });
+}
+
+/* ---- appearance / fonts ---- */
+/* All system stacks — the file ships nothing and fetches nothing. Only the
+   original is the block-capitals casino signage; the other two read as normal
+   sentence case and pull the letter-spacing in to suit lowercase. */
+/* Family names are single-quoted so a stack can sit inside a double-quoted
+   style="" attribute on the picker cards without terminating it early. */
+var FONTS = [
+  {id:"segoe", name:"Segoe UI", note:"The house style",
+   stack:"'Segoe UI',system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif", caps:true,  track:1},
+  {id:"georgia", name:"Georgia", note:"Serif, sentence case",
+   stack:"Georgia,'Iowan Old Style','Times New Roman',Times,serif", caps:false, track:0.4},
+  {id:"trebuchet", name:"Trebuchet MS", note:"Rounded, sentence case",
+   stack:"'Trebuchet MS','Lucida Grande','Lucida Sans Unicode',Verdana,sans-serif", caps:false, track:0.4}
+];
+var currentFont = "segoe";
+
+function applyFont(id){
+  var font = null;
+  for(var i=0; i<FONTS.length; i++){ if(FONTS[i].id === id) font = FONTS[i]; }
+  if(!font) font = FONTS[0];
+  var root = document.documentElement.style;
+  root.setProperty("--ui-font", font.stack);
+  root.setProperty("--ui-case", font.caps ? "uppercase" : "none");
+  root.setProperty("--ui-track", String(font.track));
+  currentFont = font.id;
+  renderFontGrid();
+}
+
+function renderFontGrid(){
+  var grid = $("fontGrid");
+  grid.innerHTML = FONTS.map(function(f){
+    var on = f.id === currentFont;
+    return '<button class="font-card' + (on ? ' on' : '') + '" data-font-id="' + f.id + '" style="font-family:' + f.stack + '">' +
+             (on ? '<span class="check">&#10003;</span>' : '') +
+             '<span class="face">' + f.name + '</span>' +
+             '<span class="sample">' + f.note + '</span>' +
+           '</button>';
+  }).join("");
+  Array.prototype.forEach.call(grid.querySelectorAll(".font-card"), function(card){
+    card.addEventListener("click", function(){
+      playClick();
+      applyFont(card.dataset.fontId);
       save();
     });
   });
@@ -2648,6 +2977,11 @@ function hrFrame(now){
     pkStep(dt);
     pkRender();
   }
+  if($("tab-flappy").classList.contains("on")){
+    if(fbW < 5 || Math.abs(fbCanvas.getBoundingClientRect().width - fbW) > 1) fbResize();
+    fbStep(dt);
+    fbRender();
+  }
   requestAnimationFrame(hrFrame);
 }
 
@@ -2660,7 +2994,6 @@ var pkCanvas = $("plinkoCanvas"), pkCtx = pkCanvas.getContext("2d");
 var pkW = 700, pkH = 420;
 var pkRows = 12, pkRisk = "medium", pkStake = 25;
 var pkMults = [], pkBalls = [], pkFlash = {}, pkHits = {}, pkClock = 0;
-var pkCooldown = 0, PK_COOLDOWN = 0.75;                // seconds between drops
 
 /* C(n,k) / 2^n — the chance of finishing in bucket k, done in log space so the
    binomial coefficient doesn't overflow at high row counts. */
@@ -2823,12 +3156,6 @@ function pkRender(){
 
 function pkStep(dt){
   pkClock += dt;
-
-  if(pkCooldown > 0){
-    pkCooldown = Math.max(0, pkCooldown - dt);
-    if(pkCooldown === 0) syncPlinkoUI();
-  }
-
   var g = pkGeo(), settledAny = false;
   pkBalls.forEach(function(ball){
     if(ball.done) return;
@@ -2901,13 +3228,14 @@ function pkAirborne(){
   return false;
 }
 function syncPlinkoUI(){
-  /* board shape is locked while anything is falling, but the Drop button only
-     waits out the short cooldown so balls can be stacked up */
+  /* Drop is never gated — you can stack up as many balls as you can click for.
+     Board shape stays locked while anything is falling, since changing it would
+     invalidate the paths already in flight. */
   var flying = pkAirborne();
   $("pkRowsVal").textContent = pkRows;
   $("pkMinus").disabled = flying || pkRows <= 8;
   $("pkPlus").disabled  = flying || pkRows >= 16;
-  $("pkDrop").disabled  = pkCooldown > 0;
+  $("pkDrop").disabled  = false;
   Array.prototype.forEach.call(document.querySelectorAll("#pkRiskSeg button"), function(b){
     b.classList.toggle("on", b.dataset.risk === pkRisk);
     b.disabled = flying;
@@ -2945,7 +3273,6 @@ $("pkClear").addEventListener("click", function(){
 });
 
 $("pkDrop").addEventListener("click", function(){
-  if(pkCooldown > 0) return;
   if(pkStake > bank){ msg($("pkMsg"), "Not enough chips for that bet.", "lose"); return; }
 
   setBank(bank - pkStake, -1);
@@ -2981,7 +3308,6 @@ $("pkDrop").addEventListener("click", function(){
     stake: pkStake, mults: pkMults.slice(),
     segDur: Math.max(0.055, 0.115 - N*0.002)
   });
-  pkCooldown = PK_COOLDOWN;
   playChip();
   msg($("pkMsg"), "Dropping…", "info");
   syncPlinkoUI();
@@ -2990,12 +3316,343 @@ $("pkDrop").addEventListener("click", function(){
 setRows(pkRows);
 pkResize();
 
+/* ================= FLAPPY ================= */
+/* A crash game wearing a flappy-bird costume: the stake is spent on take-off and
+   every pipe cleared compounds the multiplier, so the only decision that matters
+   is when to bail out. Clipping anything forfeits the lot. */
+var fbCanvas = $("flappyCanvas"), fbCtx = fbCanvas.getContext("2d");
+var fbW = 700, fbH = 420;
+var fbStake = 25;
+var fbState = "idle";                                  // idle | flying | dead
+var fbBirdY = 0, fbBirdV = 0;
+var fbPipes = [], fbPassed = 0, fbMult = 0.5;
+var fbClock = 0, fbDeadAt = 0, fbScroll = 0, fbRig = 1, fbFlight = 0;
+
+var FB_GRAV = 1500, FB_FLAP = -430, FB_R = 13;
+var FB_PIPE_W = 58, FB_SPACING = 232, FB_GROUND = 26;
+var FB_STEP = 1.18;                                    // each pipe compounds by this much
+var FB_MULT0 = 0.5;                                    // bail out too early and you take a haircut
+
+function fbResize(){
+  if(!fbCanvas) return;
+  var rect = fbCanvas.getBoundingClientRect();
+  if(!rect.width) return;
+  var dpr = window.devicePixelRatio || 1;
+  fbW = rect.width; fbH = rect.height;
+  fbCanvas.width  = Math.round(fbW*dpr);
+  fbCanvas.height = Math.round(fbH*dpr);
+  fbCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function fbFloor(){ return fbH - FB_GROUND; }
+function fbBirdX(){ return Math.max(64, fbW*0.26); }
+function fbMultText(){ return fbMult.toFixed(2) + "x"; }
+function fbCashValue(){ return Math.floor(fbStake * fbMult); }
+
+/* The board tightens as you go — that ramp is what eventually ends every run.
+   Speed is driven mostly by seconds in the air rather than pipes cleared, so
+   hanging around to farm the multiplier is exactly what kills you. */
+function fbGap(){ return Math.max(96, 172*fbRig - fbPassed*3.2); }
+function fbSpeed(){ return Math.min(560, 150 + fbFlight*10 + fbPassed*4); }
+
+function fbSpawnPipe(){
+  var gap = Math.min(fbGap(), fbFloor() - 60);
+  var room = Math.max(24, fbFloor() - gap - 76);
+  fbPipes.push({x: fbW + FB_PIPE_W, top: 38 + Math.random()*room, gap: gap, scored: false});
+}
+
+function fbReset(){
+  fbBirdY = fbFloor()*0.42;
+  fbBirdV = 0;
+  fbPipes = [];
+  fbPassed = 0;
+  fbMult = FB_MULT0;
+  fbFlight = 0;
+}
+
+function fbStart(){
+  if(fbState !== "idle") return;
+  if(fbStake > bank){ msg($("fbMsg"), "Not enough chips for that bet.", "lose"); return; }
+  setBank(bank - fbStake, -1);
+  stats.hands++;
+
+  var rigMode = rigRoll();
+  fbRig = rigMode === "user" ? 1.3 : rigMode === "host" ? 0.76 : 1;
+
+  fbReset();
+  fbBirdV = FB_FLAP;
+  fbState = "flying";
+  playChip();
+  msg($("fbMsg"), "Airborne — clear pipes to build the multiplier, then cash out.", "info");
+  syncFlappyUI();
+}
+
+function fbFlap(){
+  if(fbState !== "flying") return;
+  fbBirdV = FB_FLAP;
+  sfx(function(ctx, t){ tone(ctx, 560, t, 0.05, "triangle", 0.028); });
+}
+
+function fbCashOut(){
+  if(fbState !== "flying") return;
+  var ret = fbCashValue(), net = ret - fbStake;
+  fbState = "idle";
+  if(ret > 0) payout(ret);
+  if(net > 0){
+    playWin(fbMult >= 20 ? "jackpot" : fbMult >= 3 ? "big" : "small");
+    if(fbMult >= 3) setTimeout(playCoin, 90);
+    msg($("fbMsg"), "Cashed out at " + fbMultText() + " — " + fmt(ret) + " chips (+" + fmt(net) + ").", "win");
+  }else if(net < 0){
+    playLose();
+    msg($("fbMsg"), "Bailed early at " + fbMultText() + " — " + fmt(ret) + " chips back (" + fmt(net) + ").", "lose");
+  }else{
+    playClick();
+    msg($("fbMsg"), "Bailed at " + fbMultText() + " — " + fmt(ret) + " chips back.", "info");
+  }
+  fbReset();
+  syncFlappyUI();
+}
+
+function fbCrash(){
+  fbState = "dead";
+  fbDeadAt = fbClock;
+  playLose();
+  msg($("fbMsg"), "Clipped it at " + fbMultText() + " — lost " + fmt(fbStake) + " chips.", "lose");
+  syncFlappyUI();
+}
+
+function fbHits(p){
+  var bx = fbBirdX();
+  if(bx + FB_R < p.x || bx - FB_R > p.x + FB_PIPE_W) return false;
+  return fbBirdY - FB_R < p.top || fbBirdY + FB_R > p.top + p.gap;
+}
+
+function fbStep(dt){
+  fbClock += dt;
+
+  if(fbState === "idle"){
+    fbBirdY = fbFloor()*0.42 + Math.sin(fbClock*2.4)*7;   // idle hover
+    return;
+  }
+
+  if(fbState === "dead"){
+    fbBirdV += FB_GRAV*dt;
+    fbBirdY = Math.min(fbFloor() - FB_R, fbBirdY + fbBirdV*dt);
+    if(fbClock - fbDeadAt > 1.1){ fbState = "idle"; fbReset(); syncFlappyUI(); }
+    return;
+  }
+
+  fbFlight += dt;
+  var sp = fbSpeed();
+  fbScroll += sp*dt;
+  fbBirdV += FB_GRAV*dt;
+  fbBirdY += fbBirdV*dt;
+  if(fbBirdY < FB_R){ fbBirdY = FB_R; fbBirdV = 0; }     // ceiling nudges, never kills
+
+  fbPipes.forEach(function(p){ p.x -= sp*dt; });
+  if(!fbPipes.length || fbPipes[fbPipes.length-1].x < fbW - FB_SPACING) fbSpawnPipe();
+  fbPipes = fbPipes.filter(function(p){ return p.x + FB_PIPE_W > -24; });
+
+  var bx = fbBirdX(), scored = false;
+  fbPipes.forEach(function(p){
+    if(!p.scored && p.x + FB_PIPE_W < bx - FB_R){
+      p.scored = true;
+      fbPassed++;
+      fbMult *= FB_STEP;
+      scored = true;
+      sfx(function(ctx, t){ tone(ctx, 880 + fbPassed*18, t, 0.06, "triangle", 0.032); });
+    }
+  });
+  if(scored) syncFlappyUI();
+
+  if(fbBirdY + FB_R > fbFloor()){ fbCrash(); return; }
+  for(var i=0;i<fbPipes.length;i++){
+    if(fbHits(fbPipes[i])){ fbCrash(); return; }
+  }
+}
+
+/* deterministic star field so the sky doesn't shimmer between frames */
+function fbHash(i){
+  var h = Math.sin(i*12.9898)*43758.5453;
+  return h - Math.floor(h);
+}
+
+function fbPipeShape(p){
+  var floorY = fbFloor(), botY = p.top + p.gap;
+  var grad = fbCtx.createLinearGradient(p.x, 0, p.x + FB_PIPE_W, 0);
+  grad.addColorStop(0, "#227a42");
+  grad.addColorStop(0.42, "#5ad47e");
+  grad.addColorStop(1, "#175c30");
+  fbCtx.fillStyle = grad;
+  fbCtx.fillRect(p.x, 0, FB_PIPE_W, p.top);
+  fbCtx.fillRect(p.x, botY, FB_PIPE_W, floorY - botY);
+  fbCtx.fillRect(p.x - 5, p.top - 17, FB_PIPE_W + 10, 17);
+  fbCtx.fillRect(p.x - 5, botY, FB_PIPE_W + 10, 17);
+  fbCtx.strokeStyle = "rgba(0,0,0,.42)";
+  fbCtx.lineWidth = 2;
+  fbCtx.strokeRect(p.x - 5, p.top - 17, FB_PIPE_W + 10, 17);
+  fbCtx.strokeRect(p.x - 5, botY, FB_PIPE_W + 10, 17);
+}
+
+function fbBirdShape(){
+  var bx = fbBirdX();
+  var tilt = Math.max(-0.5, Math.min(1.1, fbBirdV/900));
+  fbCtx.save();
+  fbCtx.translate(bx, fbBirdY);
+  fbCtx.rotate(tilt);
+
+  fbCtx.fillStyle = "#ffd24a";
+  fbCtx.beginPath();
+  fbCtx.arc(0, 0, FB_R, 0, Math.PI*2);
+  fbCtx.fill();
+  fbCtx.strokeStyle = "rgba(0,0,0,.45)";
+  fbCtx.lineWidth = 2;
+  fbCtx.stroke();
+
+  fbCtx.fillStyle = "#f0a92c";                          // wing, beats with the flap
+  var beat = fbState === "flying" ? Math.sin(fbClock*22)*4 : 2;
+  fbCtx.beginPath();
+  fbCtx.ellipse(-3, 2 + beat*0.35, 7, 4.5, 0, 0, Math.PI*2);
+  fbCtx.fill();
+
+  fbCtx.fillStyle = "#ff8b2e";
+  fbCtx.beginPath();
+  fbCtx.moveTo(FB_R - 2, 1);
+  fbCtx.lineTo(FB_R + 7, 4);
+  fbCtx.lineTo(FB_R - 2, 6);
+  fbCtx.closePath();
+  fbCtx.fill();
+
+  fbCtx.fillStyle = "#fff";
+  fbCtx.beginPath();
+  fbCtx.arc(4.5, -4, 4, 0, Math.PI*2);
+  fbCtx.fill();
+  fbCtx.fillStyle = "#101820";
+  fbCtx.beginPath();
+  fbCtx.arc(6, -4, 1.8, 0, Math.PI*2);
+  fbCtx.fill();
+  fbCtx.restore();
+}
+
+function fbRender(){
+  var floorY = fbFloor(), i;
+
+  var sky = fbCtx.createLinearGradient(0, 0, 0, fbH);
+  sky.addColorStop(0, "#16294a");
+  sky.addColorStop(1, "#070d18");
+  fbCtx.fillStyle = sky;
+  fbCtx.fillRect(0, 0, fbW, fbH);
+
+  fbCtx.fillStyle = "rgba(255,246,213,.5)";
+  for(i=0;i<46;i++){
+    var sx = (fbHash(i)*fbW - fbScroll*0.06) % fbW;
+    if(sx < 0) sx += fbW;
+    fbCtx.fillRect(sx, fbHash(i+90)*(floorY-40), 1.6, 1.6);
+  }
+  fbCtx.fillStyle = "rgba(255,248,224,.16)";
+  fbCtx.beginPath();
+  fbCtx.arc(fbW - 74, 62, 26, 0, Math.PI*2);
+  fbCtx.fill();
+
+  fbPipes.forEach(fbPipeShape);
+
+  fbCtx.fillStyle = "#0a1a12";
+  fbCtx.fillRect(0, floorY, fbW, FB_GROUND);
+  fbCtx.fillStyle = "#1d6b39";
+  fbCtx.fillRect(0, floorY, fbW, 4);
+  fbCtx.fillStyle = "rgba(255,255,255,.06)";
+  for(i=-1;i<fbW/26+1;i++){
+    fbCtx.fillRect(i*26 - (fbScroll % 26), floorY + 8, 13, 3);
+  }
+
+  fbBirdShape();
+
+  fbCtx.textAlign = "center";
+  fbCtx.fillStyle = fbState === "flying" ? "#ffe9a8" : "rgba(236,244,255,.62)";
+  fbCtx.font = "700 34px Segoe UI, system-ui, sans-serif";
+  fbCtx.textBaseline = "top";
+  fbCtx.fillText(fbMultText(), fbW/2, 16);
+
+  fbCtx.font = "700 11px Segoe UI, system-ui, sans-serif";
+  fbCtx.fillStyle = "rgba(236,244,255,.45)";
+  if(fbState === "flying"){
+    fbCtx.fillText(fbPassed + (fbPassed === 1 ? " PIPE · " : " PIPES · ") + fmt(fbCashValue()) + " CHIPS", fbW/2, 56);
+  }else if(fbState === "idle"){
+    fbCtx.fillText("FLY OR K TO BET · TAP SKY OR SPACE TO FLAP", fbW/2, 56);
+  }else{
+    fbCtx.fillStyle = "rgba(255,140,140,.85)";
+    fbCtx.fillText("CRASHED", fbW/2, 56);
+  }
+  fbCtx.textAlign = "left";
+}
+
+function syncFlappyUI(){
+  var flying = fbState === "flying";
+  $("fbMultVal").textContent = fbMultText();
+  $("fbPipeVal").textContent = fbPassed;
+  var go = $("fbGo");
+  go.textContent = flying ? "Cash out " + fmt(fbCashValue()) + " (K)" : "Fly (K)";
+  go.classList.toggle("cash", flying);
+  go.disabled = fbState === "dead";
+  Array.prototype.forEach.call(fbBtns, function(b){ b.disabled = flying; });
+  $("fbCustom").disabled = flying;
+  $("fbClear").disabled  = flying;
+}
+
+function fbToggle(){
+  if(fbState === "flying") fbCashOut();
+  else if(fbState === "idle") fbStart();
+}
+
+var fbBtns = chipRow($("tab-flappy"), null, function(v){
+  fbStake = v;
+  $("fbStake").textContent = fmt(fbStake);
+}, null);
+fbBtns[1].classList.add("sel");
+
+$("fbClear").addEventListener("click", function(){
+  playClick();
+  fbStake = 5;
+  $("fbStake").textContent = "5";
+  Array.prototype.forEach.call(fbBtns, function(o){ o.classList.toggle("sel", o.dataset.v === "5"); });
+  $("fbCustom").value = "";
+  $("fbCustom").classList.remove("sel");
+});
+
+$("fbGo").addEventListener("click", fbToggle);
+
+fbCanvas.addEventListener("pointerdown", function(e){
+  e.preventDefault();
+  fbFlap();
+});
+
+/* Space flaps; K bets and cashes out, so the whole round can be played from the
+   keyboard without reaching for the button mid-flight. */
+document.addEventListener("keydown", function(e){
+  if(e.code !== "Space" && e.code !== "KeyK") return;
+  if(!$("tab-flappy").classList.contains("on")) return;
+  var t = e.target;
+  if(t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
+  e.preventDefault();
+  if(e.repeat && e.code === "KeyK") return;              // holding K must not re-bet
+  if(e.code === "Space") fbFlap();
+  else fbToggle();
+});
+
+fbResize();
+fbReset();
+syncFlappyUI();
+
 /* ============ boot ============ */
 applyTheme((saved && saved.theme) || "emerald");
+applyFont((saved && saved.font) || "segoe");
 syncSoundUI();
 applyCasinoName(CASINO_NAME);
 setBank(bank, 0);
 renderBets();
+$("versionTag").textContent = VERSION;
+$("betaVersion").textContent = VERSION;
+betaOverlay.classList.add("on");
 </script>
 </body>
 </html>
