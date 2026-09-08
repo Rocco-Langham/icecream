@@ -1086,6 +1086,12 @@
         <p class="modal-note">Claim a code for chips and other rewards.</p>
 
         <div class="section-head">
+          <div class="section-title">Changelog</div>
+          <button class="btn ghost sm" id="settingsChangelog">View</button>
+        </div>
+        <p class="modal-note">What changed in this version.</p>
+
+        <div class="section-head">
           <div class="section-title">Stats</div>
           <button class="btn ghost sm" id="statsResetBtn">Reset</button>
         </div>
@@ -1782,6 +1788,13 @@ $("changelogClose").addEventListener("click", function(){ closeChangelog(); });
 $("changelogOk").addEventListener("click", function(){ playClick(); closeChangelog(); });
 $("changelog").addEventListener("click", function(e){ if(e.target === $("changelog")) closeChangelog(); });
 $("changelogCodes").addEventListener("click", function(){ playClick(); closeChangelog(); openCodes(); });
+/* Opened deliberately from Settings, so it ignores the once-per-version rule
+   that governs the automatic showing. */
+$("settingsChangelog").addEventListener("click", function(){
+  playClick();
+  renderChangelog();
+  $("changelog").classList.add("on");
+});
 
 /* ---- redeemable codes ---- */
 var CODES = {
