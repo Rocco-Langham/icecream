@@ -1394,7 +1394,7 @@ function load(){
 }
 function save(){
   var data = {
-    bank:bank, stats:stats, gameNet:gameNet, streak:streak, redeemed:redeemed,
+    bank:bank, stats:stats, gameNet:gameNet, streak:streak,
     theme:currentTheme, font:currentFont, soundOn:soundOn,
     soundVolume:soundVolume, casinoName:CASINO_NAME,
     rigUser:rigUser, rigHost:rigHost
@@ -1422,7 +1422,10 @@ var stats        = (saved && saved.stats) || {hands:0, won:0, big:0, peak:1000};
 var gameNet      = (saved && saved.gameNet) || {};
 GAMES.forEach(function(g){ if(typeof gameNet[g.key] !== "number") gameNet[g.key] = 0; });
 var streak       = (saved && saved.streak) || {count:0, best:0, last:null};
-var redeemed     = (saved && saved.redeemed) || [];
+/* Display only, and no longer cached locally: the redemptions table is the one
+   source of truth, fetched on sign-in. A stale local copy could only ever
+   disagree with it. */
+var redeemed     = [];
 var soundOn      = saved && typeof saved.soundOn === "boolean" ? saved.soundOn : true;
 var soundVolume  = saved && typeof saved.soundVolume === "number" ? saved.soundVolume : 45;
 var CASINO_NAME  = saved && typeof saved.casinoName === "string" ? saved.casinoName : "SparxMaths";
@@ -1864,20 +1867,60 @@ function renderCodes(){
 }
 /* Returns a message for the Code box, or null when the text is not a reward
    code at all — which is how the dev unlock keeps sharing the same input. */
-function tryRedeem(code){
-  var reward = CODES[code];
-  if(!reward) return null;
-  if(redeemed.indexOf(code) !== -1) return {ok:false, msg:"You have already claimed that code."};
+/* Claiming is the database's decision, not this page's. redeem_code() checks
+   the code, records the claim and pays out in one transaction, and a primary
+   key on (user_id, code) is what actually stops a second claim — emptying the
+   local list in dev tools no longer buys anything.
 
-  redeemed.push(code);
-  /* setBank rather than payout: a code is a gift, not a win, and routing it
-     through payout would inflate "won" and possibly "biggest hit". */
-  setBank(bank + reward.chips, 1);
-  playWin("big");
-  setTimeout(playCoin, 90);
-  renderCodes();
-  save();
-  return {ok:true, msg:reward.label + " — " + fmt(reward.chips) + " chips added."};
+   Returns null when the text is not a code at all, so the dev unlock can keep
+   sharing the same input. Otherwise it reports through the callback, because
+   the answer now comes back over the network. */
+function tryRedeem(code, done){
+  if(!CODES[code]) return null;
+
+  if(!CLOUD_OK || !sbUser){
+    done({ok:false, msg:"Sign in to claim codes — they are tied to your account."});
+    return true;
+  }
+
+  done({pending:true, msg:"Claiming…"});
+  sb.rpc("redeem_code", {p_code: code}).then(function(res){
+    /* the function is a separate migration, so say something useful rather than
+       surfacing "function not found" from Postgres */
+    if(res.error){
+      done({ok:false, msg:/function|schema cache/i.test(res.error.message)
+        ? "Codes are not switched on yet. Try again later."
+        : res.error.message});
+      return;
+    }
+    var r = res.data || {};
+    if(!r.ok){
+      done({ok:false, msg:
+        r.error === "already"       ? "You have already claimed that code." :
+        r.error === "not_signed_in" ? "Sign in to claim codes." :
+                                      "That code is not valid."});
+      return;
+    }
+    if(redeemed.indexOf(code) === -1) redeemed.push(code);
+    /* the server already added the chips, so take its balance rather than
+       adding them again here */
+    setBank(r.bank, 1);
+    playWin("big");
+    setTimeout(playCoin, 90);
+    renderCodes();
+    done({ok:true, msg:r.label + " — " + fmt(r.chips) + " chips added."});
+  });
+  return true;
+}
+/* The claim history lives in its own table now, so it is read on sign-in
+   rather than carried on the scores row. */
+function loadRedemptions(){
+  if(!CLOUD_OK || !sbUser) return;
+  sb.from("redemptions").select("code").then(function(res){
+    if(res.error) return;
+    redeemed = (res.data || []).map(function(r){ return r.code; });
+    renderCodes();
+  });
 }
 $("codesClose").addEventListener("click", closeCodes);
 $("codes").addEventListener("click", function(e){ if(e.target === $("codes")) closeCodes(); });
@@ -1956,10 +1999,6 @@ function applyCloudRow(row){
     best:  row.streak_best  || 0,
     last:  typeof row.streak_last === "number" ? row.streak_last : null
   };
-  /* Union, not replace: a claim is permanent, so a code redeemed on the losing
-     side of a sync must not become claimable again. */
-  (row.redeemed || []).forEach(function(c){ if(redeemed.indexOf(c) === -1) redeemed.push(c); });
-  renderCodes();
   setBank(row.bank, 0);                              /* re-renders the footer stats and saves locally */
   renderStatsPanel();
   renderLeaderboard();
@@ -1972,7 +2011,7 @@ function cloudPush(){
     user_id: sbUser.id, bank: bank, hands: stats.hands, won: stats.won,
     big: stats.big, peak: stats.peak, net: gameNet,
     streak_count: streak.count, streak_best: streak.best, streak_last: streak.last,
-    redeemed: redeemed, updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString()
   }).then(function(res){
     $("acctSync").textContent = res.error ? "Failed" : "Saved";
     if(res.error) acctSay(res.error.message, "bad");
@@ -2005,6 +2044,7 @@ function cloudSync(){
   sb.from("profiles").select("username").eq("id", sbUser.id).maybeSingle().then(function(res){
     $("acctName").textContent = (res.data && res.data.username) || sbUser.email;
   });
+  loadRedemptions();
 }
 /* ---- welcome gate ---- */
 var GATE_VIEWS = ["gateChoice", "gateLogin", "gateSignup", "gateReset", "gateNewPass"];
@@ -2080,6 +2120,8 @@ if(CLOUD_OK){
       cloudSync();
     }else{
       $("acctSync").textContent = "—";
+      redeemed = [];                                 /* claims belong to the account, not the device */
+      renderCodes();
     }
   });
 
@@ -2434,13 +2476,13 @@ window.addEventListener("message", function(e){
 function submitDevCode(){
   var raw = devCodeInput.value.trim();
 
-  var claim = tryRedeem(raw.toUpperCase());
-  if(claim){
-    if(claim.ok){ devCodeInput.value = ""; }else{ playLose(); }
+  var isCode = tryRedeem(raw.toUpperCase(), function(claim){
+    if(claim.ok) devCodeInput.value = "";
+    else if(!claim.pending) playLose();
     devNote.textContent = claim.msg;
-    devNote.style.color = claim.ok ? "var(--good)" : "var(--bad)";
-    return;
-  }
+    devNote.style.color = claim.pending ? "" : claim.ok ? "var(--good)" : "var(--bad)";
+  });
+  if(isCode) return;
 
   if(raw.toLowerCase() === "xyz"){
     playWin("big");
