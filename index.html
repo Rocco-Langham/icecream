@@ -83,6 +83,23 @@
     color:var(--ink);background:linear-gradient(135deg,var(--gold),var(--pop));
     box-shadow:0 6px 16px rgba(var(--gold-rgb),.22);
   }
+  /* ---------- show/hide password ---------- */
+  /* .field .pw-wrap input outranks .field input, so the right padding that keeps
+     the text clear of the button actually sticks */
+  .pw-wrap{position:relative}
+  .field .pw-wrap input{padding-right:46px}
+  .pw-toggle{
+    position:absolute;right:6px;top:50%;transform:translateY(-50%);
+    width:32px;height:32px;padding:0;border:none;border-radius:8px;
+    display:flex;align-items:center;justify-content:center;
+    background:transparent;color:var(--gold-dim);cursor:pointer;transition:.15s;
+  }
+  .pw-toggle:hover{color:var(--gold);background:rgba(var(--gold-rgb),.12)}
+  .pw-toggle svg{width:18px;height:18px;display:block}
+  .pw-toggle .eye-off{display:none}
+  .pw-toggle.on .eye-on{display:none}
+  .pw-toggle.on .eye-off{display:block}
+
   /* ---------- welcome gate ---------- */
   .gate-view .modal-actions{margin-top:18px}
   .gate-view .modal-actions .btn{flex:1}
@@ -1112,7 +1129,13 @@
       </div>
       <div class="field">
         <label for="gateLoginPass">Password</label>
-        <input type="password" id="gateLoginPass" autocomplete="current-password" placeholder="Your password">
+        <div class="pw-wrap">
+          <input type="password" id="gateLoginPass" autocomplete="current-password" placeholder="Your password">
+          <button type="button" class="pw-toggle" data-pw="gateLoginPass" aria-label="Show password">
+            <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20C5 20 1 12 1 12a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </button>
+        </div>
       </div>
       <div class="modal-actions">
         <button class="btn ghost sm" data-gate-back="1">Back</button>
@@ -1133,7 +1156,13 @@
       </div>
       <div class="field">
         <label for="gateSignupPass">Password</label>
-        <input type="password" id="gateSignupPass" autocomplete="new-password" placeholder="At least 6 characters">
+        <div class="pw-wrap">
+          <input type="password" id="gateSignupPass" autocomplete="new-password" placeholder="At least 6 characters">
+          <button type="button" class="pw-toggle" data-pw="gateSignupPass" aria-label="Show password">
+            <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20C5 20 1 12 1 12a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </button>
+        </div>
       </div>
       <div class="modal-actions">
         <button class="btn ghost sm" data-gate-back="1">Back</button>
@@ -1162,7 +1191,13 @@
       <p class="sub">Choose a new password for your account.</p>
       <div class="field">
         <label for="gateNewPassVal">New password</label>
-        <input type="password" id="gateNewPassVal" autocomplete="new-password" placeholder="At least 6 characters">
+        <div class="pw-wrap">
+          <input type="password" id="gateNewPassVal" autocomplete="new-password" placeholder="At least 6 characters">
+          <button type="button" class="pw-toggle" data-pw="gateNewPassVal" aria-label="Show password">
+            <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20C5 20 1 12 1 12a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </button>
+        </div>
       </div>
       <div class="modal-actions">
         <button class="btn sm" id="gateDoNewPass">Save password</button>
@@ -1700,8 +1735,27 @@ function gateSay(text, kind){
   n.textContent = text || "";
   n.style.color = kind === "bad" ? "var(--bad)" : kind === "good" ? "var(--good)" : "";
 }
+/* Wired outside the CLOUD_OK block so the control works wherever it renders. */
+function pwHideAll(){
+  Array.prototype.forEach.call(document.querySelectorAll(".pw-toggle"), function(b){
+    $(b.dataset.pw).type = "password";
+    b.classList.remove("on");
+    b.setAttribute("aria-label", "Show password");
+  });
+}
+Array.prototype.forEach.call(document.querySelectorAll(".pw-toggle"), function(b){
+  b.addEventListener("click", function(){
+    var input = $(b.dataset.pw), show = input.type === "password";
+    input.type = show ? "text" : "password";
+    b.classList.toggle("on", show);
+    b.setAttribute("aria-label", show ? "Hide password" : "Show password");
+    input.focus();
+  });
+});
+
 function gateShow(view){
   GATE_VIEWS.forEach(function(v){ $(v).hidden = v !== view; });
+  pwHideAll();                                       /* never leave one revealed behind a view switch */
   gateSay("");
   $("gate").classList.add("on");
 }
