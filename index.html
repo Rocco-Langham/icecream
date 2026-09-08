@@ -1798,6 +1798,17 @@ function closeMultiWarn(){
   $("multiWarn").classList.remove("on");
   try{ localStorage.setItem(MULTIWARN_KEY, CHANGELOG.version); }catch(e){}
 }
+/* Signing in re-arms the opening popups, so the changelog and the one-device
+   warning are seen on every login rather than once per version. Cleared before
+   the request, not after it: the auth listener closes the gate and runs the
+   queue while signInWithPassword is still resolving, so clearing in .then()
+   would land too late to matter. */
+function rearmOpeningPopups(){
+  try{
+    localStorage.removeItem(CHANGELOG_KEY);
+    localStorage.removeItem(MULTIWARN_KEY);
+  }catch(e){}
+}
 $("multiWarnClose").addEventListener("click", closeMultiWarn);
 $("multiWarnOk").addEventListener("click", function(){ playClick(); closeMultiWarn(); });
 $("multiWarn").addEventListener("click", function(e){ if(e.target === $("multiWarn")) closeMultiWarn(); });
@@ -2101,6 +2112,7 @@ if(CLOUD_OK){
     var ident = $("gateIdent").value.trim(), pass = $("gateLoginPass").value;
     if(!ident || !pass){ gateSay("Enter your username or email and your password.", "bad"); return; }
     gateSay("Signing in…");
+    rearmOpeningPopups();
 
     /* Supabase only signs in with an email, so a username has to be translated
        first via the email_for_username function. */
@@ -2128,6 +2140,7 @@ if(CLOUD_OK){
     var user = $("gateUser").value.trim();
     if(user.length < 3 || user.length > 20){ gateSay("Pick a username of 3-20 characters.", "bad"); return; }
     gateSay("Creating account…");
+    rearmOpeningPopups();
     sb.auth.signUp({
       email: $("gateEmail").value.trim(),
       password: $("gateSignupPass").value,
