@@ -68,6 +68,7 @@
     color:var(--gold);text-shadow:0 2px 10px rgba(var(--gold-rgb),.25);word-break:break-word;
   }
   .sidebar-brand small{display:block;font-size:9px;letter-spacing:calc(3px * var(--ui-track));color:var(--gold-dim);text-transform:var(--ui-case)}
+  .sidebar-nav{display:flex;flex-direction:column}
   .sidebar-section{display:flex;flex-direction:column;gap:2px;padding:0 10px}
   .sidebar-label{padding:10px 8px 6px;font-size:10px;letter-spacing:calc(2px * var(--ui-track));text-transform:var(--ui-case);color:rgba(var(--cream-rgb),.35)}
   .sidebar-link{
@@ -82,6 +83,48 @@
     color:var(--ink);background:linear-gradient(135deg,var(--gold),var(--pop));
     box-shadow:0 6px 16px rgba(var(--gold-rgb),.22);
   }
+  /* ---------- mobile nav sheet ---------- */
+  /* Both the button and the sheet are desktop-hidden; the rail is the nav there.
+     Closed state is visibility+opacity rather than display:none so the sheet has
+     something to animate from. */
+  /* two classes deep so this outranks .iconbtn{display:flex}, which is defined
+     further down the sheet and would otherwise win on source order */
+  .iconbtn.menu-btn{display:none}
+  .navsheet-overlay{
+    position:fixed;inset:0;z-index:45;display:none;
+    align-items:flex-start;justify-content:center;padding:98px 14px 14px;
+    background:rgba(0,0,0,.55);
+    opacity:0;visibility:hidden;
+    transition:opacity .22s ease, visibility .22s ease;
+  }
+  .navsheet-overlay.on{opacity:1;visibility:visible}
+  .navsheet{
+    width:100%;max-width:420px;max-height:calc(100vh - 120px);overflow-y:auto;
+    padding:10px;border-radius:16px;
+    border:1px solid var(--edge);
+    background:linear-gradient(180deg,var(--modal-a),var(--modal-b));
+    box-shadow:0 24px 60px rgba(0,0,0,.5);
+    transform:translateY(-12px) scale(.97);opacity:0;
+    transition:transform .26s cubic-bezier(.2,.9,.3,1.15), opacity .2s ease;
+  }
+  .navsheet-overlay.on .navsheet{transform:none;opacity:1}
+  .navsheet-label{
+    padding:10px 10px 6px;font-size:10px;letter-spacing:calc(2px * var(--ui-track));
+    text-transform:var(--ui-case);color:rgba(var(--cream-rgb),.35);
+  }
+  .navsheet-link{
+    display:flex;align-items:center;gap:12px;width:100%;
+    padding:13px 12px;border-radius:10px;border:none;cursor:pointer;text-align:left;
+    font:inherit;font-size:13px;font-weight:700;letter-spacing:calc(1.5px * var(--ui-track));
+    text-transform:var(--ui-case);color:var(--gold-dim);background:transparent;transition:.15s;
+  }
+  .navsheet-link .ic{font-size:17px;width:20px;text-align:center;flex:0 0 auto}
+  .navsheet-link:hover{color:var(--cream);background:rgba(var(--panel-tint-rgb),.25)}
+  .navsheet-link.on{
+    color:var(--ink);background:linear-gradient(135deg,var(--gold),var(--pop));
+    box-shadow:0 6px 16px rgba(var(--gold-rgb),.22);
+  }
+
   .sidebar-spacer{flex:1}
   .sidebar-bottom{
     padding:10px 10px 14px;margin-top:8px;border-top:1px solid rgba(var(--gold-rgb),.15);
@@ -378,6 +421,29 @@
   .paytable div:nth-child(odd){background:rgba(var(--panel-tint-rgb),.22)}
   .paytable b{color:var(--gold)}
 
+  /* ---------- leaderboard ---------- */
+  .leaderboard{display:flex;flex-direction:column;gap:8px;margin-top:18px;max-width:560px}
+  .board-row{
+    display:grid;grid-template-columns:28px 132px 1fr auto;align-items:center;gap:12px;
+    padding:10px 14px;border-radius:10px;
+    border:1px solid var(--edge);background:rgba(var(--panel-tint-rgb),.22);
+  }
+  .board-row.lead{border-color:var(--gold);background:rgba(var(--gold-rgb),.1)}
+  .board-rank{font-size:15px;text-align:center;color:var(--gold-dim)}
+  .board-row.lead .board-rank{font-size:18px}
+  .board-game{font-size:13px;font-weight:600;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* diverging bar: profit grows right of centre, loss grows left, both scaled
+     to the biggest swing on the board */
+  .board-bar{position:relative;height:8px;border-radius:999px;background:rgba(var(--panel-tint-rgb),.35)}
+  .board-bar::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:rgba(var(--cream-rgb),.22)}
+  .board-fill{position:absolute;top:0;bottom:0;border-radius:999px;transition:width .3s ease}
+  .board-fill.pos{left:50%;background:linear-gradient(90deg,rgba(74,222,128,.55),var(--good))}
+  .board-fill.neg{right:50%;background:linear-gradient(270deg,rgba(248,113,113,.55),var(--bad))}
+  .board-amt{font-size:15px;font-variant-numeric:tabular-nums;text-align:right;min-width:76px}
+  .board-amt.up{color:var(--good)}
+  .board-amt.down{color:var(--bad)}
+  .board-amt.flat{color:rgba(var(--cream-rgb),.45)}
+
   /* ---------- cards ---------- */
   .seat{margin-bottom:20px}
   .seat h3{
@@ -557,14 +623,18 @@
       flex-direction:row;flex-wrap:nowrap;align-items:center;
       padding:10px 14px;gap:8px;min-height:76px;
     }
-    /* the brand yields first, otherwise the two chrome buttons squeeze the
-       scrolling games strip down to a sliver on a narrow phone */
-    .sidebar-brand{display:flex;align-items:center;gap:8px;padding:0 12px 0 0;margin-bottom:0;margin-right:0;border-bottom:none;border-right:1px solid rgba(var(--gold-rgb),.15);flex:0 1 auto;min-width:0;max-width:40%}
+    /* no scrolling strip to protect any more, so the name keeps its natural
+       width and only ellipsises if the bar genuinely runs out */
+    .sidebar-brand{display:flex;align-items:center;gap:8px;padding:0 12px 0 0;margin-bottom:0;margin-right:0;border-bottom:none;border-right:1px solid rgba(var(--gold-rgb),.15);flex:0 1 auto;min-width:0}
     .sidebar-brand h1{margin:0;font-size:14px;letter-spacing:calc(1px * var(--ui-track));min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .sidebar-brand small{display:none}
-    /* basis 0 so the strip claims only leftover space and scrolls, leaving the
-       brand its natural width until it would exceed its 40% cap */
-    .sidebar-section{flex-direction:row;flex-wrap:nowrap;padding:0;gap:4px;flex:1 1 0;min-width:0;overflow-x:auto}
+    /* The sheet is the navigation here, so the inline rail goes entirely —
+       keeping both would put two nav systems in one 76px bar. That also hands
+       the freed width back to the casino name. */
+    .iconbtn.menu-btn{display:flex;flex:0 0 auto}
+    .navsheet-overlay{display:flex}
+    .sidebar-nav{display:none}
+    .sidebar-bottom{margin-left:auto}
     .sidebar-label{display:none}
     .sidebar-link{width:auto;padding:8px 10px;font-size:11px;flex:0 0 auto;white-space:nowrap}
     .sidebar-link .ic{font-size:14px;width:auto}
@@ -580,10 +650,9 @@
     .fb-action{position:sticky;bottom:10px;z-index:5;padding:22px 20px;font-size:15px}
   }
   @media(max-width:560px){
-    /* the suits cost ~63px the games strip needs more than the decoration does;
-       the casino name stays, since the dev console can rename it */
+    /* the menu button reclaims what the suits cost, and the casino name wins
+       that trade — it is the identity, and the dev console can rename it */
     .sidebar-brand .suits{display:none}
-    .sidebar-brand{max-width:34%}
     .chipstack .amt{font-size:22px}
     header{padding:8px 10px;gap:8px}
     .reel{height:88px;font-size:42px}
@@ -605,6 +674,11 @@
     .font-card{min-height:80px;padding:12px 4px}
     .font-card .face{font-size:14px}
     .font-card .sample{display:none}
+    /* the bar is the first thing to go at this width — rank, name and amount
+       still need to fit a single row without wrapping */
+    .board-row{grid-template-columns:22px 1fr auto;gap:8px;padding:9px 12px}
+    .board-bar{display:none}
+    .board-game{font-size:12px}
   }
 </style>
 </head>
@@ -618,14 +692,24 @@
       <small>Play&nbsp;Money&nbsp;Casino</small>
     </div>
 
-    <div class="sidebar-section">
-      <span class="sidebar-label">Games</span>
-      <button class="sidebar-link on" data-tab="slots"><span class="ic">&#127920;</span>Slots</button>
-      <button class="sidebar-link" data-tab="blackjack"><span class="ic">&#127183;</span>Blackjack</button>
-      <button class="sidebar-link" data-tab="roulette"><span class="ic">&#127919;</span>Roulette</button>
-      <button class="sidebar-link" data-tab="horse"><span class="ic">&#127895;</span>Racing</button>
-      <button class="sidebar-link" data-tab="plinko"><span class="ic">&#128315;</span>Plinko</button>
-      <button class="sidebar-link" data-tab="flappy"><span class="ic">&#128038;</span>Flappy</button>
+    <button class="iconbtn menu-btn" id="menuBtn" aria-label="Open menu"
+            aria-expanded="false" aria-controls="navSheet">&#9776;</button>
+
+    <div class="sidebar-nav">
+      <div class="sidebar-section">
+        <span class="sidebar-label">Games</span>
+        <button class="sidebar-link on" data-tab="slots"><span class="ic">&#127920;</span>Slots</button>
+        <button class="sidebar-link" data-tab="blackjack"><span class="ic">&#127183;</span>Blackjack</button>
+        <button class="sidebar-link" data-tab="roulette"><span class="ic">&#127919;</span>Roulette</button>
+        <button class="sidebar-link" data-tab="horse"><span class="ic">&#127895;</span>Racing</button>
+        <button class="sidebar-link" data-tab="plinko"><span class="ic">&#128315;</span>Plinko</button>
+        <button class="sidebar-link" data-tab="flappy"><span class="ic">&#128038;</span>Flappy</button>
+      </div>
+
+      <div class="sidebar-section">
+        <span class="sidebar-label">Other</span>
+        <button class="sidebar-link" data-tab="leaderboard"><span class="ic">&#127942;</span>Leaderboard</button>
+      </div>
     </div>
 
     <div class="sidebar-spacer"></div>
@@ -868,6 +952,16 @@
     </div>
   </section>
 
+  <!-- ================= LEADERBOARD ================= -->
+  <section class="game" id="tab-leaderboard">
+    <div class="table">
+      <h2 class="title">Leaderboard</h2>
+      <p class="sub">Every chip staked and won, per table &middot; up is profit, down is loss</p>
+
+      <div class="leaderboard" id="leaderboard"></div>
+    </div>
+  </section>
+
   </main>
 </div>
 
@@ -950,6 +1044,12 @@
   </div>
 </div>
 
+<!-- Mobile navigation. Contents are rendered from the same list that drives the
+     leaderboard, so the two can't list different games. -->
+<div class="navsheet-overlay" id="navSheet">
+  <nav class="navsheet" id="navSheetList" aria-label="Games"></nav>
+</div>
+
 <div class="modal-overlay" id="betaOverlay">
   <div class="modal simple">
     <button class="modal-close" id="betaClose" aria-label="Close notice">&times;</button>
@@ -968,7 +1068,7 @@
   <div class="modal simple">
     <button class="modal-close" id="resetStatsClose1" aria-label="Close">&times;</button>
     <h2>Reset stats?</h2>
-    <p class="sub">This clears hands, won, biggest hit and peak bank. Your chips are not touched.</p>
+    <p class="sub">This clears hands, won, biggest hit, peak bank, and the leaderboard. Your chips are not touched.</p>
     <div class="modal-actions">
       <button class="btn ghost sm" id="resetStatsCancel1">Cancel</button>
       <button class="btn sm" id="resetStatsNext">Continue</button>
@@ -1009,7 +1109,7 @@ function load(){
 }
 function save(){
   var data = {
-    bank:bank, stats:stats, theme:currentTheme, font:currentFont, soundOn:soundOn,
+    bank:bank, stats:stats, gameNet:gameNet, theme:currentTheme, font:currentFont, soundOn:soundOn,
     soundVolume:soundVolume, casinoName:CASINO_NAME,
     rigUser:rigUser, rigHost:rigHost
   };
@@ -1017,9 +1117,23 @@ function save(){
   try{ localStorage.setItem(KEY, JSON.stringify(data)); }catch(e){}
 }
 
+/* Running profit/loss per table for the leaderboard: every chip staked counts
+   against a game and every chip returned counts for it, so the figure is what
+   the player is actually up or down there. Keyed by the games' data-tab ids. */
+var GAMES = [
+  {key:"slots",     name:"Slots",      icon:"&#127920;"},
+  {key:"blackjack", name:"Blackjack",  icon:"&#127183;"},
+  {key:"roulette",  name:"Roulette",   icon:"&#127919;"},
+  {key:"horse",     name:"Racing",     icon:"&#127895;"},
+  {key:"plinko",    name:"Plinko",     icon:"&#128315;"},
+  {key:"flappy",    name:"Flappy",     icon:"&#128038;"}
+];
+
 var saved        = load() || mem;
 var bank         = saved && typeof saved.bank === "number" ? saved.bank : 100;
 var stats        = (saved && saved.stats) || {hands:0, won:0, big:0, peak:100};
+var gameNet      = (saved && saved.gameNet) || {};
+GAMES.forEach(function(g){ if(typeof gameNet[g.key] !== "number") gameNet[g.key] = 0; });
 var soundOn      = saved && typeof saved.soundOn === "boolean" ? saved.soundOn : true;
 var soundVolume  = saved && typeof saved.soundVolume === "number" ? saved.soundVolume : 45;
 var CASINO_NAME  = saved && typeof saved.casinoName === "string" ? saved.casinoName : "SparxMaths";
@@ -1113,10 +1227,40 @@ function setBank(next, delta){
   renderStats();
   save();
 }
-function payout(amount){                            // amount = chips returned to the player
+function wager(amount, game){                       // amount = chips staked, straight off the balance
+  gameNet[game] = (gameNet[game] || 0) - amount;
+  renderLeaderboard();
+  setBank(bank - amount, -1);
+}
+function payout(amount, game){                      // amount = chips returned to the player
   if(amount > stats.big) stats.big = amount;
   stats.won += amount;
+  if(game){ gameNet[game] = (gameNet[game] || 0) + amount; renderLeaderboard(); }
   setBank(bank + amount, 1);
+}
+function signed(n){ return (n > 0 ? "+" : n < 0 ? "-" : "") + fmt(Math.abs(n)); }
+function renderLeaderboard(){
+  var board = $("leaderboard");
+  if(!board) return;                                 /* not mounted until boot finishes wiring the DOM */
+  var ranked = GAMES.map(function(g){ return {g:g, net:gameNet[g.key] || 0}; })
+                     .sort(function(a, b){ return b.net - a.net; });
+  var span = 0;                                      /* bars scale to the biggest swing either way */
+  ranked.forEach(function(r){ span = Math.max(span, Math.abs(r.net)); });
+  var medals = ["&#129351;", "&#129352;", "&#129353;"];
+  board.innerHTML = ranked.map(function(r, i){
+    /* a medal means real profit — never award one for breaking even or losing,
+       however high the row happens to sort */
+    var medal = r.net > 0 && i < 3 ? medals[i] : (i + 1) + ".";
+    var pct = span > 0 ? Math.max(1.5, Math.abs(r.net) / span * 50) : 0;
+    var fill = r.net === 0 ? "" :
+      '<span class="board-fill ' + (r.net > 0 ? "pos" : "neg") + '" style="width:' + pct + '%"></span>';
+    return '<div class="board-row' + (i === 0 && r.net > 0 ? " lead" : "") + '">' +
+             '<span class="board-rank">' + medal + '</span>' +
+             '<span class="board-game">' + r.g.icon + ' ' + r.g.name + '</span>' +
+             '<span class="board-bar">' + fill + '</span>' +
+             '<b class="board-amt ' + (r.net > 0 ? "up" : r.net < 0 ? "down" : "flat") + '">' + signed(r.net) + '</b>' +
+           '</div>';
+  }).join("") + (span > 0 ? "" : '<p class="modal-note">Nothing staked yet &mdash; play a table to get on the board.</p>');
 }
 function renderStats(){
   $("stHands").textContent = fmt(stats.hands);
@@ -1156,14 +1300,59 @@ function chipRow(container, get, set, onChange){
 }
 
 /* ============ tabs ============ */
+/* One switcher for both navs — the sidebar rail on desktop and the mobile
+   sheet — so neither can drift out of sync with the other. */
+function showTab(name){
+  Array.prototype.forEach.call(document.querySelectorAll(".sidebar-link[data-tab]"), function(o){
+    o.classList.toggle("on", o.dataset.tab === name);
+  });
+  Array.prototype.forEach.call(document.querySelectorAll(".game"), function(o){
+    o.classList.toggle("on", o.id === "tab-" + name);
+  });
+}
 Array.prototype.forEach.call(document.querySelectorAll(".sidebar-link[data-tab]"), function(b){
   b.addEventListener("click", function(){
     playClick();
-    Array.prototype.forEach.call(document.querySelectorAll(".sidebar-link[data-tab]"), function(o){ o.classList.remove("on"); });
-    Array.prototype.forEach.call(document.querySelectorAll(".game"), function(o){ o.classList.remove("on"); });
-    b.classList.add("on");
-    $("tab-" + b.dataset.tab).classList.add("on");
+    showTab(b.dataset.tab);
   });
+});
+
+/* ---- mobile nav sheet ---- */
+var NAV_ITEMS = GAMES.concat([{key:"leaderboard", name:"Leaderboard", icon:"&#127942;"}]);
+var navSheet = $("navSheet"), menuBtn = $("menuBtn");
+
+function renderNavSheet(){
+  var active = (document.querySelector(".sidebar-link.on") || {dataset:{}}).dataset.tab;
+  $("navSheetList").innerHTML = '<div class="navsheet-label">Games</div>' +
+    NAV_ITEMS.map(function(n){
+      /* the leaderboard sits under its own heading, mirroring the desktop rail */
+      return (n.key === "leaderboard" ? '<div class="navsheet-label">Other</div>' : "") +
+             '<button class="navsheet-link' + (n.key === active ? " on" : "") + '" data-nav="' + n.key + '">' +
+               '<span class="ic">' + n.icon + '</span>' + n.name +
+             '</button>';
+    }).join("");
+}
+function openNav(){
+  renderNavSheet();                                  /* rebuilt each time so the tick follows the current tab */
+  navSheet.classList.add("on");
+  menuBtn.setAttribute("aria-expanded", "true");
+}
+function closeNav(){
+  navSheet.classList.remove("on");
+  menuBtn.setAttribute("aria-expanded", "false");
+}
+menuBtn.addEventListener("click", function(){
+  playClick();
+  if(navSheet.classList.contains("on")) closeNav(); else openNav();
+});
+navSheet.addEventListener("click", function(e){
+  if(e.target === navSheet){ closeNav(); return; }   /* backdrop */
+  var link = e.target.closest && e.target.closest(".navsheet-link");
+  if(link){
+    playClick();
+    showTab(link.dataset.nav);
+    closeNav();
+  }
 });
 
 /* ============ settings ============ */
@@ -1282,8 +1471,10 @@ $("resetStatsGo").addEventListener("click", function(){
   stats.won = 0;
   stats.big = 0;
   stats.peak = bank;                 /* a high-water mark restarts from today's balance, not 0 */
+  GAMES.forEach(function(g){ gameNet[g.key] = 0; });
   renderStats();
   renderStatsPanel();
+  renderLeaderboard();
   save();
   closeReset2();
 });
@@ -1739,7 +1930,7 @@ $("spinBtn").addEventListener("click", function(){
 
   slotBusy = true;
   $("spinBtn").disabled = true;
-  setBank(bank - slotStake, -1);
+  wager(slotStake, "slots");
   stats.hands++;
   msg($("slotMsg"), "Spinning…", "info");
 
@@ -1797,7 +1988,7 @@ function settleSlots(result, reels){
   }
 
   if(win > 0){
-    payout(win);
+    payout(win, "slots");
     var size = win >= slotStake * 50 ? "jackpot" : win >= slotStake * 12 ? "big" : "small";
     playWin(size);
     if(size !== "small") setTimeout(playCoin, 90);
@@ -1910,7 +2101,7 @@ function bjMode(live){
 
 $("dealBtn").addEventListener("click", function(){
   if(bj.stake > bank){ msg($("bjMsg"), "Not enough chips for that wager.", "lose"); return; }
-  setBank(bank - bj.stake, -1);
+  wager(bj.stake, "blackjack");
   stats.hands++;
 
   var rigMode = rigRoll();
@@ -1939,12 +2130,12 @@ $("dealBtn").addEventListener("click", function(){
     bj.hole = false;
     renderBJ();
     if(pNat && dNat){
-      payout(bj.stake);
+      payout(bj.stake, "blackjack");
       playClick();
       msg($("bjMsg"), "Both blackjack — push. Wager returned.", "info");
     }else if(pNat){
       var win = Math.floor(bj.stake * 2.5);
-      payout(win);
+      payout(win, "blackjack");
       playWin("big");
       msg($("bjMsg"), "Blackjack! You collect " + fmt(win) + " chips.", "win");
     }else{
@@ -1972,7 +2163,7 @@ $("hitBtn").addEventListener("click", function(){
 $("dblBtn").addEventListener("click", function(){
   if(bj.stake > bank) return;
   playDeal();
-  setBank(bank - bj.stake, -1);
+  wager(bj.stake, "blackjack");
   bj.stake *= 2;
   bj.doubled = true;
   bj.player.push(draw());
@@ -2015,15 +2206,15 @@ function settleBJ(){
   var p = handValue(bj.player).total;
   var d = handValue(bj.dealer).total;
   if(d > 21){
-    payout(bj.stake * 2);
+    payout(bj.stake * 2, "blackjack");
     playWin("big");
     msg($("bjMsg"), "Dealer busts at " + d + ". You win " + fmt(bj.stake * 2) + " chips.", "win");
   }else if(p > d){
-    payout(bj.stake * 2);
+    payout(bj.stake * 2, "blackjack");
     playWin("big");
     msg($("bjMsg"), p + " beats " + d + ". You win " + fmt(bj.stake * 2) + " chips.", "win");
   }else if(p === d){
-    payout(bj.stake);
+    payout(bj.stake, "blackjack");
     playClick();
     msg($("bjMsg"), "Push at " + p + ". Wager returned.", "info");
   }else{
@@ -2147,7 +2338,7 @@ $("rSpin").addEventListener("click", function(){
 
   rBusy = true;
   $("rSpin").disabled = true;
-  setBank(bank - staked, -1);
+  wager(staked, "roulette");
   stats.hands++;
 
   Array.prototype.forEach.call(board.querySelectorAll(".hitnum"), function(c){ c.classList.remove("hitnum"); });
@@ -2205,7 +2396,7 @@ function settleRoulette(result, staked){
 
   var colour = result === 0 ? "green" : (isRed(result) ? "red" : "black");
   if(ret > 0){
-    payout(ret);
+    payout(ret, "roulette");
     var net = ret - staked;
     var size = ret >= staked * 20 ? "jackpot" : ret >= staked * 5 ? "big" : "small";
     playWin(size);
@@ -2857,7 +3048,7 @@ $("hrRace").addEventListener("click", function(){
   if(hrRacing) return;
   if(hrStake > bank){ msg($("hrMsg"), "Not enough chips for that bet.", "lose"); return; }
 
-  setBank(bank - hrStake, -1);
+  wager(hrStake, "horse");
   stats.hands++;
 
   /* Finishing order is decided up front so the rig commands can steer it; the
@@ -2896,7 +3087,7 @@ function hrSettle(){
   var won = hrWinner === hrPick;
   if(won){
     var ret = Math.floor(hrStake * hrOddsVal());
-    payout(ret);
+    payout(ret, "horse");
     playWin(hrOddsVal() >= 8 ? "jackpot" : "big");
     setTimeout(playCoin, 90);
     msg($("hrMsg"), "#" + hrWinner + " wins! You collect " + fmt(ret) + " chips.", "win");
@@ -3212,7 +3403,7 @@ function pkSettle(ball){
   var m = ball.mults[ball.col];
   var ret = Math.floor(ball.stake * m);
   var net = ret - ball.stake;
-  if(ret > 0) payout(ret);
+  if(ret > 0) payout(ret, "plinko");
   if(net > 0){
     playWin(m >= 20 ? "jackpot" : m >= 3 ? "big" : "small");
     if(m >= 3) setTimeout(playCoin, 90);
@@ -3275,7 +3466,7 @@ $("pkClear").addEventListener("click", function(){
 $("pkDrop").addEventListener("click", function(){
   if(pkStake > bank){ msg($("pkMsg"), "Not enough chips for that bet.", "lose"); return; }
 
-  setBank(bank - pkStake, -1);
+  wager(pkStake, "plinko");
   stats.hands++;
 
   /* Bucket is chosen first so the rig can steer it, then a path of lefts and
@@ -3373,7 +3564,7 @@ function fbReset(){
 function fbStart(){
   if(fbState !== "idle") return;
   if(fbStake > bank){ msg($("fbMsg"), "Not enough chips for that bet.", "lose"); return; }
-  setBank(bank - fbStake, -1);
+  wager(fbStake, "flappy");
   stats.hands++;
 
   var rigMode = rigRoll();
@@ -3397,7 +3588,7 @@ function fbCashOut(){
   if(fbState !== "flying") return;
   var ret = fbCashValue(), net = ret - fbStake;
   fbState = "idle";
-  if(ret > 0) payout(ret);
+  if(ret > 0) payout(ret, "flappy");
   if(net > 0){
     playWin(fbMult >= 20 ? "jackpot" : fbMult >= 3 ? "big" : "small");
     if(fbMult >= 3) setTimeout(playCoin, 90);
@@ -3650,6 +3841,7 @@ syncSoundUI();
 applyCasinoName(CASINO_NAME);
 setBank(bank, 0);
 renderBets();
+renderLeaderboard();
 $("versionTag").textContent = VERSION;
 $("betaVersion").textContent = VERSION;
 betaOverlay.classList.add("on");
