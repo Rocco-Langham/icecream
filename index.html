@@ -983,6 +983,7 @@
     <div class="modal-sidebar">
       <button class="subtab on" data-subtab="general">General</button>
       <button class="subtab" data-subtab="appearance">Appearance</button>
+      <button class="subtab" data-subtab="account">Account</button>
     </div>
 
     <div class="modal-content">
@@ -1040,6 +1041,52 @@
           </div>
         </div>
       </div>
+
+      <div class="subpanel" id="sub-account">
+        <h2>Account</h2>
+        <p class="sub">Sign in to back your chips up and, later, race your friends.</p>
+
+        <!-- offline: the page is on file://, so there is nothing to talk to -->
+        <div id="acctOffline" hidden>
+          <p class="modal-note">
+            You are running the file straight from disk, so accounts are switched off.
+            Play at <b>rocco-langham.github.io/icecream</b> to sign in.
+          </p>
+        </div>
+
+        <!-- signed out -->
+        <div id="acctOut" hidden>
+          <div class="field">
+            <label for="acctEmail">Email</label>
+            <input type="email" id="acctEmail" autocomplete="email" placeholder="you@example.com">
+          </div>
+          <div class="field">
+            <label for="acctPass">Password</label>
+            <input type="password" id="acctPass" autocomplete="current-password" placeholder="At least 6 characters">
+          </div>
+          <div class="field">
+            <label for="acctUser">Username <span style="text-transform:none;letter-spacing:0">(new accounts only)</span></label>
+            <input type="text" id="acctUser" autocomplete="username" placeholder="3-20 characters" maxlength="20">
+          </div>
+          <div class="modal-actions">
+            <button class="btn ghost sm" id="acctSignUp">Create account</button>
+            <button class="btn sm" id="acctLogIn">Log in</button>
+          </div>
+        </div>
+
+        <!-- signed in -->
+        <div id="acctIn" hidden>
+          <div class="stat-grid">
+            <div class="stat-cell"><span>Signed in as</span><b id="acctName">—</b></div>
+            <div class="stat-cell"><span>Cloud save</span><b id="acctSync">—</b></div>
+          </div>
+          <div class="modal-actions">
+            <button class="btn ghost sm" id="acctSignOut">Sign out</button>
+          </div>
+        </div>
+
+        <p class="modal-note" id="acctNote"></p>
+      </div>
     </div>
   </div>
 </div>
@@ -1092,10 +1139,28 @@
   </div>
 </div>
 
+<!-- The one external dependency in the file. Only reachable over http(s), which
+     is why the offline file:// copy keeps working with cloud saves switched off. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 "use strict";
 
 var VERSION = "v1.0";
+
+/* ============ cloud (Supabase) ============ */
+/* The anon key is meant to ship in the page — row level security decides what
+   it can actually reach, so publishing it grants nobody anything. */
+var SB_URL = "https://zrxapphxtboaezbuugfi.supabase.co";
+var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyeGFwcGh4dGJvYWV6YnV1Z2ZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4NzgzMDIsImV4cCI6MjEwNDQ1NDMwMn0.Dl4XQjHwsGeNLgIkjt6PTO3YcyCwXFfFb7DH3TTabs8";
+
+/* Allow-list http(s) rather than blocking file:. Anything with an opaque origin
+   — file:, data:, blob: — can't hold an auth session, and previews serve local
+   copies as data: URLs. If the CDN script is missing the game just runs offline,
+   exactly as it always has. */
+var CLOUD_OK = (location.protocol === "https:" || location.protocol === "http:") &&
+               typeof supabase !== "undefined";
+var sb = CLOUD_OK ? supabase.createClient(SB_URL, SB_KEY) : null;
+var sbUser = null;
 
 /* ============ persistence ============ */
 var KEY = "sparxmaths-casino-v1";
@@ -1115,6 +1180,7 @@ function save(){
   };
   mem = data;
   try{ localStorage.setItem(KEY, JSON.stringify(data)); }catch(e){}
+  if(typeof cloudPushSoon === "function") cloudPushSoon();
 }
 
 /* Running profit/loss per table for the leaderboard: every chip staked counts
@@ -1478,6 +1544,107 @@ $("resetStatsGo").addEventListener("click", function(){
   save();
   closeReset2();
 });
+
+/* ---- account / cloud save ---- */
+function acctSay(text, kind){
+  var n = $("acctNote");
+  n.textContent = text || "";
+  n.style.color = kind === "bad" ? "var(--bad)" : kind === "good" ? "var(--good)" : "";
+}
+function renderAccount(){
+  $("acctOffline").hidden = CLOUD_OK;
+  $("acctOut").hidden     = !CLOUD_OK || !!sbUser;
+  $("acctIn").hidden      = !CLOUD_OK || !sbUser;
+}
+function applyCloudRow(row){
+  stats.hands = row.hands; stats.won = row.won; stats.big = row.big; stats.peak = row.peak;
+  gameNet = row.net || {};
+  GAMES.forEach(function(g){ if(typeof gameNet[g.key] !== "number") gameNet[g.key] = 0; });
+  setBank(row.bank, 0);                              /* re-renders the footer stats and saves locally */
+  renderStatsPanel();
+  renderLeaderboard();
+}
+function cloudPush(){
+  if(!sbUser) return;
+  $("acctSync").textContent = "Saving…";
+  sb.from("scores").upsert({
+    user_id: sbUser.id, bank: bank, hands: stats.hands, won: stats.won,
+    big: stats.big, peak: stats.peak, net: gameNet, updated_at: new Date().toISOString()
+  }).then(function(res){
+    $("acctSync").textContent = res.error ? "Failed" : "Saved";
+    if(res.error) acctSay(res.error.message, "bad");
+  });
+}
+/* setBank fires on every chip movement, so coalesce the writes */
+var cloudTimer = null;
+function cloudPushSoon(){
+  if(!sbUser) return;
+  clearTimeout(cloudTimer);
+  cloudTimer = setTimeout(cloudPush, 2000);
+}
+/* On sign-in one side has to win. hands only ever counts up, so the bigger
+   count is the more-played save — that keeps a fresh device from wiping a
+   real one, and a real one from being wiped by a fresh cloud row. */
+function cloudSync(){
+  if(!sbUser) return;
+  sb.from("scores").select("*").eq("user_id", sbUser.id).maybeSingle().then(function(res){
+    if(res.error){ acctSay(res.error.message, "bad"); return; }
+    var row = res.data;
+    if(row && row.hands > stats.hands){
+      applyCloudRow(row);
+      acctSay("Loaded your cloud save (" + fmt(row.hands) + " hands).", "good");
+      $("acctSync").textContent = "Loaded";
+    }else{
+      cloudPush();
+      acctSay("This device was further ahead, so the cloud was updated.", "good");
+    }
+  });
+  sb.from("profiles").select("username").eq("id", sbUser.id).maybeSingle().then(function(res){
+    $("acctName").textContent = (res.data && res.data.username) || sbUser.email;
+  });
+}
+if(CLOUD_OK){
+  sb.auth.onAuthStateChange(function(_evt, session){
+    sbUser = session ? session.user : null;
+    renderAccount();
+    if(sbUser) cloudSync(); else $("acctSync").textContent = "—";
+  });
+
+  $("acctSignUp").addEventListener("click", function(){
+    playClick();
+    var user = $("acctUser").value.trim();
+    if(user.length < 3 || user.length > 20){ acctSay("Pick a username of 3-20 characters.", "bad"); return; }
+    acctSay("Creating account…");
+    sb.auth.signUp({
+      email: $("acctEmail").value.trim(),
+      password: $("acctPass").value,
+      options: { data: { username: user } }
+    }).then(function(res){
+      if(res.error){ acctSay(res.error.message, "bad"); return; }
+      /* with "Confirm email" on, there is a session-less signup and a mail to click */
+      acctSay(res.data.session ? "Account created." : "Check your email to confirm, then log in.", "good");
+    });
+  });
+
+  $("acctLogIn").addEventListener("click", function(){
+    playClick();
+    acctSay("Signing in…");
+    sb.auth.signInWithPassword({
+      email: $("acctEmail").value.trim(),
+      password: $("acctPass").value
+    }).then(function(res){
+      if(res.error){ acctSay(res.error.message, "bad"); return; }
+      $("acctPass").value = "";
+      acctSay("");
+    });
+  });
+
+  $("acctSignOut").addEventListener("click", function(){
+    playClick();
+    sb.auth.signOut().then(function(){ acctSay("Signed out. Your chips stay on this device.", "good"); });
+  });
+}
+renderAccount();
 
 /* ---- dev mode (unlocked by the Code field in General settings) ---- */
 var devCodeInput = $("devCode"), devNote = $("devNote");
