@@ -108,14 +108,18 @@
   .changelog-list{margin:0 0 4px;padding:0 0 0 18px;font-size:12.5px;line-height:1.65;color:rgba(var(--cream-rgb),.72)}
   .changelog-list li{margin-bottom:5px}
   .changelog-list li::marker{color:var(--gold-dim)}
-  .claimed-list{display:flex;flex-wrap:wrap;gap:6px}
-  .claimed-code{
-    display:flex;align-items:center;gap:6px;
-    padding:5px 10px;border-radius:999px;
-    border:1px solid rgba(var(--gold-rgb),.35);background:rgba(var(--gold-rgb),.1);
-    font-size:11px;font-weight:700;color:var(--gold);white-space:nowrap;
+  .code-list{display:flex;flex-direction:column;gap:8px}
+  .code-row{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:10px 12px;border-radius:10px;
+    border:1px solid var(--edge);background:rgba(var(--panel-tint-rgb),.4);
   }
-  .claimed-code small{font-size:10px;font-weight:400;color:rgba(var(--cream-rgb),.5);text-transform:none;letter-spacing:0}
+  .code-row .code-name{font-size:14px;font-weight:700;color:var(--gold);letter-spacing:.5px}
+  .code-row .code-what{display:block;font-size:10.5px;font-weight:400;color:rgba(var(--cream-rgb),.55);letter-spacing:0;text-transform:none;margin-top:2px}
+  .code-row .code-state{font-size:10px;letter-spacing:calc(1px * var(--ui-track));text-transform:var(--ui-case);white-space:nowrap}
+  .code-row.claimed .code-name{color:var(--gold-dim)}
+  .code-row.claimed .code-state{color:var(--good)}
+  .code-row .code-state.open{color:var(--gold-dim)}
 
   /* ---------- show/hide password ---------- */
   /* .field .pw-wrap input outranks .field input, so the right padding that keeps
@@ -1077,20 +1081,6 @@
         </div>
         <p class="modal-note">Chip clicks, dealing, spins, and win/lose cues.</p>
 
-        <!-- the changelog only appears once per version, so codes need a way
-             back that does not depend on having kept that popup open -->
-        <div class="section-head">
-          <div class="section-title">Codes</div>
-          <button class="btn ghost sm" id="settingsCodes">Redeem</button>
-        </div>
-        <p class="modal-note">Claim a code for chips and other rewards.</p>
-
-        <div class="section-head">
-          <div class="section-title">Changelog</div>
-          <button class="btn ghost sm" id="settingsChangelog">View</button>
-        </div>
-        <p class="modal-note">What changed in this version.</p>
-
         <div class="section-head">
           <div class="section-title">Stats</div>
           <button class="btn ghost sm" id="statsResetBtn">Reset</button>
@@ -1104,6 +1094,7 @@
         </div>
         <p class="modal-note">Totals since your last reset. Peak bank is the highest balance you have held.</p>
 
+        <!-- one box for every code: reward codes and the dev unlock alike -->
         <div class="section-title">Code</div>
         <div class="field">
           <input type="text" id="devCode" autocomplete="off" spellcheck="false" placeholder="Code">
@@ -1112,6 +1103,10 @@
           <button class="btn ghost sm" id="devSubmit">Submit</button>
         </div>
         <p class="modal-note" id="devNote"></p>
+
+        <div class="modal-actions">
+          <button class="btn ghost sm" id="settingsChangelog">Changelog &mdash; <span id="settingsChangelogVer"></span></button>
+        </div>
       </div>
 
       <div class="subpanel" id="sub-appearance">
@@ -1290,19 +1285,11 @@
   <div class="modal simple">
     <button class="modal-close" id="codesClose" aria-label="Close">&times;</button>
     <h2>Codes</h2>
-    <p class="sub">Enter a code to claim a reward. Each one can be claimed once.</p>
-    <div class="field">
-      <label for="codeInput">Code</label>
-      <input type="text" id="codeInput" autocomplete="off" spellcheck="false" placeholder="Type a code">
-    </div>
-    <div class="modal-actions">
-      <button class="btn sm" id="codesRedeem">Redeem</button>
-    </div>
-    <p class="modal-note" id="codesNote"></p>
-    <div id="codesClaimed" hidden>
-      <div class="section-title">Claimed</div>
-      <div class="claimed-list" id="codesList"></div>
-    </div>
+    <!-- a noticeboard, not a form: redeeming happens in the Code box in
+         Settings, so there is only one place to type a code -->
+    <p class="sub">Type one into the Code box in Settings. Each can be claimed once.</p>
+    <div class="code-list" id="codesList"></div>
+    <p class="modal-note">Settings &rarr; General &rarr; Code.</p>
   </div>
 </div>
 
@@ -1762,6 +1749,7 @@ var CHANGELOG = {
 };
 function renderChangelog(){
   $("changelogVersion").textContent = CHANGELOG.version;
+  $("settingsChangelogVer").textContent = CHANGELOG.version;
   $("changelogBody").innerHTML = CHANGELOG.notes.map(function(n){ return "<li>" + n + "</li>"; }).join("");
 }
 /* Once per version: a changelog on every launch is noise, which is also why
@@ -1801,33 +1789,32 @@ var CODES = {
   "RELEASE26!": {chips: 500, label: "Release bonus"}
 };
 function openCodes(){
-  $("codeInput").value = "";
-  codesSay("");
   renderCodes();
   $("codes").classList.add("on");
 }
 function closeCodes(){ $("codes").classList.remove("on"); }
-function codesSay(text, kind){
-  var n = $("codesNote");
-  n.textContent = text || "";
-  n.style.color = kind === "bad" ? "var(--bad)" : kind === "good" ? "var(--good)" : "";
-}
+/* A noticeboard: it lists what exists and what has been taken. Redeeming is
+   done in the Code box in Settings, so there is only one place to type one. */
 function renderCodes(){
-  $("codesClaimed").hidden = redeemed.length === 0;
-  $("codesList").innerHTML = redeemed.map(function(c){
-    var reward = CODES[c];
-    return '<span class="claimed-code">' + c +
-             (reward ? " <small>" + fmt(reward.chips) + " chips</small>" : "") +
-           '</span>';
+  $("codesList").innerHTML = Object.keys(CODES).map(function(c){
+    var reward = CODES[c], claimed = redeemed.indexOf(c) !== -1;
+    return '<div class="code-row' + (claimed ? " claimed" : "") + '">' +
+             '<span class="code-name">' + c +
+               '<span class="code-what">' + reward.label + " &middot; " + fmt(reward.chips) + ' chips</span>' +
+             '</span>' +
+             '<span class="code-state' + (claimed ? "" : " open") + '">' +
+               (claimed ? "Claimed" : "Available") +
+             '</span>' +
+           '</div>';
   }).join("");
 }
-function redeemCode(raw){
-  var code = String(raw || "").trim().toUpperCase();
-  if(!code) return codesSay("Enter a code first.", "bad");
-  if(!CODES[code]) return codesSay("That code is not valid.", "bad");
-  if(redeemed.indexOf(code) !== -1) return codesSay("You have already claimed that one.", "bad");
-
+/* Returns a message for the Code box, or null when the text is not a reward
+   code at all — which is how the dev unlock keeps sharing the same input. */
+function tryRedeem(code){
   var reward = CODES[code];
+  if(!reward) return null;
+  if(redeemed.indexOf(code) !== -1) return {ok:false, msg:"You have already claimed that code."};
+
   redeemed.push(code);
   /* setBank rather than payout: a code is a gift, not a win, and routing it
      through payout would inflate "won" and possibly "biggest hit". */
@@ -1836,14 +1823,10 @@ function redeemCode(raw){
   setTimeout(playCoin, 90);
   renderCodes();
   save();
-  codesSay(reward.label + " — " + fmt(reward.chips) + " chips added.", "good");
-  $("codeInput").value = "";
+  return {ok:true, msg:reward.label + " — " + fmt(reward.chips) + " chips added."};
 }
 $("codesClose").addEventListener("click", closeCodes);
 $("codes").addEventListener("click", function(e){ if(e.target === $("codes")) closeCodes(); });
-$("codesRedeem").addEventListener("click", function(){ playClick(); redeemCode($("codeInput").value); });
-$("codeInput").addEventListener("keydown", function(e){ if(e.key === "Enter") redeemCode(this.value); });
-$("settingsCodes").addEventListener("click", function(){ playClick(); openCodes(); });
 
 /* ---- stats panel + two-step reset ---- */
 function renderStatsPanel(){
@@ -2390,9 +2373,20 @@ window.addEventListener("message", function(e){
   }
 });
 
+/* One box, two jobs. Reward codes are tried first; the dev unlock is only
+   reached by text that is not a reward code, so neither can shadow the other. */
 function submitDevCode(){
-  var val = devCodeInput.value.trim().toLowerCase();
-  if(val === "xyz"){
+  var raw = devCodeInput.value.trim();
+
+  var claim = tryRedeem(raw.toUpperCase());
+  if(claim){
+    if(claim.ok){ devCodeInput.value = ""; }else{ playLose(); }
+    devNote.textContent = claim.msg;
+    devNote.style.color = claim.ok ? "var(--good)" : "var(--bad)";
+    return;
+  }
+
+  if(raw.toLowerCase() === "xyz"){
     playWin("big");
     applyCasinoName("xyz");
     save();
@@ -4515,6 +4509,8 @@ setBank(bank, 0);
 renderBets();
 renderLeaderboard();
 renderStreak();
+renderChangelog();                                   /* also stamps the version onto the settings button */
+renderCodes();
 $("versionTag").textContent = VERSION;
 $("betaVersion").textContent = VERSION;
 betaOverlay.classList.add("on");
