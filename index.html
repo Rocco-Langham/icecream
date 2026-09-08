@@ -83,6 +83,12 @@
     color:var(--ink);background:linear-gradient(135deg,var(--gold),var(--pop));
     box-shadow:0 6px 16px rgba(var(--gold-rgb),.22);
   }
+  /* ---------- welcome gate ---------- */
+  .gate-view .modal-actions{margin-top:18px}
+  .gate-view .modal-actions .btn{flex:1}
+  #gateNote a, .modal-note a{color:var(--gold);text-decoration:none;border-bottom:1px solid rgba(var(--gold-rgb),.4)}
+  #gateNote a:hover, .modal-note a:hover{color:var(--cream);border-bottom-color:var(--cream)}
+
   /* ---------- mobile nav sheet ---------- */
   /* Both the button and the sheet are desktop-hidden; the rail is the nav there.
      Closed state is visibility+opacity rather than display:none so the sheet has
@@ -1054,31 +1060,20 @@
           </p>
         </div>
 
-        <!-- signed out -->
+        <!-- signed out: the forms live in the welcome popup, so this only sends
+             you there rather than keeping a second copy of them in sync -->
         <div id="acctOut" hidden>
-          <div class="field">
-            <label for="acctEmail">Email</label>
-            <input type="email" id="acctEmail" autocomplete="email" placeholder="you@example.com">
-          </div>
-          <div class="field">
-            <label for="acctPass">Password</label>
-            <input type="password" id="acctPass" autocomplete="current-password" placeholder="At least 6 characters">
-          </div>
-          <div class="field">
-            <label for="acctUser">Username <span style="text-transform:none;letter-spacing:0">(new accounts only)</span></label>
-            <input type="text" id="acctUser" autocomplete="username" placeholder="3-20 characters" maxlength="20">
-          </div>
+          <p class="modal-note">You are playing as a guest &mdash; chips are saved on this device only.</p>
           <div class="modal-actions">
-            <button class="btn ghost sm" id="acctSignUp">Create account</button>
-            <button class="btn sm" id="acctLogIn">Log in</button>
+            <button class="btn sm" id="acctOpenGate">Log in or sign up</button>
           </div>
         </div>
 
         <!-- signed in -->
         <div id="acctIn" hidden>
           <div class="stat-grid">
-            <div class="stat-cell"><span>Signed in as</span><b id="acctName">—</b></div>
-            <div class="stat-cell"><span>Cloud save</span><b id="acctSync">—</b></div>
+            <div class="stat-cell"><span>Signed in as</span><b id="acctName">&mdash;</b></div>
+            <div class="stat-cell"><span>Cloud save</span><b id="acctSync">&mdash;</b></div>
           </div>
           <div class="modal-actions">
             <button class="btn ghost sm" id="acctSignOut">Sign out</button>
@@ -1088,6 +1083,93 @@
         <p class="modal-note" id="acctNote"></p>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Welcome gate. One overlay, four views: the choice, then login, signup or
+     reset. Dismissible on purpose — the game runs fine without an account, and
+     locking it behind a sign-in would also lock everyone out whenever Supabase
+     is unreachable. -->
+<div class="modal-overlay" id="gate">
+  <div class="modal simple">
+    <button class="modal-close" id="gateClose" aria-label="Play as guest">&times;</button>
+
+    <div class="gate-view" id="gateChoice">
+      <h2>Welcome</h2>
+      <p class="sub">Sign in to keep your chips across devices, or play as a guest.</p>
+      <div class="modal-actions">
+        <button class="btn sm" id="gateGoLogin">Log in</button>
+        <button class="btn sm" id="gateGoSignup">Sign up</button>
+      </div>
+      <p class="modal-note"><a href="#" id="gateGuest">Play as guest &rarr;</a></p>
+    </div>
+
+    <div class="gate-view" id="gateLogin" hidden>
+      <h2>Log in</h2>
+      <div class="field">
+        <label for="gateIdent">Username or email</label>
+        <input type="text" id="gateIdent" autocomplete="username" placeholder="Either one works">
+      </div>
+      <div class="field">
+        <label for="gateLoginPass">Password</label>
+        <input type="password" id="gateLoginPass" autocomplete="current-password" placeholder="Your password">
+      </div>
+      <div class="modal-actions">
+        <button class="btn ghost sm" data-gate-back="1">Back</button>
+        <button class="btn sm" id="gateDoLogin">Log in</button>
+      </div>
+      <p class="modal-note"><a href="#" id="gateGoReset">Forgotten your password?</a></p>
+    </div>
+
+    <div class="gate-view" id="gateSignup" hidden>
+      <h2>Sign up</h2>
+      <div class="field">
+        <label for="gateEmail">Email</label>
+        <input type="email" id="gateEmail" autocomplete="email" placeholder="you@example.com">
+      </div>
+      <div class="field">
+        <label for="gateUser">Username</label>
+        <input type="text" id="gateUser" autocomplete="username" placeholder="3-20 characters" maxlength="20">
+      </div>
+      <div class="field">
+        <label for="gateSignupPass">Password</label>
+        <input type="password" id="gateSignupPass" autocomplete="new-password" placeholder="At least 6 characters">
+      </div>
+      <div class="modal-actions">
+        <button class="btn ghost sm" data-gate-back="1">Back</button>
+        <button class="btn sm" id="gateDoSignup">Create account</button>
+      </div>
+    </div>
+
+    <div class="gate-view" id="gateReset" hidden>
+      <h2>Reset password</h2>
+      <!-- email only: the reset link has to be delivered somewhere, and a
+           username is not an address -->
+      <p class="sub">We will email you a link. This needs your email address &mdash; a username cannot be emailed.</p>
+      <div class="field">
+        <label for="gateResetEmail">Email</label>
+        <input type="email" id="gateResetEmail" autocomplete="email" placeholder="you@example.com">
+      </div>
+      <div class="modal-actions">
+        <button class="btn ghost sm" data-gate-back="1">Back</button>
+        <button class="btn sm" id="gateDoReset">Send reset link</button>
+      </div>
+    </div>
+
+    <!-- shown when arriving back from a reset link -->
+    <div class="gate-view" id="gateNewPass" hidden>
+      <h2>New password</h2>
+      <p class="sub">Choose a new password for your account.</p>
+      <div class="field">
+        <label for="gateNewPassVal">New password</label>
+        <input type="password" id="gateNewPassVal" autocomplete="new-password" placeholder="At least 6 characters">
+      </div>
+      <div class="modal-actions">
+        <button class="btn sm" id="gateDoNewPass">Save password</button>
+      </div>
+    </div>
+
+    <p class="modal-note" id="gateNote"></p>
   </div>
 </div>
 
@@ -1484,7 +1566,12 @@ Array.prototype.forEach.call(document.querySelectorAll(".subtab"), function(b){
 
 /* ---- beta notice ---- */
 var betaOverlay = $("betaOverlay");
-function closeBeta(){ betaOverlay.classList.remove("on"); }
+/* The beta notice and the welcome gate both want the screen on load, so they
+   queue: the gate waits its turn rather than stacking on top. */
+function closeBeta(){
+  betaOverlay.classList.remove("on");
+  if(typeof gateFlush === "function") gateFlush();
+}
 $("betaClose").addEventListener("click", closeBeta);
 $("betaOk").addEventListener("click", function(){ playClick(); closeBeta(); });
 betaOverlay.addEventListener("click", function(e){
@@ -1603,45 +1690,161 @@ function cloudSync(){
     $("acctName").textContent = (res.data && res.data.username) || sbUser.email;
   });
 }
+/* ---- welcome gate ---- */
+var GATE_VIEWS = ["gateChoice", "gateLogin", "gateSignup", "gateReset", "gateNewPass"];
+var AUTH_AT_KEY = "sparxmaths-casino-authat";
+var AUTH_MAX_AGE = 2 * 24 * 60 * 60 * 1000;          /* stay signed in for two days */
+
+function gateSay(text, kind){
+  var n = $("gateNote");
+  n.textContent = text || "";
+  n.style.color = kind === "bad" ? "var(--bad)" : kind === "good" ? "var(--good)" : "";
+}
+function gateShow(view){
+  GATE_VIEWS.forEach(function(v){ $(v).hidden = v !== view; });
+  gateSay("");
+  $("gate").classList.add("on");
+}
+function gateClose(){ $("gate").classList.remove("on"); gateSay(""); }
+
+/* Defer to the beta notice if it is still up; closeBeta() calls gateFlush(). */
+var gatePending = false;
+function gateQueue(){
+  if($("betaOverlay").classList.contains("on")){ gatePending = true; return; }
+  gateShow("gateChoice");
+}
+function gateFlush(){
+  if(!gatePending) return;
+  gatePending = false;
+  gateShow("gateChoice");
+}
+
+function authStamp(){ try{ localStorage.setItem(AUTH_AT_KEY, String(Date.now())); }catch(e){} }
+function authAge(){
+  try{
+    var t = Number(localStorage.getItem(AUTH_AT_KEY));
+    return t ? Date.now() - t : Infinity;
+  }catch(e){ return Infinity; }
+}
+
 if(CLOUD_OK){
-  sb.auth.onAuthStateChange(function(_evt, session){
+  sb.auth.onAuthStateChange(function(evt, session){
+    /* arriving back from a reset link: Supabase signs you in just long enough
+       to set a new password */
+    if(evt === "PASSWORD_RECOVERY"){ gateShow("gateNewPass"); return; }
+
     sbUser = session ? session.user : null;
     renderAccount();
-    if(sbUser) cloudSync(); else $("acctSync").textContent = "—";
+    if(sbUser){
+      if(evt === "SIGNED_IN") authStamp();
+      gateClose();
+      cloudSync();
+    }else{
+      $("acctSync").textContent = "—";
+    }
   });
 
-  $("acctSignUp").addEventListener("click", function(){
+  /* Two days is a cap, not a default: the client would otherwise keep refreshing
+     the session indefinitely. Checked once on load, before the gate decides. */
+  sb.auth.getSession().then(function(res){
+    var session = res.data && res.data.session;
+    if(session && authAge() > AUTH_MAX_AGE){
+      sb.auth.signOut().then(function(){
+        gateQueue();
+        gateSay("It has been a while — please sign in again.");
+      });
+    }else if(!session && !location.hash.match(/type=recovery/)){
+      gateQueue();
+    }
+  });
+
+  $("gateGoLogin").addEventListener("click", function(){ playClick(); gateShow("gateLogin"); });
+  $("gateGoSignup").addEventListener("click", function(){ playClick(); gateShow("gateSignup"); });
+  $("gateGoReset").addEventListener("click", function(e){ e.preventDefault(); playClick(); gateShow("gateReset"); });
+  $("gateGuest").addEventListener("click", function(e){ e.preventDefault(); playClick(); gateClose(); });
+  $("gateClose").addEventListener("click", function(){ gateClose(); });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-gate-back]"), function(b){
+    b.addEventListener("click", function(){ playClick(); gateShow("gateChoice"); });
+  });
+  $("acctOpenGate").addEventListener("click", function(){ playClick(); gateShow("gateChoice"); });
+
+  $("gateDoLogin").addEventListener("click", function(){
     playClick();
-    var user = $("acctUser").value.trim();
-    if(user.length < 3 || user.length > 20){ acctSay("Pick a username of 3-20 characters.", "bad"); return; }
-    acctSay("Creating account…");
+    var ident = $("gateIdent").value.trim(), pass = $("gateLoginPass").value;
+    if(!ident || !pass){ gateSay("Enter your username or email and your password.", "bad"); return; }
+    gateSay("Signing in…");
+
+    /* Supabase only signs in with an email, so a username has to be translated
+       first via the email_for_username function. */
+    var resolve = ident.indexOf("@") !== -1
+      ? Promise.resolve(ident)
+      : sb.rpc("email_for_username", {u: ident}).then(function(r){
+          /* the lookup is a separate migration, so say something useful rather
+             than surfacing "function not found" from Postgres */
+          if(r.error) throw new Error("Username lookup is unavailable — log in with your email instead.");
+          if(!r.data) throw new Error("No account with that username.");
+          return r.data;
+        });
+
+    resolve.then(function(email){
+      return sb.auth.signInWithPassword({email: email, password: pass});
+    }).then(function(res){
+      if(res.error) throw new Error(res.error.message);
+      $("gateLoginPass").value = "";
+      gateSay("");
+    }).catch(function(err){ gateSay(err.message, "bad"); });
+  });
+
+  $("gateDoSignup").addEventListener("click", function(){
+    playClick();
+    var user = $("gateUser").value.trim();
+    if(user.length < 3 || user.length > 20){ gateSay("Pick a username of 3-20 characters.", "bad"); return; }
+    gateSay("Creating account…");
     sb.auth.signUp({
-      email: $("acctEmail").value.trim(),
-      password: $("acctPass").value,
+      email: $("gateEmail").value.trim(),
+      password: $("gateSignupPass").value,
       options: { data: { username: user } }
     }).then(function(res){
-      if(res.error){ acctSay(res.error.message, "bad"); return; }
-      /* with "Confirm email" on, there is a session-less signup and a mail to click */
-      acctSay(res.data.session ? "Account created." : "Check your email to confirm, then log in.", "good");
+      if(res.error){ gateSay(res.error.message, "bad"); return; }
+      $("gateSignupPass").value = "";
+      /* with "Confirm email" left on there is no session yet, only a posted mail */
+      if(!res.data.session) gateSay("Account created — check your email to confirm, then log in.", "good");
     });
   });
 
-  $("acctLogIn").addEventListener("click", function(){
+  $("gateDoReset").addEventListener("click", function(){
     playClick();
-    acctSay("Signing in…");
-    sb.auth.signInWithPassword({
-      email: $("acctEmail").value.trim(),
-      password: $("acctPass").value
-    }).then(function(res){
-      if(res.error){ acctSay(res.error.message, "bad"); return; }
-      $("acctPass").value = "";
-      acctSay("");
+    var email = $("gateResetEmail").value.trim();
+    if(email.indexOf("@") === -1){ gateSay("Enter the email address on the account.", "bad"); return; }
+    gateSay("Sending…");
+    sb.auth.resetPasswordForEmail(email, {redirectTo: location.origin + location.pathname})
+      .then(function(res){
+        gateSay(res.error ? res.error.message
+                          : "If that address has an account, a reset link is on its way.",
+                res.error ? "bad" : "good");
+      });
+  });
+
+  $("gateDoNewPass").addEventListener("click", function(){
+    playClick();
+    var pass = $("gateNewPassVal").value;
+    if(pass.length < 6){ gateSay("Use at least 6 characters.", "bad"); return; }
+    gateSay("Saving…");
+    sb.auth.updateUser({password: pass}).then(function(res){
+      if(res.error){ gateSay(res.error.message, "bad"); return; }
+      $("gateNewPassVal").value = "";
+      authStamp();
+      gateClose();
+      history.replaceState(null, "", location.pathname);   /* drop the recovery token */
     });
   });
 
   $("acctSignOut").addEventListener("click", function(){
     playClick();
-    sb.auth.signOut().then(function(){ acctSay("Signed out. Your chips stay on this device.", "good"); });
+    sb.auth.signOut().then(function(){
+      try{ localStorage.removeItem(AUTH_AT_KEY); }catch(e){}
+      acctSay("Signed out. Your chips stay on this device.", "good");
+    });
   });
 }
 renderAccount();
