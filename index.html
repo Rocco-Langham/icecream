@@ -2292,8 +2292,15 @@ function resetLocalProgress(){
   renderLeaderboard();
   renderStreak();
 }
+/* Set the moment a signup is attempted, cleared the moment it is used or the
+   signup fails. A brand-new account has no history, so it must not adopt the
+   figures already sitting on this device: its cloud row starts at 0 hands, the
+   "more hands wins" rule below would hand it the device's whole save, and the
+   new player would appear on the friends board with somebody else's profit. */
+var freshSignup = false;
 function cloudSync(){
   if(!sbUser) return;
+  if(freshSignup){ freshSignup = false; resetLocalProgress(); }
   sb.from("scores").select("*").eq("user_id", sbUser.id).maybeSingle().then(function(res){
     if(res.error){ acctSay(res.error.message, "bad"); return; }
     var row = res.data;
@@ -2451,12 +2458,13 @@ if(CLOUD_OK){
     if(user.length < 3 || user.length > 20){ gateSay("Pick a username of 3-20 characters.", "bad"); return; }
     gateSay("Creating account…");
     rearmOpeningPopups();
+    freshSignup = true;                              /* start the new account clean */
     sb.auth.signUp({
       email: $("gateEmail").value.trim(),
       password: $("gateSignupPass").value,
       options: { data: { username: user } }
     }).then(function(res){
-      if(res.error){ gateSay(res.error.message, "bad"); return; }
+      if(res.error){ freshSignup = false; gateSay(res.error.message, "bad"); return; }
       $("gateSignupPass").value = "";
       /* with "Confirm email" left on there is no session yet, only a posted mail */
       if(!res.data.session) gateSay("Account created — check your email to confirm, then log in.", "good");
