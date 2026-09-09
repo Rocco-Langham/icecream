@@ -290,9 +290,16 @@
   .chipbtn[data-v="25"]{background:radial-gradient(circle at 35% 30%,#4c9d6b,#1c6640)}
   .chipbtn[data-v="100"]{background:radial-gradient(circle at 35% 30%,#3a3a3a,#111)}
   .chipbtn[data-v="500"]{background:radial-gradient(circle at 35% 30%,#7f5ad6,#42227e)}
+  /* width:0 against the min-width pins every readout to exactly its min-width,
+     so its size comes from the rule and never from what is inside it. With only
+     a min-width, a big typed stake ("100,000,000,000") stretched the box from
+     110px to 192px, sliding its neighbours along the centred bet bar and — with
+     less slack — flipping the whole row onto a second line mid-play. Anything
+     too long to fit is now clipped rather than allowed to reflow the row. */
   .stake{
     padding:10px 18px;border-radius:10px;border:1px solid var(--edge);background:rgba(var(--panel-tint-rgb),.4);
     font-size:20px;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums;min-width:110px;text-align:center;
+    width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
   .custom-bet{
     width:92px;padding:10px 10px;border-radius:10px;border:1px solid var(--edge);
@@ -725,6 +732,10 @@
     color:rgba(var(--cream-rgb),.55);transition:.15s;
   }
   .segmented button:hover:not(:disabled){color:var(--cream)}
+  /* The label carries the ball count, so it grows from "Drop" to "Drop 50" and
+     back. Reserving the wider label's width stops that retitling from nudging
+     the bet bar — and, on a narrower window, flipping it onto a second line. */
+  #pkDrop{min-width:124px}
   .segmented button.on{background:linear-gradient(135deg,var(--gold),var(--pop));color:var(--ink)}
   .segmented button:disabled{opacity:.4;cursor:not-allowed}
 
