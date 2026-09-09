@@ -862,6 +862,37 @@
   :root[data-theme="light"] .modal-note{color:rgba(24,24,24,.62)}
   :root[data-theme="light"] .subtab{color:rgba(24,24,24,.62)}
   :root[data-theme="light"] .segmented button{color:rgba(24,24,24,.62)}
+
+  /* ---------- desktop: fit the viewport, never scroll the page ---------- */
+  /* The document becomes exactly one screen tall and the playfields absorb
+     whatever height is left over, so every game is fully visible without
+     scrolling. Anything that still cannot fit scrolls inside its own card
+     rather than pushing the page taller. Mobile keeps normal page scrolling. */
+  @media(min-width:761px){
+    html,body{height:100%}
+    body{overflow:hidden;display:flex;flex-direction:column}
+
+    .app-shell{flex:1 1 auto;min-height:0;padding-bottom:0}
+    .sidebar{overflow-y:auto}
+    .main{display:flex;flex-direction:column;min-height:0}
+
+    .game.on{flex:1 1 auto;min-height:0}
+    .game.on > .table{height:100%;overflow-y:auto}
+
+    /* canvas games: the playfield takes the slack instead of a fixed height */
+    #tab-horse > .table,
+    #tab-plinko > .table,
+    #tab-flappy > .table{display:flex;flex-direction:column;overflow:hidden}
+
+    .track-wrap{flex:1 1 auto;min-height:130px;display:flex}
+    #trackCanvas{flex:1 1 auto;height:auto;min-height:0}
+    #stripCanvas{flex:0 0 auto}
+    #plinkoCanvas,
+    #flappyCanvas{flex:1 1 auto;height:auto;min-height:170px}
+
+    /* the 60px gutter existed to clear the scroll; there is no scroll now */
+    footer{margin:12px auto 0;padding:0 16px 14px}
+  }
 </style>
 </head>
 <body>
@@ -4325,22 +4356,29 @@ hrCanvas.addEventListener("wheel", function(e){
 }, {passive:false});
 
 /* ---- frame loop ---- */
+/* The canvases now flex to fill the viewport, so height changes on its own
+   without the width moving — both dimensions have to be watched or the backing
+   store goes stale and the scene renders stretched. */
+function stale(canvas, w, h){
+  var r = canvas.getBoundingClientRect();
+  return Math.abs(r.width - w) > 1 || Math.abs(r.height - h) > 1;
+}
 function hrFrame(now){
   var dt = Math.min(0.05, (now - hrLast) / 1000 || 0);
   hrLast = now;
   if($("tab-horse").classList.contains("on")){
-    if(hrW < 5 || Math.abs(hrCanvas.getBoundingClientRect().width - hrW) > 1) hrResize();
+    if(hrW < 5 || stale(hrCanvas, hrW, hrH)) hrResize();
     hrStep(dt);
     hrRender();
     hrDrawStrip();
   }
   if($("tab-plinko").classList.contains("on")){
-    if(pkW < 5 || Math.abs(pkCanvas.getBoundingClientRect().width - pkW) > 1) pkResize();
+    if(pkW < 5 || stale(pkCanvas, pkW, pkH)) pkResize();
     pkStep(dt);
     pkRender();
   }
   if($("tab-flappy").classList.contains("on")){
-    if(fbW < 5 || Math.abs(fbCanvas.getBoundingClientRect().width - fbCssW) > 1) fbResize();
+    if(fbW < 5 || stale(fbCanvas, fbCssW, fbCssH)) fbResize();
     fbStep(dt);
     fbRender();
   }
@@ -4774,14 +4812,14 @@ var FB_MULT0 = 0.5;                                    // bail out too early and
    shows the same distance ahead instead of less. */
 var FB_MIN_VIEW = 560;
 var FB_PLAY_H = 420;                                   // playable band height, matching desktop
-var fbScale = 1, fbCssW = 0;
+var fbScale = 1, fbCssW = 0, fbCssH = 0;
 
 function fbResize(){
   if(!fbCanvas) return;
   var rect = fbCanvas.getBoundingClientRect();
   if(!rect.width) return;
   var dpr = window.devicePixelRatio || 1;
-  fbCssW = rect.width;
+  fbCssW = rect.width; fbCssH = rect.height;
   fbCanvas.width  = Math.round(rect.width*dpr);
   fbCanvas.height = Math.round(rect.height*dpr);
   fbScale = rect.width < FB_MIN_VIEW ? rect.width/FB_MIN_VIEW : 1;
