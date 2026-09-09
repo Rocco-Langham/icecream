@@ -1014,6 +1014,14 @@
           <button class="on" data-risk="medium">Med</button>
           <button data-risk="high">High</button>
         </div>
+
+        <span class="lbl">Balls</span>
+        <div class="segmented" id="pkCountSeg">
+          <button class="on" data-n="1">1</button>
+          <button data-n="5">5</button>
+          <button data-n="10">10</button>
+          <button data-n="50">50</button>
+        </div>
       </div>
 
       <div class="msg info" id="pkMsg">Set your stake and drop a ball.</div>
@@ -4282,6 +4290,14 @@ var pkCanvas = $("plinkoCanvas"), pkCtx = pkCanvas.getContext("2d");
 var pkW = 700, pkH = 420;
 var pkRows = 12, pkRisk = "medium", pkStake = 25;
 var pkMults = [], pkBalls = [], pkFlash = {}, pkHits = {}, pkClock = 0;
+var pkBallCount = 1;
+/* Balls queued by a multi-drop, released one per PK_STAGGER so they cascade
+   down the board instead of landing on top of each other. Each entry is a
+   reference to the burst it belongs to, so overlapping bursts stay separate. */
+var pkPending = [], pkQueueTimer = 0, PK_STAGGER = 0.07;
+/* Sound throttles — 50 balls x 16 pegs would otherwise fire hundreds of
+   oscillators a second and turn the audio to mush. */
+var pkLastChip = -9, pkLastPeg = -9;
 
 /* C(n,k) / 2^n — the chance of finishing in bucket k, done in log space so the
    binomial coefficient doesn't overflow at high row counts. */
@@ -4444,6 +4460,21 @@ function pkRender(){
 
 function pkStep(dt){
   pkClock += dt;
+
+  /* release any queued balls, one per stagger interval */
+  if(pkPending.length){
+    pkQueueTimer -= dt;
+    while(pkPending.length && pkQueueTimer <= 0){
+      if(!pkSpawnBall(pkPending[0])){
+        pkPending = [];
+        msg($("pkMsg"), "Ran out of chips — remaining balls cancelled.", "lose");
+        break;
+      }
+      pkPending.shift();
+      pkQueueTimer += PK_STAGGER;
+    }
+    syncPlinkoUI();
+  }
   var g = pkGeo(), settledAny = false;
   pkBalls.forEach(function(ball){
     if(ball.done) return;
@@ -4455,7 +4486,10 @@ function pkStep(dt){
       var r = ball.seg - 1;                            // peg row just struck
       if(r >= 0 && r < ball.rows){
         pkFlash[r + ":" + ball.col] = pkClock;
-        sfx(function(ctx, t){ tone(ctx, 900 + rnd(500), t, 0.035, "triangle", 0.03); });
+        if(pkClock - pkLastPeg > 0.025){
+          pkLastPeg = pkClock;
+          sfx(function(ctx, t){ tone(ctx, 900 + rnd(500), t, 0.035, "triangle", 0.03); });
+        }
         ball.col += ball.path[r];
       }
       if(ball.seg > ball.path.length) break;
@@ -4501,6 +4535,27 @@ function pkSettle(ball){
   var ret = Math.floor(ball.stake * m);
   var net = ret - ball.stake;
   if(ret > 0) payout(ret, "plinko");
+
+  var burst = ball.burst;
+  if(burst && burst.total > 1){
+    /* Multi-drop: keep a running tally and report once, rather than letting
+       50 individual results strobe through the message line. */
+    burst.landed++;
+    burst.returned += ret;
+    if(m >= 10) playCoin();                            // still flag the rare big ones
+    if(burst.landed >= burst.total){
+      var bnet = burst.returned - burst.staked;
+      if(bnet >= 0) playWin(bnet >= burst.staked ? "jackpot" : "big"); else playLose();
+      msg($("pkMsg"), burst.total + " balls — staked " + fmt(burst.staked) +
+          ", returned " + fmt(burst.returned) +
+          " (" + (bnet >= 0 ? "+" : "") + fmt(bnet) + ").", bnet >= 0 ? "win" : "lose");
+    }else{
+      msg($("pkMsg"), burst.landed + " of " + burst.total + " landed — returned " +
+          fmt(burst.returned) + " so far.", "info");
+    }
+    return;
+  }
+
   if(net > 0){
     playWin(m >= 20 ? "jackpot" : m >= 3 ? "big" : "small");
     if(m >= 3) setTimeout(playCoin, 90);
@@ -4519,24 +4574,35 @@ function syncPlinkoUI(){
   /* Drop is never gated — you can stack up as many balls as you can click for.
      Board shape stays locked while anything is falling, since changing it would
      invalidate the paths already in flight. */
-  var flying = pkAirborne();
+  var flying = pkAirborne() || pkPending.length > 0;
   $("pkRowsVal").textContent = pkRows;
   $("pkMinus").disabled = flying || pkRows <= 8;
   $("pkPlus").disabled  = flying || pkRows >= 16;
   $("pkDrop").disabled  = false;
+  $("pkDrop").textContent = pkBallCount === 1 ? "Drop" : "Drop " + pkBallCount;
   Array.prototype.forEach.call(document.querySelectorAll("#pkRiskSeg button"), function(b){
     b.classList.toggle("on", b.dataset.risk === pkRisk);
     b.disabled = flying;
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("#pkCountSeg button"), function(b){
+    b.classList.toggle("on", Number(b.dataset.n) === pkBallCount);
   });
 }
 function setRows(n){
   pkRows = Math.max(8, Math.min(16, n));
   pkBuildMults();
-  pkFlash = {}; pkHits = {}; pkBalls = [];
+  pkFlash = {}; pkHits = {}; pkBalls = []; pkPending = [];
   syncPlinkoUI();
 }
 $("pkMinus").addEventListener("click", function(){ playClick(); setRows(pkRows-1); });
 $("pkPlus").addEventListener("click", function(){ playClick(); setRows(pkRows+1); });
+Array.prototype.forEach.call(document.querySelectorAll("#pkCountSeg button"), function(b){
+  b.addEventListener("click", function(){
+    playClick();
+    pkBallCount = Number(b.dataset.n);
+    syncPlinkoUI();
+  });
+});
 Array.prototype.forEach.call(document.querySelectorAll("#pkRiskSeg button"), function(b){
   b.addEventListener("click", function(){
     playClick();
@@ -4560,11 +4626,14 @@ $("pkClear").addEventListener("click", function(){
   $("pkCustom").classList.remove("sel");
 });
 
-$("pkDrop").addEventListener("click", function(){
-  if(pkStake > bank){ msg($("pkMsg"), "Not enough chips for that bet.", "lose"); return; }
+/* Spawns one ball for the given burst. Returns false if it can't be afforded,
+   which cancels whatever is left of that burst. */
+function pkSpawnBall(burst){
+  if(pkStake > bank) return false;
 
   wager(pkStake, "plinko");
   stats.hands++;
+  burst.staked += pkStake;
 
   /* Bucket is chosen first so the rig can steer it, then a path of lefts and
      rights that adds up to that bucket is shuffled into place. */
@@ -4593,11 +4662,24 @@ $("pkDrop").addEventListener("click", function(){
   pkBalls.push({
     path:path, rows:N, seg:0, t:0, col:0, done:false, doneAt:0,
     x: g.cx, y: g.topY - g.V*0.95,
-    stake: pkStake, mults: pkMults.slice(),
+    stake: pkStake, mults: pkMults.slice(), burst: burst,
     segDur: Math.max(0.055, 0.115 - N*0.002)
   });
-  playChip();
-  msg($("pkMsg"), "Dropping…", "info");
+  if(pkClock - pkLastChip > 0.12){ pkLastChip = pkClock; playChip(); }
+  return true;
+}
+
+$("pkDrop").addEventListener("click", function(){
+  var n = pkBallCount, cost = pkStake * n;
+  if(cost > bank){
+    msg($("pkMsg"), "Not enough chips for " + n + (n === 1 ? " ball" : " balls") +
+        " — that needs " + fmt(cost) + ".", "lose");
+    return;
+  }
+  var burst = {total:n, landed:0, staked:0, returned:0};
+  for(var i=0;i<n;i++) pkPending.push(burst);
+  pkQueueTimer = 0;
+  msg($("pkMsg"), n === 1 ? "Dropping…" : "Dropping " + n + " balls…", "info");
   syncPlinkoUI();
 });
 
