@@ -4274,7 +4274,7 @@ function hrFrame(now){
     pkRender();
   }
   if($("tab-flappy").classList.contains("on")){
-    if(fbW < 5 || Math.abs(fbCanvas.getBoundingClientRect().width - fbW) > 1) fbResize();
+    if(fbW < 5 || Math.abs(fbCanvas.getBoundingClientRect().width - fbCssW) > 1) fbResize();
     fbStep(dt);
     fbRender();
   }
@@ -4700,21 +4700,36 @@ var fbClock = 0, fbDeadAt = 0, fbScroll = 0, fbRig = 1, fbFlight = 0;
 
 var FB_GRAV = 1500, FB_FLAP = -430, FB_R = 13;
 var FB_PIPE_W = 58, FB_SPACING = 232, FB_GROUND = 26;
-var FB_STEP = 1.18;                                    // each pipe compounds by this much
+var FB_STEP = 1.12;                                    // each pipe compounds by this much
 var FB_MULT0 = 0.5;                                    // bail out too early and you take a haircut
+/* On a phone the canvas is far narrower than on a desktop, which left barely a
+   pipe of warning. Below this width we zoom the camera out — the world keeps
+   its own coordinates and we scale the drawing down to fit, so a narrow screen
+   shows the same distance ahead instead of less. */
+var FB_MIN_VIEW = 560;
+var FB_PLAY_H = 420;                                   // playable band height, matching desktop
+var fbScale = 1, fbCssW = 0;
 
 function fbResize(){
   if(!fbCanvas) return;
   var rect = fbCanvas.getBoundingClientRect();
   if(!rect.width) return;
   var dpr = window.devicePixelRatio || 1;
-  fbW = rect.width; fbH = rect.height;
-  fbCanvas.width  = Math.round(fbW*dpr);
-  fbCanvas.height = Math.round(fbH*dpr);
-  fbCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  fbCssW = rect.width;
+  fbCanvas.width  = Math.round(rect.width*dpr);
+  fbCanvas.height = Math.round(rect.height*dpr);
+  fbScale = rect.width < FB_MIN_VIEW ? rect.width/FB_MIN_VIEW : 1;
+  fbW = rect.width  / fbScale;                         // logical world size
+  fbH = rect.height / fbScale;
+  fbCtx.setTransform(dpr*fbScale, 0, 0, dpr*fbScale, 0, 0);
 }
 
 function fbFloor(){ return fbH - FB_GROUND; }
+/* Zooming out makes the world taller as well as wider, which would scatter the
+   pipe openings over three times the vertical range on a phone. Gameplay stays
+   inside a fixed-height band sitting on the ground; anything above it is just
+   extra sky, so a narrow screen sees further ahead without changing the climb. */
+function fbCeil(){ return Math.max(0, fbFloor() - (FB_PLAY_H - FB_GROUND)); }
 function fbBirdX(){ return Math.max(64, fbW*0.26); }
 function fbMultText(){ return fbMult.toFixed(2) + "x"; }
 function fbCashValue(){ return Math.floor(fbStake * fbMult); }
@@ -4722,17 +4737,18 @@ function fbCashValue(){ return Math.floor(fbStake * fbMult); }
 /* The board tightens as you go — that ramp is what eventually ends every run.
    Speed is driven mostly by seconds in the air rather than pipes cleared, so
    hanging around to farm the multiplier is exactly what kills you. */
-function fbGap(){ return Math.max(96, 172*fbRig - fbPassed*3.2); }
+function fbGap(){ return Math.max(90, 160*fbRig - fbPassed*3.2); }
 function fbSpeed(){ return Math.min(560, 150 + fbFlight*10 + fbPassed*4); }
 
 function fbSpawnPipe(){
-  var gap = Math.min(fbGap(), fbFloor() - 60);
-  var room = Math.max(24, fbFloor() - gap - 76);
-  fbPipes.push({x: fbW + FB_PIPE_W, top: 38 + Math.random()*room, gap: gap, scored: false});
+  var ceil = fbCeil(), band = fbFloor() - ceil;
+  var gap = Math.min(fbGap(), band - 60);
+  var room = Math.max(24, band - gap - 76);
+  fbPipes.push({x: fbW + FB_PIPE_W, top: ceil + 38 + Math.random()*room, gap: gap, scored: false});
 }
 
 function fbReset(){
-  fbBirdY = fbFloor()*0.42;
+  fbBirdY = fbCeil() + (fbFloor() - fbCeil())*0.42;
   fbBirdV = 0;
   fbPipes = [];
   fbPassed = 0;
@@ -4817,7 +4833,8 @@ function fbStep(dt){
   fbScroll += sp*dt;
   fbBirdV += FB_GRAV*dt;
   fbBirdY += fbBirdV*dt;
-  if(fbBirdY < FB_R){ fbBirdY = FB_R; fbBirdV = 0; }     // ceiling nudges, never kills
+  var ceilY = fbCeil() + FB_R;
+  if(fbBirdY < ceilY){ fbBirdY = ceilY; fbBirdV = 0; }   // ceiling nudges, never kills
 
   fbPipes.forEach(function(p){ p.x -= sp*dt; });
   if(!fbPipes.length || fbPipes[fbPipes.length-1].x < fbW - FB_SPACING) fbSpawnPipe();
