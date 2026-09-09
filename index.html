@@ -241,7 +241,14 @@
     border:1px solid var(--edge);background:rgba(var(--panel-tint-rgb),.35);
   }
   .chipstack .lbl{font-size:11px;letter-spacing:calc(3px * var(--ui-track));color:var(--gold-dim);text-transform:var(--ui-case)}
-  .chipstack .amt{font-size:28px;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums;line-height:1}
+  /* Reserving room for a big balance keeps the CHIPS label still. Without it
+     the number is content-sized, so every win or loss that changes its digit
+     count slid the label sideways — the most constantly visible movement in
+     the app, since the balance updates on literally every bet. */
+  .chipstack .amt{
+    font-size:28px;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums;line-height:1;
+    min-width:176px;text-align:center;
+  }
   .chipstack .amt.flash-up{animation:flashUp .6s ease}
   .chipstack .amt.flash-dn{animation:flashDn .6s ease}
   @keyframes flashUp{0%,100%{color:var(--gold)}30%{color:var(--good);transform:scale(1.12)}}
@@ -561,9 +568,12 @@
     margin:0 0 8px;font-size:11px;letter-spacing:calc(3px * var(--ui-track));text-transform:var(--ui-case);color:var(--gold-dim);
     display:flex;align-items:center;gap:10px;
   }
+  /* The pill cycles through "—", "7 + ?", "18" and "soft 17" as a hand plays
+     out; reserving the widest keeps the seat heading from twitching. */
   .seat h3 .score{
     padding:2px 10px;border-radius:999px;background:rgba(var(--panel-tint-rgb),.45);
     border:1px solid var(--edge);color:var(--gold);font-size:12px;letter-spacing:calc(1px * var(--ui-track));
+    display:inline-block;min-width:66px;text-align:center;
   }
   .hand{display:flex;gap:8px;min-height:112px;flex-wrap:wrap}
   .card{
@@ -648,7 +658,13 @@
     display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-bottom:10px;
     font-size:11px;letter-spacing:calc(1px * var(--ui-track));text-transform:var(--ui-case);color:rgba(var(--cream-rgb),.45);
   }
-  .stats b{color:var(--gold);font-size:13px}
+  /* Fixed-width columns: these four counters climb all session, and letting them
+     size to their contents made the whole row shuffle after every hand. */
+  .stats span{
+    display:inline-flex;align-items:baseline;gap:6px;justify-content:center;
+    min-width:158px;
+  }
+  .stats b{color:var(--gold);font-size:13px;font-variant-numeric:tabular-nums}
 
   /* ---------- horse racing ---------- */
   .track-wrap{
@@ -784,7 +800,10 @@
     /* the menu button reclaims what the suits cost, and the casino name wins
        that trade — it is the identity */
     .sidebar-brand .suits{display:none}
-    .chipstack .amt{font-size:22px}
+    /* smaller type needs less reserved room; the desktop widths would push the
+       balance past the bar and spread the four counters over three rows */
+    .chipstack .amt{font-size:22px;min-width:132px}
+    .stats span{min-width:132px}
     header{padding:8px 10px;gap:8px}
     .reel{height:88px;font-size:42px}
     .card{width:60px;height:86px}
@@ -1109,7 +1128,7 @@
           <span class="slider-track"></span>
         </label>
 
-        <span class="lbl">Pays <b id="hrOdds" style="color:var(--gold);font-size:13px">5.4x</b></span>
+        <span class="lbl">Pays <b id="hrOdds" style="color:var(--gold);font-size:13px;display:inline-block;min-width:48px;text-align:left">5.4x</b></span>
       </div>
 
       <div class="horse-pick" id="horsePick"></div>
