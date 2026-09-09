@@ -876,22 +876,20 @@
     .sidebar{overflow-y:auto}
     .main{display:flex;flex-direction:column;min-height:0}
 
+    /* The card fills the column but its contents keep their designed sizes —
+       the playfields deliberately do NOT stretch, so a game is the same size on
+       every screen and nothing resizes as you move between tabs or resize the
+       window. If the content is taller than the space, the card scrolls inside
+       itself rather than pushing the page taller. */
     .game.on{flex:1 1 auto;min-height:0}
-    .game.on > .table{height:100%;overflow-y:auto}
-
-    /* canvas games: the playfield takes the slack instead of a fixed height */
-    #tab-horse > .table,
-    #tab-plinko > .table,
-    #tab-flappy > .table{display:flex;flex-direction:column;overflow:hidden}
-
-    .track-wrap{flex:1 1 auto;min-height:130px;display:flex}
-    #trackCanvas{flex:1 1 auto;height:auto;min-height:0}
-    #stripCanvas{flex:0 0 auto}
-    #plinkoCanvas,
-    #flappyCanvas{flex:1 1 auto;height:auto;min-height:170px}
+    .game.on > .table{height:100%;overflow-y:auto;padding:16px}
+    /* a little breathing room reclaimed so the tallest tables (racing, flappy)
+       clear the fold at their fixed sizes instead of showing a scrollbar */
+    .game.on > .table > p.sub{margin-bottom:12px}
+    .game.on .betbar{margin-top:14px;padding-top:12px}
 
     /* the 60px gutter existed to clear the scroll; there is no scroll now */
-    footer{margin:12px auto 0;padding:0 16px 14px}
+    footer{margin:10px auto 0;padding:0 16px 10px}
   }
 </style>
 </head>
