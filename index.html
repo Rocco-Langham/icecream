@@ -1160,6 +1160,9 @@
         <span class="lbl">Pipes</span>
         <div class="stake" id="fbPipeVal" style="min-width:56px">0</div>
 
+        <span class="lbl">Best</span>
+        <div class="stake" id="fbBestVal" style="min-width:56px">0</div>
+
         <span class="lbl">Tap the sky or press space to flap &middot; K to bet &amp; cash out</span>
       </div>
 
@@ -1189,11 +1192,13 @@
         <div class="segmented" id="lbSeg">
           <button class="on" data-lb="tables">Tables</button>
           <button data-lb="friends">Friends</button>
+          <button data-lb="flappy">Flappy</button>
         </div>
       </div>
 
       <div class="leaderboard" id="leaderboard"></div>
       <div class="leaderboard" id="friendsBoard" hidden></div>
+      <div class="leaderboard" id="flappyBoard" hidden></div>
     </div>
   </section>
 
@@ -1584,6 +1589,7 @@ function load(){
 function save(){
   var data = {
     bank:bank, stats:stats, gameNet:gameNet, streak:streak,
+    flappyBest:flappyBest,
     theme:currentTheme, font:currentFont, soundOn:soundOn,
     soundVolume:soundVolume, casinoName:CASINO_NAME,
     rigUser:rigUser, rigHost:rigHost
@@ -1611,6 +1617,9 @@ var stats        = (saved && saved.stats) || {hands:0, won:0, big:0, peak:1000};
 var gameNet      = (saved && saved.gameNet) || {};
 GAMES.forEach(function(g){ if(typeof gameNet[g.key] !== "number") gameNet[g.key] = 0; });
 var streak       = (saved && saved.streak) || {count:0, best:0, last:null};
+/* Most pipes cleared in a single Flappy run, ever. Pipes rather than chips won,
+   so a 5-chip run and a 500-chip run rank on the same scale. */
+var flappyBest   = (saved && typeof saved.flappyBest === "number") ? saved.flappyBest : 0;
 /* Display only, and no longer cached locally: the redemptions table is the one
    source of truth, fetched on sign-in. A stale local copy could only ever
    disagree with it. */
@@ -2127,6 +2136,57 @@ function renderFriendsBoard(done){
     });
   });
 }
+/* Flappy high scores — same people as the profit board, ranked on pipes cleared.
+   Signed out there is nobody to compare against, so it shows your own best. */
+function renderFlappyBoard(done){
+  var fin = function(){ if(done) done(); };
+  var board = $("flappyBoard");
+  if(!board){ fin(); return; }
+
+  var solo = function(note){
+    board.innerHTML =
+      '<div class="board-row you">' +
+        '<span class="board-rank">1.</span>' +
+        '<span class="board-game">You</span>' +
+        '<span class="board-bar"></span>' +
+        '<b class="board-amt ' + (flappyBest > 0 ? "up" : "flat") + '">' + fmt(flappyBest) + '</b>' +
+      '</div>' +
+      '<div class="people-empty">' + note + '</div>';
+    fin();
+  };
+  if(!CLOUD_OK || !sbUser){ solo("Sign in to compare with friends."); return; }
+
+  sb.from("scores").select("user_id, flappy_best").then(function(res){
+    if(res.error){ board.innerHTML = '<div class="people-empty">' + res.error.message + '</div>'; fin(); return; }
+    var rows = res.data || [];
+    namesFor(rows.map(function(r){ return r.user_id; }), function(names){
+      var ranked = rows.map(function(r){
+        var best = r.flappy_best || 0;
+        /* our own row can be ahead of the last cloud push */
+        if(r.user_id === sbUser.id) best = Math.max(best, flappyBest);
+        return {id:r.user_id, name:names[r.user_id] || "player", best:best};
+      }).sort(function(a, b){ return b.best - a.best; });
+
+      if(ranked.length < 2){ solo("Add a friend to start comparing."); return; }
+
+      var span = 0;
+      ranked.forEach(function(r){ span = Math.max(span, r.best); });
+      var medals = ["&#129351;", "&#129352;", "&#129353;"];
+      board.innerHTML = ranked.map(function(r, i){
+        var pct = span > 0 ? Math.max(1.5, r.best / span * 50) : 0;
+        var fill = r.best === 0 ? "" : '<span class="board-fill pos" style="width:' + pct + '%"></span>';
+        return '<div class="board-row' + (r.id === sbUser.id ? " you" : "") + '">' +
+                 '<span class="board-rank">' + (r.best > 0 && i < 3 ? medals[i] : (i + 1) + ".") + '</span>' +
+                 '<span class="board-game">' + r.name + (r.id === sbUser.id ? " (you)" : "") + '</span>' +
+                 '<span class="board-bar">' + fill + '</span>' +
+                 '<b class="board-amt ' + (r.best > 0 ? "up" : "flat") + '">' + fmt(r.best) + '</b>' +
+               '</div>';
+      }).join("");
+      fin();
+    });
+  });
+}
+
 /* Spins the button and hands back the stopper. maxMs is a dead-request guard:
    if a fetch never comes back the button still frees itself. */
 var lbSpinTimer = null;
@@ -2148,23 +2208,30 @@ function lbSpin(maxMs){
 $("lbRefresh").addEventListener("click", function(){
   playClick();
   renderLeaderboard();                        /* local, and free */
-  if($("friendsBoard").hidden){
-    lbSpin(400);                              /* nothing to wait for — just show it happened */
+  if(!$("friendsBoard").hidden){
+    renderFriendsBoard(lbSpin(6000));         /* the ones that actually go to the network */
+  }else if(!$("flappyBoard").hidden){
+    renderFlappyBoard(lbSpin(6000));
   }else{
-    renderFriendsBoard(lbSpin(6000));         /* the one that actually goes to the network */
+    lbSpin(400);                              /* nothing to wait for — just show it happened */
   }
 });
+var LB_SUBS = {
+  tables:  "Every chip staked and won, per table — up is profit, down is loss",
+  friends: "You and your friends, ranked on total profit across every table",
+  flappy:  "Most pipes cleared in a single run — your best ever, and your friends'"
+};
 Array.prototype.forEach.call(document.querySelectorAll("#lbSeg button"), function(b){
   b.addEventListener("click", function(){
     playClick();
-    var friends = b.dataset.lb === "friends";
+    var which = b.dataset.lb;
     Array.prototype.forEach.call(document.querySelectorAll("#lbSeg button"), function(o){ o.classList.toggle("on", o === b); });
-    $("leaderboard").hidden = friends;
-    $("friendsBoard").hidden = !friends;
-    $("lbSub").textContent = friends
-      ? "You and your friends, ranked on total profit across every table"
-      : "Every chip staked and won, per table — up is profit, down is loss";
-    if(friends) renderFriendsBoard();
+    $("leaderboard").hidden  = which !== "tables";
+    $("friendsBoard").hidden = which !== "friends";
+    $("flappyBoard").hidden  = which !== "flappy";
+    $("lbSub").textContent = LB_SUBS[which];
+    if(which === "friends") renderFriendsBoard();
+    if(which === "flappy")  renderFlappyBoard();
   });
 });
 
@@ -2384,10 +2451,12 @@ $("resetStatsGo").addEventListener("click", function(){
   stats.won = 0;
   stats.big = 0;
   stats.peak = bank;                 /* a high-water mark restarts from today's balance, not 0 */
+  flappyBest = 0;
   GAMES.forEach(function(g){ gameNet[g.key] = 0; });
   renderStats();
   renderStatsPanel();
   renderLeaderboard();
+  if(typeof syncFlappyUI === "function") syncFlappyUI();
   save();
   closeReset2();
 });
@@ -2412,6 +2481,10 @@ function applyCloudRow(row){
     best:  row.streak_best  || 0,
     last:  typeof row.streak_last === "number" ? row.streak_last : null
   };
+  /* taken verbatim like every other stat here: this branch only runs when the
+     cloud save has won, and max()-ing instead would leak one account's best
+     onto the next account signed in on the same device */
+  flappyBest = row.flappy_best || 0;
   setBank(row.bank, 0);                              /* re-renders the footer stats and saves locally */
   renderStatsPanel();
   renderLeaderboard();
@@ -2424,6 +2497,7 @@ function cloudPush(){
     user_id: sbUser.id, bank: bank, hands: stats.hands, won: stats.won,
     big: stats.big, peak: stats.peak, net: gameNet,
     streak_count: streak.count, streak_best: streak.best, streak_last: streak.last,
+    flappy_best: flappyBest,
     updated_at: new Date().toISOString()
   }).then(function(res){
     $("acctSync").textContent = res.error ? "Failed" : "Saved";
@@ -2455,6 +2529,7 @@ function resetLocalProgress(){
   gameNet = {};
   GAMES.forEach(function(g){ gameNet[g.key] = 0; });
   streak = {count:0, best:0, last:null};
+  flappyBest = 0;
   setBank(1000, 0);
   renderStatsPanel();
   renderLeaderboard();
@@ -4883,9 +4958,20 @@ function fbFlap(){
   sfx(function(ctx, t){ tone(ctx, 560, t, 0.05, "triangle", 0.028); });
 }
 
+/* Call before fbReset() — that zeroes fbPassed. Returns true on a new record. */
+function fbRecordBest(){
+  if(fbPassed <= flappyBest) return false;
+  flappyBest = fbPassed;
+  save();                                            /* also queues the cloud push */
+  syncFlappyUI();
+  renderFlappyBoard();
+  return true;
+}
+
 function fbCashOut(){
   if(fbState !== "flying") return;
   var ret = fbCashValue(), net = ret - fbStake;
+  var best = fbRecordBest();
   fbState = "idle";
   if(ret > 0) payout(ret, "flappy");
   if(net > 0){
@@ -4899,15 +4985,18 @@ function fbCashOut(){
     playClick();
     msg($("fbMsg"), "Bailed at " + fbMultText() + " — " + fmt(ret) + " chips back.", "info");
   }
+  if(best) msg($("fbMsg"), $("fbMsg").textContent + " New best: " + fbPassed + " pipes!", "win");
   fbReset();
   syncFlappyUI();
 }
 
 function fbCrash(){
+  var best = fbRecordBest();
   fbState = "dead";
   fbDeadAt = fbClock;
   playLose();
-  msg($("fbMsg"), "Clipped it at " + fbMultText() + " — lost " + fmt(fbStake) + " chips.", "lose");
+  msg($("fbMsg"), "Clipped it at " + fbMultText() + " — lost " + fmt(fbStake) + " chips." +
+      (best ? " New best: " + fbPassed + " pipes!" : ""), best ? "win" : "lose");
   syncFlappyUI();
 }
 
@@ -5081,6 +5170,7 @@ function syncFlappyUI(){
   var flying = fbState === "flying";
   $("fbMultVal").textContent = fbMultText();
   $("fbPipeVal").textContent = fbPassed;
+  $("fbBestVal").textContent = fmt(flappyBest);
   var go = $("fbGo");
   go.textContent = flying ? "Cash out " + fmt(fbCashValue()) + " (K)" : "Fly (K)";
   go.classList.toggle("cash", flying);
