@@ -617,8 +617,12 @@
     font-size:10px;font-weight:800;border:2px solid var(--ink);
   }
   .cell.hitnum{animation:hitPulse .5s ease 3;outline:2px solid var(--gold)}
+  /* Fixed height, not min-height: the strip used to grow a second row as bets
+     were placed and snap back on clear, moving the message and bet bar with it.
+     Two rows are always reserved and a heavy layout scrolls within them. */
   .slips{
-    display:flex;flex-wrap:wrap;gap:6px;justify-content:center;min-height:22px;margin-top:6px;
+    display:flex;flex-wrap:wrap;gap:6px;justify-content:center;
+    height:50px;overflow-y:auto;align-content:flex-start;margin-top:6px;
     font-size:11px;color:rgba(var(--cream-rgb),.7);
   }
   .slips span{padding:3px 9px;border-radius:999px;background:rgba(var(--panel-tint-rgb),.4);border:1px solid var(--edge)}
@@ -646,9 +650,12 @@
     cursor:grab;user-select:none;
   }
   .track-wrap.dragging{cursor:grabbing}
-  #trackCanvas{display:block;width:100%;height:340px;touch-action:none}
+  /* Track and strip split a fixed budget so the pair is the same height with 3
+     runners as with 12. The strip is sized for the busiest field; a short one
+     just gets taller lanes. */
+  #trackCanvas{display:block;width:100%;height:280px;touch-action:none}
   #stripCanvas{
-    display:block;width:100%;height:114px;margin-top:10px;
+    display:block;width:100%;height:176px;margin-top:10px;
     border-radius:10px;border:1px solid var(--edge);background:#07130d;
   }
   /* fixed cream/gold, not theme vars: this text overlays the race canvas, which
@@ -670,6 +677,12 @@
     display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;margin-top:14px;
   }
   .field-inline .lbl{font-size:10px;letter-spacing:calc(2px * var(--ui-track));text-transform:var(--ui-case);color:var(--gold-dim)}
+  /* The stats and the hint sat on one wrapping row whose total width landed
+     within a few px of the container, so gaining a digit (pipes 9 -> 10, or a
+     longer multiplier) flipped it between one line and two and moved everything
+     below it. Giving the hint its own row makes the height constant, and the
+     stat boxes can then grow digits without touching the layout. */
+  #tab-flappy .field-inline > .lbl:last-child{flex:0 0 100%}
   .horse-pick{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-top:12px}
   .horse-btn{
     width:40px;height:40px;border-radius:50%;cursor:pointer;flex:0 0 auto;
@@ -872,7 +885,12 @@
     html,body{height:100%}
     body{overflow:hidden;display:flex;flex-direction:column}
 
-    .app-shell{flex:1 1 auto;min-height:0;padding-bottom:0}
+    /* width:100% is load-bearing. As a flex item of the body, `margin:0 auto`
+       cancels the default cross-axis stretch, so the shell would size to its
+       CONTENT — and the page would visibly resize whenever a game swapped one
+       control row for a narrower one. An explicit width pins it; the auto
+       margins still centre it inside the max-width. */
+    .app-shell{flex:1 1 auto;min-height:0;padding-bottom:0;width:100%}
     .sidebar{overflow-y:auto}
     .main{display:flex;flex-direction:column;min-height:0}
 
@@ -881,15 +899,21 @@
        every screen and nothing resizes as you move between tabs or resize the
        window. If the content is taller than the space, the card scrolls inside
        itself rather than pushing the page taller. */
-    .game.on{flex:1 1 auto;min-height:0}
+    /* basis 0, not auto: with `auto` the section sizes from its content, but its
+       content is the card at height:100% which sizes from the section — a circular
+       dependency that resolves to zero and collapses the whole game panel. A
+       definite basis makes the section's height come purely from filling the
+       column, which the card's percentage can then resolve against. */
+    .game.on{flex:1 1 0;min-height:0}
     .game.on > .table{height:100%;overflow-y:auto;padding:16px}
     /* a little breathing room reclaimed so the tallest tables (racing, flappy)
        clear the fold at their fixed sizes instead of showing a scrollbar */
     .game.on > .table > p.sub{margin-bottom:12px}
     .game.on .betbar{margin-top:14px;padding-top:12px}
 
-    /* the 60px gutter existed to clear the scroll; there is no scroll now */
-    footer{margin:10px auto 0;padding:0 16px 10px}
+    /* the 60px gutter existed to clear the scroll; there is no scroll now.
+       width:100% for the same reason as the shell above. */
+    footer{margin:10px auto 0;padding:0 16px 10px;width:100%}
   }
 </style>
 </head>
@@ -4251,7 +4275,11 @@ function buildHorses(){
       p: 0, theta: 0, legPhase: Math.random()*6, t: 0, amp: 0, w: 0, ph: 0
     });
   }
-  stripCanvas.style.height = Math.max(90, hrCount*16 + 18) + "px";
+  /* The strip keeps a constant height and divides it into however many lanes
+     are running. Sizing it per runner used to grow the canvas by ~96px when you
+     went from 6 runners to 12, shoving every control below it down the page
+     mid-session. hrDrawStrip already derives lane height from the canvas, so
+     fewer runners simply get taller lanes. */
   hrResize();
   renderHorsePick();
   hrBoard();
