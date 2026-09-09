@@ -758,7 +758,7 @@
   }
   @media(max-width:560px){
     /* the menu button reclaims what the suits cost, and the casino name wins
-       that trade — it is the identity, and the dev console can rename it */
+       that trade — it is the identity */
     .sidebar-brand .suits{display:none}
     .chipstack .amt{font-size:22px}
     header{padding:8px 10px;gap:8px}
@@ -2670,7 +2670,6 @@ function openDevPopup(){
     '    if(!cmd) return;',
     '    if(cmd === "help"){',
     '      print("Available commands:");',
-    '      print("&nbsp;&nbsp;<b>rename</b> &lt;name&gt; &mdash; rename the casino");',
     '      print("&nbsp;&nbsp;<b>chips</b> &mdash; show current balance");',
     '      print("&nbsp;&nbsp;<b>chips add</b> &lt;n&gt; &mdash; add chips");',
     '      print("&nbsp;&nbsp;<b>chips set</b> &lt;n&gt; &mdash; set balance");',
@@ -2689,7 +2688,7 @@ function openDevPopup(){
     '      setTimeout(function(){ window.close(); }, 250);',
     '      return;',
     '    }',
-    '    if(cmd !== "rename" && cmd !== "chips" && cmd !== "rig"){',
+    '    if(cmd !== "chips" && cmd !== "rig"){',
     '      print("Unknown command: " + esc(cmd) + " (try \\"help\\")", "out-err");',
     '      return;',
     '    }',
@@ -2741,9 +2740,6 @@ function openDevPopup(){
    popup a pure UI with no direct cross-window property access, since a
    blob: URL popup and a file:// opener can't be relied on to stay same-origin
    across browsers. */
-function escHtml(s){
-  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-}
 /* "1m" -> 1000000, also k and b, any case, decimals allowed ("1.5k").
    Anchored, so junk like "1x" or "abc" is NaN rather than a silent 1. Rounded
    and finite-checked because setBank does no clamping and an Infinity balance
@@ -2762,13 +2758,7 @@ window.addEventListener("message", function(e){
   var reply = function(text, kind){ e.source.postMessage({type:"xyz-out", text:text, kind:kind}, "*"); };
   var cmd = data.cmd, args = data.args || [];
 
-  if(cmd === "rename"){
-    if(!args.length){ reply("Usage: rename &lt;name&gt;", "err"); return; }
-    var nm = args.join(" ");
-    applyCasinoName(nm);
-    save();
-    reply("Casino renamed to \"" + escHtml(nm) + "\".", "ok");
-  }else if(cmd === "chips"){
+  if(cmd === "chips"){
     if(args[0] === "add"){
       var n = parseAmount(args[1]);
       if(isNaN(n) || n === 0){ reply("Usage: chips add &lt;n&gt; &mdash; accepts 1k, 1.5m, 2b", "err"); return; }
