@@ -660,6 +660,46 @@
   }
   .slips span{padding:3px 9px;border-radius:999px;background:rgba(var(--panel-tint-rgb),.4);border:1px solid var(--edge)}
 
+  /* ---------- streak calendar ---------- */
+  /* Five doors on one row down to phone width: at 60px minimum they still fit
+     across a 320px screen, so the ladder never wraps into a shape that hides
+     which rung is today. */
+  .cal-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:4px 0 4px}
+  .cal-day{
+    position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+    min-height:82px;padding:10px 4px;border-radius:12px;
+    border:1px solid var(--edge);background:rgba(var(--panel-tint-rgb),.35);
+    text-align:center;transition:.2s;
+  }
+  .cal-day .n{
+    font-size:9px;letter-spacing:calc(1.5px * var(--ui-track));text-transform:var(--ui-case);
+    color:rgba(var(--cream-rgb),.45);
+  }
+  .cal-day .v{font-size:15px;font-weight:700;color:rgba(var(--cream-rgb),.5);font-variant-numeric:tabular-nums}
+  .cal-day .tick{font-size:13px;line-height:1;color:var(--good)}
+  /* collected */
+  .cal-day.done{border-color:rgba(var(--gold-rgb),.28);background:rgba(var(--gold-rgb),.08)}
+  .cal-day.done .v{color:var(--gold-dim)}
+  /* today, still unopened — the one the eye should go to */
+  .cal-day.today{
+    border-color:var(--gold);background:rgba(var(--gold-rgb),.16);
+    box-shadow:0 0 0 1px rgba(var(--gold-rgb),.35), 0 8px 22px rgba(var(--gold-rgb),.18);
+    animation:calPulse 1.8s ease-in-out infinite;
+  }
+  .cal-day.today .n{color:var(--gold)}
+  .cal-day.today .v{color:var(--gold);font-size:17px}
+  @keyframes calPulse{0%,100%{transform:none}50%{transform:translateY(-3px)}}
+  .cal-day.locked{opacity:.45}
+
+  /* The flame carries a dot when there is something to open, because the
+     calendar is not shown mid-spin and the badge is how you get back to it. */
+  .streak.ready{cursor:pointer}
+  .streak.ready::after{
+    content:"";position:absolute;top:-2px;right:-2px;width:9px;height:9px;border-radius:50%;
+    background:var(--good);box-shadow:0 0 0 2px var(--bg2);
+    animation:calPulse 1.4s ease-in-out infinite;
+  }
+
   /* ---------- toast ---------- */
   /* Bottom centre and click-through: it appears while you are mid-bet, so it
      must never land on top of the thing you are about to press. */
@@ -829,7 +869,8 @@
     .sidebar-spacer{display:none}
     /* back into the flow here, centred in the gap the auto-margin opens up
        between the menu button and the settings pair */
-    .streak{position:static;margin:0 auto}
+    /* relative, not static: it lays out the same but gives the ready dot something to hang off */
+    .streak{position:relative;margin:0 auto}
     .sidebar-bottom{border-top:none;margin-top:0;padding:0;flex:0 0 auto;flex-direction:row;align-items:center;gap:8px}
     /* out of flow: stacked in flow it would push this bar past 76px and it would
        stop sitting flush with the chips bar below */
@@ -1353,6 +1394,22 @@
   Built as a single file &mdash; nothing is uploaded anywhere.
 </footer>
 
+<!-- The streak calendar. Five doors, one per rung of the ladder: the ones behind
+     you are open, today's has the button, the rest are shut. The chips only
+     move when the button is pressed. -->
+<div class="modal-overlay" id="calendar">
+  <div class="modal simple">
+    <button class="modal-close" id="calendarClose" aria-label="Close">&times;</button>
+    <h2>Daily Streak</h2>
+    <p class="sub" id="calendarSub"></p>
+    <div class="cal-grid" id="calendarGrid"></div>
+    <div class="modal-actions" id="calendarActions">
+      <button class="btn" id="calendarClaim">Claim</button>
+    </div>
+    <p class="modal-note" id="calendarNote"></p>
+  </div>
+</div>
+
 <!-- Slides up, says its piece, and goes. Nothing to dismiss, because it arrives
      while you are placing a bet. -->
 <div class="toast" id="toast" role="status" aria-live="polite">
@@ -1773,7 +1830,7 @@ var bank         = saved && typeof saved.bank === "number" ? saved.bank : 1000;
 var stats        = (saved && saved.stats) || {hands:0, won:0, big:0, peak:1000};
 var gameNet      = (saved && saved.gameNet) || {};
 GAMES.forEach(function(g){ if(typeof gameNet[g.key] !== "number") gameNet[g.key] = 0; });
-var streak       = (saved && saved.streak) || {count:0, best:0, last:null};
+var streak       = (saved && saved.streak) || {count:0, best:0, last:null, claimed:null};
 /* Most pipes cleared in a single Flappy run, ever. Pipes rather than chips won,
    so a 5-chip run and a 500-chip run rank on the same scale. */
 var flappyBest   = (saved && typeof saved.flappyBest === "number") ? saved.flappyBest : 0;
@@ -1902,16 +1959,25 @@ var STREAK_REWARDS = [50, 100, 150, 200, 500];
 function streakReward(n){
   return n < 1 ? 0 : STREAK_REWARDS[Math.min(n, STREAK_REWARDS.length) - 1];
 }
+/* Today's chips are sitting there unopened. Tied to the calendar day rather
+   than to a flag, so it cannot survive midnight or be claimed twice. */
+function streakClaimable(){
+  var today = dayNum();
+  return liveStreak() > 0 && streak.last === today && streak.claimed !== today;
+}
 function renderStreak(){
-  var n = liveStreak();
+  var n = liveStreak(), ready = streakClaimable();
   $("streak").hidden = n === 0;
   $("streakNum").textContent = n;
+  $("streak").classList.toggle("ready", ready);
   /* What tomorrow is worth, so the ladder is visible without having to climb it
      blind. */
-  $("streak").title = n === 0
-    ? "Play today for 50 chips and start a streak"
-    : n + " day streak — best " + streak.best +
-      " · play tomorrow for " + fmt(streakReward(n + 1)) + " chips";
+  $("streak").title = ready
+    ? "Day " + n + " — " + fmt(streakReward(n)) + " chips waiting. Click to claim."
+    : n === 0
+      ? "Play today for 50 chips and start a streak"
+      : n + " day streak — best " + streak.best +
+        " · play tomorrow for " + fmt(streakReward(n + 1)) + " chips";
 }
 var toastTimer = 0;
 function toast(title, sub){
@@ -1929,22 +1995,78 @@ function touchStreak(){
   if(streak.count > streak.best) streak.best = streak.count;
   renderStreak();
 
-  /* The day's chips, credited straight to the balance rather than through
-     payout(): a daily bonus is not something you won at a table, and running it
-     through there would inflate the win stats and the game's leaderboard line.
-     Banked synchronously — and saved with it — so closing the tab a second
-     later cannot lose chips the streak has already been marked as paying.
-     The announcement waits a beat instead, because this fires from inside
-     wager() and would otherwise land in the same frame as the stake coming
-     off, leaving the balance to flash once for two different things. */
-  var reward = streakReward(streak.count);
-  if(!reward) return;
-  setBank(bank + reward, 0);
+  /* Today's door is now unlocked, but nothing is paid until it is opened — see
+     claimStreak(). The calendar deliberately does not appear here: this fires
+     from inside wager(), and a modal landing over a spinning reel is the one
+     thing a daily bonus should not do. The toast points at the flame instead,
+     and the flame carries a dot until the chips are taken. */
+  save();
   setTimeout(function(){
     playCoin();
-    toast("Day " + streak.count + " streak", "+" + fmt(reward) + " chips");
+    toast("Day " + streak.count + " unlocked", fmt(streakReward(streak.count)) + " chips — tap the flame");
   }, 420);
 }
+
+/* ---- the calendar ---- */
+function renderCalendar(){
+  var n = liveStreak(), ready = streakClaimable();
+  var rung = Math.min(Math.max(n, 1), STREAK_REWARDS.length);   /* past day five the top rung stays today's */
+  $("calendarGrid").innerHTML = STREAK_REWARDS.map(function(chips, i){
+    var day = i + 1;
+    /* Today's door is the current rung, and only while it is unopened. The ones
+       below it read as behind you whether or not this streak literally started
+       at day one, which is what stops a day-nine streak showing five locks. */
+    var cls = n === 0                                ? "locked"   /* nothing is behind you yet */
+            : day < rung || (day === rung && !ready) ? "done"
+            : day === rung                          ? "today"
+            :                                         "locked";
+    return '<div class="cal-day ' + cls + '">' +
+             '<span class="n">Day ' + (day === STREAK_REWARDS.length && n > day ? n : day) + '</span>' +
+             '<span class="v">' + fmt(chips) + '</span>' +
+             (cls === "done" ? '<span class="tick">&#10003;</span>' : '<span class="n">chips</span>') +
+           '</div>';
+  }).join("");
+
+  $("calendarActions").hidden = !ready;
+  $("calendarClaim").textContent = "Claim " + fmt(streakReward(n)) + " chips";
+  $("calendarSub").textContent = n === 0
+    ? "Place a bet to start a streak."
+    : ready ? "Day " + n + " is ready to open."
+            : "Day " + n + " collected. Play again tomorrow to keep it going.";
+  $("calendarNote").textContent = n === 0
+    ? "A day counts once you have placed a bet on it."
+    : "Miss a day and the streak starts again at day one. Past day five it stays at "
+      + fmt(STREAK_REWARDS[STREAK_REWARDS.length - 1]) + " chips.";
+}
+function openCalendar(){
+  renderCalendar();
+  $("calendar").classList.add("on");
+}
+function closeCalendar(){
+  $("calendar").classList.remove("on");
+  openingSequence();                                 /* rejoin the queue after the detour */
+}
+/* The one place the chips are actually paid. It re-checks rather than trusting
+   the button's state, so a stale modal left open across midnight — or a second
+   click landing before the first re-render — cannot pay twice. */
+function claimStreak(){
+  if(!streakClaimable()){ renderCalendar(); return; }
+  var day = liveStreak(), reward = streakReward(day);
+  streak.claimed = dayNum();
+  /* Credited straight to the balance rather than through payout(): a daily
+     bonus is not something you won at a table, and running it through there
+     would inflate the win stats and the table's leaderboard line. */
+  setBank(bank + reward, 1);
+  renderStreak();
+  renderCalendar();
+  playWin("big");
+  setTimeout(playCoin, 90);
+  toast("Day " + day + " streak", "+" + fmt(reward) + " chips");
+}
+$("calendarClaim").addEventListener("click", claimStreak);
+$("calendarClose").addEventListener("click", closeCalendar);
+$("calendar").addEventListener("click", function(e){ if(e.target === $("calendar")) closeCalendar(); });
+$("streak").addEventListener("click", function(){ playClick(); openCalendar(); });
 function payout(amount, game){                      // amount = chips returned to the player
   if(amount > stats.big) stats.big = amount;
   stats.won += amount;
@@ -2540,7 +2662,7 @@ var CHANGELOG_KEY = "sparxmaths-casino-changelog";
 var CHANGELOG = {
   version: VERSION,
   notes: [
-    "Daily streak rewards &mdash; 50 chips on day one, up to 500 on day five.",
+    "Daily streak calendar &mdash; open a door a day, 50 chips up to 500 on day five.",
     "New code BROKE123 &mdash; 15 chips, for when you have run out.",
     "Every table now scales to fill your screen &mdash; playfield, chips and all.",
     "The games spread out sideways on a wide screen instead of leaving gutters.",
@@ -2576,12 +2698,14 @@ var MULTIWARN_KEY = "sparxmaths-casino-multiwarn";
 function maybeShowMultiWarn(){
   var seen = null;
   try{ seen = localStorage.getItem(MULTIWARN_KEY); }catch(e){}
-  if(seen === CHANGELOG.version) return;
+  if(seen === CHANGELOG.version) return false;
   $("multiWarn").classList.add("on");
+  return true;                                       /* so the queue knows to stop here */
 }
 function closeMultiWarn(){
   $("multiWarn").classList.remove("on");
   try{ localStorage.setItem(MULTIWARN_KEY, CHANGELOG.version); }catch(e){}
+  openingSequence();                                 /* the calendar is next in the queue */
 }
 /* Signing in re-arms the opening popups, so the changelog and the one-device
    warning are seen on every login rather than once per version. Cleared before
@@ -2603,8 +2727,13 @@ function openingSequence(){
   if($("betaOverlay").classList.contains("on")) return;
   if(gatePending || $("gate").classList.contains("on")) return;
   if($("changelog").classList.contains("on") || $("codes").classList.contains("on")) return;
+  if($("calendar").classList.contains("on")) return;
   if(maybeShowChangelog()) return;                   /* warning waits its turn */
-  maybeShowMultiWarn();
+  if(maybeShowMultiWarn()) return;
+  /* Last in the queue, and only when there is something to open. Yesterday's
+     unclaimed chips are still here, because the claim is stamped with the day
+     it was made rather than cleared at launch. */
+  if(streakClaimable()) openCalendar();
 }
 $("changelogClose").addEventListener("click", function(){ closeChangelog(); });
 $("changelogOk").addEventListener("click", function(){ playClick(); closeChangelog(); });
@@ -2803,7 +2932,10 @@ function applyCloudRow(row){
   streak = {
     count: row.streak_count || 0,
     best:  row.streak_best  || 0,
-    last:  typeof row.streak_last === "number" ? row.streak_last : null
+    last:  typeof row.streak_last === "number" ? row.streak_last : null,
+    /* a claim made on another device has to come back with the rest of it, or
+       the same day pays twice */
+    claimed: typeof row.streak_claimed === "number" ? row.streak_claimed : null
   };
   /* taken verbatim like every other stat here: this branch only runs when the
      cloud save has won, and max()-ing instead would leak one account's best
@@ -2821,6 +2953,7 @@ function cloudPush(){
     user_id: sbUser.id, bank: bank, hands: stats.hands, won: stats.won,
     big: stats.big, peak: stats.peak, net: gameNet,
     streak_count: streak.count, streak_best: streak.best, streak_last: streak.last,
+    streak_claimed: streak.claimed,
     flappy_best: flappyBest,
     updated_at: new Date().toISOString()
   }).then(function(res){
@@ -2852,7 +2985,7 @@ function resetLocalProgress(){
   stats = {hands:0, won:0, big:0, peak:1000};
   gameNet = {};
   GAMES.forEach(function(g){ gameNet[g.key] = 0; });
-  streak = {count:0, best:0, last:null};
+  streak = {count:0, best:0, last:null, claimed:null};
   flappyBest = 0;
   setBank(1000, 0);
   renderStatsPanel();
