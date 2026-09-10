@@ -748,7 +748,7 @@
      one is a BIGGER game rather than more empty grass around the same small
      track. fitGame() picks the width: as wide as the card allows, or narrower
      if that is what it takes to fit the table on screen. */
-  .track-wrap, #stripCanvas, #plinkoCanvas, #flappyCanvas, .fb-action{
+  .track-wrap, #stripCanvas, #plinkoCanvas, #flappyCanvas, #snakeCanvas, .fb-action{
     max-width:var(--play-max,860px);margin-left:auto;margin-right:auto;
   }
   .track-wrap{
@@ -812,6 +812,19 @@
   #flappyCanvas{
     display:block;width:100%;height:420px;touch-action:none;cursor:pointer;
     border-radius:14px;border:1px solid var(--edge);background:#070d18;
+  }
+
+  /* ---------- snake ---------- */
+  /* The grid is exactly twice as wide as it is tall, so the canvas is too —
+     anything else is empty bands above and below the board. The desktop rule
+     adds a max-height off --play-h so fitGame can still trade the board away on
+     a short window; where that bites, the box goes shallower than 2:1 and the
+     board letterboxes rather than the table needing a scrollbar.
+     touch-action:none because steering is a swipe, and the page must not
+     scroll out from under it. */
+  #snakeCanvas{
+    display:block;width:100%;aspect-ratio:2/1;height:auto;touch-action:none;
+    border-radius:14px;border:1px solid var(--edge);background:#07130d;
   }
   /* Sits directly under the canvas and spans it: mid-flight your thumb is on the
      sky, so the cash-out has to be a big target a finger-width away, not a chip
@@ -1024,7 +1037,13 @@
     #trackCanvas{height:var(--play-h)}
     #stripCanvas{height:calc(var(--play-h) * 0.63)}
     #flappyCanvas{height:calc(var(--play-h) * 1.5)}
+    /* Plinko and Snake are both boards rather than views onto a bigger world, so
+       past their own shape the extra width is dead space and they stay capped. */
     #plinkoCanvas{height:calc(var(--play-h) * 1.5);max-width:calc(var(--play-h) * 3.07)}
+    /* Snake keeps a 2:1 board, so its width is capped against its own height
+       rather than the card. Height-driven, like the rest, so fitGame can still
+       trade it away when the window is short. */
+    #snakeCanvas{max-height:calc(var(--play-h) * 1.2)}
     /* the wheel is roulette's playfield: without a dial of its own the board
        and the bet slips left nothing that could give, and a short window put a
        scrollbar on the one table that can least afford one */
@@ -1099,6 +1118,7 @@
         <button class="sidebar-link" data-tab="horse"><span class="ic">&#127895;</span>Racing</button>
         <button class="sidebar-link" data-tab="plinko"><span class="ic">&#128315;</span>Plinko</button>
         <button class="sidebar-link" data-tab="flappy"><span class="ic">&#128038;</span>Flappy</button>
+        <button class="sidebar-link" data-tab="snake"><span class="ic">&#128013;</span>Snake</button>
       </div>
 
       <div class="sidebar-section">
@@ -1240,12 +1260,12 @@
       <div class="field-inline">
         <span class="lbl">Runners</span>
         <button class="btn ghost sm" id="hrMinus" aria-label="Fewer runners">&minus;</button>
-        <div class="stake" id="hrCountVal" style="min-width:56px">6</div>
+        <div class="stake" id="hrCountVal" style="min-width:88px">6</div>
         <button class="btn ghost sm" id="hrPlus" aria-label="More runners">+</button>
 
         <span class="lbl">Laps</span>
         <button class="btn ghost sm" id="hrLapMinus" aria-label="Fewer laps">&minus;</button>
-        <div class="stake" id="hrLapVal" style="min-width:56px">2</div>
+        <div class="stake" id="hrLapVal" style="min-width:88px">2</div>
         <button class="btn ghost sm" id="hrLapPlus" aria-label="More laps">+</button>
 
         <span class="lbl">Quick</span>
@@ -1286,7 +1306,7 @@
       <div class="field-inline">
         <span class="lbl">Rows</span>
         <button class="btn ghost sm" id="pkMinus" aria-label="Fewer rows">&minus;</button>
-        <div class="stake" id="pkRowsVal" style="min-width:56px">12</div>
+        <div class="stake" id="pkRowsVal" style="min-width:88px">12</div>
         <button class="btn ghost sm" id="pkPlus" aria-label="More rows">+</button>
 
         <span class="lbl">Risk</span>
@@ -1333,13 +1353,13 @@
 
       <div class="field-inline">
         <span class="lbl">Multiplier</span>
-        <div class="stake" id="fbMultVal" style="min-width:84px">0.50x</div>
+        <div class="stake" id="fbMultVal" style="min-width:120px">0.50x</div>
 
         <span class="lbl">Pipes</span>
-        <div class="stake" id="fbPipeVal" style="min-width:56px">0</div>
+        <div class="stake" id="fbPipeVal" style="min-width:88px">0</div>
 
         <span class="lbl">Best</span>
-        <div class="stake" id="fbBestVal" style="min-width:56px">0</div>
+        <div class="stake" id="fbBestVal" style="min-width:88px">0</div>
 
         <span class="lbl">Tap the sky or press space to flap &middot; K to bet &amp; cash out</span>
       </div>
@@ -1355,6 +1375,44 @@
         <input type="number" class="custom-bet" id="fbCustom" min="1" step="1" placeholder="Custom">
         <div class="stake" id="fbStake">25</div>
         <button class="btn ghost sm" id="fbClear">Clear</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SNAKE ================= -->
+  <section class="game" id="tab-snake">
+    <div class="table">
+      <h2 class="title">Snake</h2>
+      <p class="sub">Every bite compounds the multiplier &middot; the danger is the tail you have already grown</p>
+
+      <canvas class="playfield" id="snakeCanvas"></canvas>
+
+      <button class="btn fb-action" id="snGo">Play</button>
+
+      <div class="field-inline">
+        <span class="lbl">Multiplier</span>
+        <div class="stake" id="snMultVal" style="min-width:120px">0.50x</div>
+
+        <span class="lbl">Eaten</span>
+        <div class="stake" id="snEatVal" style="min-width:88px">0</div>
+
+        <span class="lbl">Best</span>
+        <div class="stake" id="snBestVal" style="min-width:88px">0</div>
+
+        <span class="lbl">Arrows, WASD or swipe to steer &middot; K to bet &amp; cash out</span>
+      </div>
+
+      <div class="msg info" id="snMsg">Set your stake and set off.</div>
+
+      <div class="betbar">
+        <span class="lbl">Bet</span>
+        <button class="chipbtn" data-v="5">5</button>
+        <button class="chipbtn" data-v="25">25</button>
+        <button class="chipbtn" data-v="100">100</button>
+        <button class="chipbtn" data-v="500">500</button>
+        <input type="number" class="custom-bet" id="snCustom" min="1" step="1" placeholder="Custom">
+        <div class="stake" id="snStake">25</div>
+        <button class="btn ghost sm" id="snClear">Clear</button>
       </div>
     </div>
   </section>
@@ -1803,7 +1861,7 @@ function load(){
 function save(){
   var data = {
     bank:bank, stats:stats, gameNet:gameNet, streak:streak,
-    flappyBest:flappyBest,
+    flappyBest:flappyBest, snakeBest:snakeBest,
     theme:currentTheme, font:currentFont, soundOn:soundOn,
     soundVolume:soundVolume, casinoName:CASINO_NAME,
     rigUser:rigUser, rigHost:rigHost
@@ -1822,7 +1880,8 @@ var GAMES = [
   {key:"roulette",  name:"Roulette",   icon:"&#127919;"},
   {key:"horse",     name:"Racing",     icon:"&#127895;"},
   {key:"plinko",    name:"Plinko",     icon:"&#128315;"},
-  {key:"flappy",    name:"Flappy",     icon:"&#128038;"}
+  {key:"flappy",    name:"Flappy",     icon:"&#128038;"},
+  {key:"snake",     name:"Snake",      icon:"&#128013;"}
 ];
 
 var saved        = load() || mem;
@@ -1834,6 +1893,7 @@ var streak       = (saved && saved.streak) || {count:0, best:0, last:null, claim
 /* Most pipes cleared in a single Flappy run, ever. Pipes rather than chips won,
    so a 5-chip run and a 500-chip run rank on the same scale. */
 var flappyBest   = (saved && typeof saved.flappyBest === "number") ? saved.flappyBest : 0;
+var snakeBest    = (saved && typeof saved.snakeBest  === "number") ? saved.snakeBest  : 0;
 /* Display only, and no longer cached locally: the redemptions table is the one
    source of truth, fetched on sign-in. A stale local copy could only ever
    disagree with it. */
@@ -2662,6 +2722,7 @@ var CHANGELOG_KEY = "sparxmaths-casino-changelog";
 var CHANGELOG = {
   version: VERSION,
   notes: [
+    "New table: Snake &mdash; every bite compounds, cash out before you run out of room.",
     "Daily streak calendar &mdash; open a door a day, 50 chips up to 500 on day five.",
     "New code BROKE123 &mdash; 15 chips, any time you run out. Reusable.",
     "Every table now scales to fill your screen &mdash; playfield, chips and all.",
@@ -2900,6 +2961,7 @@ $("resetStatsGo").addEventListener("click", function(){
   stats.big = 0;
   stats.peak = bank;                 /* a high-water mark restarts from today's balance, not 0 */
   flappyBest = 0;
+  snakeBest = 0;
   GAMES.forEach(function(g){ gameNet[g.key] = 0; });
   renderStats();
   renderStatsPanel();
@@ -2991,6 +3053,7 @@ function resetLocalProgress(){
   GAMES.forEach(function(g){ gameNet[g.key] = 0; });
   streak = {count:0, best:0, last:null, claimed:null};
   flappyBest = 0;
+  snakeBest = 0;
   setBank(1000, 0);
   renderStatsPanel();
   renderLeaderboard();
@@ -4986,6 +5049,12 @@ function hrFrame(now){
     fbStep(dt);
     fbRender();
   }
+  if($("tab-snake").classList.contains("on")){
+    if(snCssW < 5 || stale(snCanvas, snCssW, snCssH)) snResize();
+    snClock += dt;
+    snStep(dt);
+    snRender();
+  }
   requestAnimationFrame(hrFrame);
 }
 
@@ -5765,6 +5834,324 @@ document.addEventListener("keydown", function(e){
 fbResize();
 fbReset();
 syncFlappyUI();
+
+/* ================= SNAKE ================= */
+/* The same crash-game bones as Flappy, but the thing that kills you is the tail
+   you grew getting this far — so unlike a pipe you cannot see coming, the risk
+   is entirely of your own making, and it is worst exactly when the multiplier
+   is worth cashing. */
+var snCanvas = $("snakeCanvas"), snCtx = snCanvas.getContext("2d");
+var SN_COLS = 24, SN_ROWS = 12;                        // the board, in cells
+var SN_VIEW_H = 240;                                   // a taller board than this magnifies rather than showing more
+var SN_MULT0 = 0.5;                                    // bail out too early and you take a haircut
+var SN_STEP  = 1.18;                                   // each bite compounds by this much
+/* Seconds per cell. Food is several moves apart where a pipe is one gap away,
+   so a bite is worth more than a pipe and they arrive more slowly. */
+var SN_PACE0 = 0.155, SN_PACE_MIN = 0.075, SN_PACE_RAMP = 0.005;
+var SN_GROW = 2;                                       // cells added per bite
+
+var snW = 860, snH = 240, snCssW = 0, snCssH = 0;
+var snStake = 25, snState = "idle";                    // idle | live | dead
+var snBody = [], snDir = {x:1, y:0}, snTurns = [], snFood = null;
+var snEaten = 0, snMult = SN_MULT0, snRig = 1;
+var snAcc = 0, snDeadAt = 0, snClock = 0;
+
+function snResize(){
+  if(!snCanvas) return;
+  var rect = snCanvas.getBoundingClientRect();
+  if(!rect.width) return;
+  var dpr = window.devicePixelRatio || 1;
+  /* Same rule as the other boards: past the height it is drawn for, the extra
+     pixels magnify the board rather than revealing more of it. */
+  var z = Math.max(0.7, rect.height / SN_VIEW_H);
+  snW = rect.width / z; snH = rect.height / z;
+  snCssW = rect.width; snCssH = rect.height;
+  snCanvas.width  = Math.round(rect.width*dpr);
+  snCanvas.height = Math.round(rect.height*dpr);
+  snCtx.setTransform(dpr*z, 0, 0, dpr*z, 0, 0);
+}
+/* Square cells, centred: the canvas is whatever shape the layout gave it, but
+   the grid is always the same 24x12 so the game is the same game on every
+   screen. */
+function snGeo(){
+  var cell = Math.floor(Math.min(snW/SN_COLS, snH/SN_ROWS));
+  var w = cell*SN_COLS, h = cell*SN_ROWS;
+  return {cell:cell, x:Math.round((snW - w)/2), y:Math.round((snH - h)/2), w:w, h:h};
+}
+
+function snPace(){ return Math.max(SN_PACE_MIN, SN_PACE0 - snEaten*SN_PACE_RAMP*snRig); }
+function snMultText(){ return snMult.toFixed(2) + "x"; }
+function snCashValue(){ return Math.floor(snStake * snMult); }
+function snHits(x, y, from){
+  for(var i = from || 0; i < snBody.length; i++){
+    if(snBody[i].x === x && snBody[i].y === y) return true;
+  }
+  return false;
+}
+/* Somewhere empty. The rig leans on WHERE rather than whether: a friendly round
+   puts the next bite close to the head, a hostile one puts it as far away as it
+   can, which is more moves surviving a longer tail. */
+function snPlaceFood(){
+  var free = [], x, y;
+  for(x = 0; x < SN_COLS; x++){
+    for(y = 0; y < SN_ROWS; y++){ if(!snHits(x, y)) free.push({x:x, y:y}); }
+  }
+  if(!free.length){ snFood = null; return; }           /* board full — nothing left to eat */
+  if(snRig === 1){ snFood = free[rnd(free.length)]; return; }
+  var head = snBody[0], pick = null, pickD = 0;
+  for(var i = 0; i < 12; i++){                         /* a handful of candidates, not the whole board */
+    var c = free[rnd(free.length)];
+    var d = Math.abs(c.x - head.x) + Math.abs(c.y - head.y);
+    if(!pick || (snRig > 1 ? d < pickD : d > pickD)){ pick = c; pickD = d; }
+  }
+  snFood = pick;
+}
+function snReset(){
+  var y = Math.floor(SN_ROWS/2), x = Math.floor(SN_COLS/4);
+  snBody = [{x:x, y:y}, {x:x-1, y:y}, {x:x-2, y:y}];
+  snDir = {x:1, y:0}; snTurns = [];
+  snEaten = 0; snMult = SN_MULT0; snAcc = 0;
+  snPlaceFood();
+}
+function snStart(){
+  if(snState !== "idle") return;
+  if(snStake > bank){ msg($("snMsg"), "Not enough chips for that bet.", "lose"); return; }
+  wager(snStake, "snake");
+  stats.hands++;
+
+  var rigMode = rigRoll();
+  snRig = rigMode === "user" ? 1.25 : rigMode === "host" ? 0.8 : 1;
+
+  snReset();
+  snState = "live";
+  playChip();
+  msg($("snMsg"), "Off you go — every bite compounds, and the tail is the trap.", "info");
+  syncSnakeUI();
+}
+/* A turn is queued rather than applied, because two keys inside one step would
+   otherwise let you fold straight back into your own neck. Each queued turn is
+   checked against the one before it, not against the direction on screen. */
+function snTurn(dx, dy){
+  if(snState !== "live") return;
+  var last = snTurns.length ? snTurns[snTurns.length-1] : snDir;
+  if(last.x === -dx && last.y === -dy) return;         /* no reversing */
+  if(last.x === dx && last.y === dy) return;           /* already going that way */
+  if(snTurns.length < 2) snTurns.push({x:dx, y:dy});
+}
+function snStep(dt){
+  if(snState === "dead"){
+    if(snClock - snDeadAt > 1.1){ snState = "idle"; snReset(); syncSnakeUI(); }
+    return;
+  }
+  if(snState !== "live") return;
+  snAcc += dt;
+  var pace = snPace();
+  while(snAcc >= pace){
+    snAcc -= pace;
+    if(snTurns.length) snDir = snTurns.shift();
+    var head = {x: snBody[0].x + snDir.x, y: snBody[0].y + snDir.y};
+    if(head.x < 0 || head.y < 0 || head.x >= SN_COLS || head.y >= SN_ROWS){ snDie("wall"); return; }
+    /* The tail tip is skipped: it moves out of that cell on this same step, so
+       chasing your own tail at full speed is legal rather than instant death. */
+    if(snHits(head.x, head.y, 0) && !(head.x === snBody[snBody.length-1].x &&
+                                      head.y === snBody[snBody.length-1].y)){ snDie("self"); return; }
+    snBody.unshift(head);
+    if(snFood && head.x === snFood.x && head.y === snFood.y){
+      snEaten++;
+      snMult *= SN_STEP;
+      for(var g = 1; g < SN_GROW; g++) snBody.push({x:snBody[snBody.length-1].x, y:snBody[snBody.length-1].y});
+      snPlaceFood();
+      playCoin();
+      syncSnakeUI();
+    }else{
+      snBody.pop();
+    }
+  }
+}
+function snDie(){
+  snState = "dead";
+  snDeadAt = snClock;
+  playLose();
+  msg($("snMsg"), "Ran out of room on " + fmt(snEaten) + " " + (snEaten === 1 ? "bite" : "bites") +
+                  " — " + fmt(snStake) + " chips gone.", "lose");
+  snRecordBest();
+  syncSnakeUI();
+}
+function snRecordBest(){
+  if(snEaten <= snakeBest) return false;
+  snakeBest = snEaten;
+  save();
+  return true;
+}
+function snCashOut(){
+  if(snState !== "live") return;
+  var ret = snCashValue(), net = ret - snStake;
+  var best = snRecordBest();
+  snState = "idle";
+  if(ret > 0) payout(ret, "snake");
+  if(net > 0){
+    playWin(snMult >= 20 ? "jackpot" : snMult >= 3 ? "big" : "small");
+    if(snMult >= 3) setTimeout(playCoin, 90);
+    msg($("snMsg"), "Cashed out at " + snMultText() + " — " + fmt(ret) + " chips (+" + fmt(net) + ").", "win");
+  }else if(net < 0){
+    playLose();
+    msg($("snMsg"), "Stopped early at " + snMultText() + " — " + fmt(ret) + " chips back (" + fmt(net) + ").", "lose");
+  }else{
+    playClick();
+    msg($("snMsg"), "Stopped at " + snMultText() + " — " + fmt(ret) + " chips back.", "info");
+  }
+  if(best) msg($("snMsg"), $("snMsg").textContent + " New best: " + snEaten + "!", "win");
+  snReset();
+  syncSnakeUI();
+}
+function snToggle(){ if(snState === "live") snCashOut(); else snStart(); }
+
+function snRender(){
+  var g = snGeo();
+  snCtx.clearRect(0, 0, snW, snH);
+  var bg = snCtx.createLinearGradient(0, 0, 0, snH);
+  bg.addColorStop(0, "#0e2a1b"); bg.addColorStop(1, "#050f0a");
+  snCtx.fillStyle = bg;
+  snCtx.fillRect(0, 0, snW, snH);
+
+  /* a dot per cell rather than a full grid: enough to read distance by, quiet
+     enough not to compete with the snake */
+  snCtx.fillStyle = "rgba(255,255,255,.055)";
+  for(var cx = 0; cx < SN_COLS; cx++){
+    for(var cy = 0; cy < SN_ROWS; cy++){
+      snCtx.fillRect(g.x + cx*g.cell + g.cell/2 - 1, g.y + cy*g.cell + g.cell/2 - 1, 2, 2);
+    }
+  }
+  snCtx.strokeStyle = "rgba(255,255,255,.10)";
+  snCtx.lineWidth = 1;
+  snCtx.strokeRect(g.x + 0.5, g.y + 0.5, g.w - 1, g.h - 1);
+
+  if(snFood){
+    var fr = g.cell*0.32, fx = g.x + snFood.x*g.cell + g.cell/2, fy = g.y + snFood.y*g.cell + g.cell/2;
+    var pulse = 1 + Math.sin(snClock*6)*0.12;
+    snCtx.fillStyle = "#ffcf4d";
+    snCtx.beginPath(); snCtx.arc(fx, fy, fr*pulse, 0, Math.PI*2); snCtx.fill();
+    snCtx.fillStyle = "rgba(255,255,255,.55)";
+    snCtx.beginPath(); snCtx.arc(fx - fr*0.3, fy - fr*0.35, fr*0.3, 0, Math.PI*2); snCtx.fill();
+  }
+
+  /* barely any gap between segments: at this cell size a wider one reads as a
+     string of beads rather than one animal */
+  var pad = Math.max(0.5, g.cell*0.05), r = Math.max(2, g.cell*0.24);
+  for(var i = snBody.length - 1; i >= 0; i--){
+    var s = snBody[i];
+    /* head brightest, fading down the body, so which end is which is readable
+       at a glance even when it is folded on top of itself */
+    var t = snBody.length > 1 ? i/(snBody.length - 1) : 0;
+    snCtx.fillStyle = snState === "dead"
+      ? "rgba(200,60,60," + (0.9 - t*0.5).toFixed(3) + ")"
+      : "rgba(" + Math.round(96 - t*40) + "," + Math.round(224 - t*90) + "," + Math.round(140 - t*50) + ",1)";
+    snRound(g.x + s.x*g.cell + pad, g.y + s.y*g.cell + pad, g.cell - pad*2, g.cell - pad*2, r);
+  }
+  if(snBody.length){
+    var h = snBody[0], hx = g.x + h.x*g.cell + g.cell/2, hy = g.y + h.y*g.cell + g.cell/2;
+    snCtx.fillStyle = "#04120a";
+    var ex = snDir.x*g.cell*0.16, ey = snDir.y*g.cell*0.16, off = g.cell*0.16;
+    snCtx.beginPath(); snCtx.arc(hx + ex - snDir.y*off, hy + ey - snDir.x*off, Math.max(1, g.cell*0.09), 0, Math.PI*2); snCtx.fill();
+    snCtx.beginPath(); snCtx.arc(hx + ex + snDir.y*off, hy + ey + snDir.x*off, Math.max(1, g.cell*0.09), 0, Math.PI*2); snCtx.fill();
+  }
+
+  /* Pinned to the canvas rather than the board: where the two differ there is a
+     letterbox band, and the readout would rather sit in that than on top of the
+     row the snake is about to occupy. */
+  snCtx.textAlign = "center";
+  if(snState === "live"){
+    snCtx.font = "700 30px system-ui, sans-serif";
+    snCtx.fillStyle = "rgba(255,255,255,.9)";
+    snCtx.fillText(snMultText(), snW/2, 32);
+    snCtx.font = "600 11px system-ui, sans-serif";
+    snCtx.fillStyle = "rgba(255,255,255,.45)";
+    snCtx.fillText(fmt(snCashValue()) + " CHIPS IF YOU STOP NOW", snW/2, 50);
+  }else if(snState === "dead"){
+    snCtx.font = "700 26px system-ui, sans-serif";
+    snCtx.fillStyle = "#ff6b6b";
+    snCtx.fillText("CRASHED", snW/2, 34);
+  }
+  snCtx.textAlign = "left";
+}
+function snRound(x, y, w, h, r){
+  snCtx.beginPath();
+  snCtx.moveTo(x + r, y);
+  snCtx.arcTo(x + w, y, x + w, y + h, r);
+  snCtx.arcTo(x + w, y + h, x, y + h, r);
+  snCtx.arcTo(x, y + h, x, y, r);
+  snCtx.arcTo(x, y, x + w, y, r);
+  snCtx.closePath();
+  snCtx.fill();
+}
+
+function syncSnakeUI(){
+  var live = snState === "live";
+  $("snMultVal").textContent = snMultText();
+  $("snEatVal").textContent  = snEaten;
+  $("snBestVal").textContent = fmt(snakeBest);
+  var go = $("snGo");
+  go.textContent = live ? "Cash out " + fmt(snCashValue()) + " (K)" : "Play (K)";
+  go.classList.toggle("cash", live);
+  go.disabled = snState === "dead";
+  Array.prototype.forEach.call(snBtns, function(b){ b.disabled = live; });
+  $("snCustom").disabled = live;
+  $("snClear").disabled  = live;
+}
+
+var snBtns = chipRow($("tab-snake"), null, function(v){
+  snStake = v;
+  $("snStake").textContent = fmt(snStake);
+}, null);
+snBtns[1].classList.add("sel");
+
+$("snClear").addEventListener("click", function(){
+  playClick();
+  snStake = 5;
+  $("snStake").textContent = "5";
+  Array.prototype.forEach.call(snBtns, function(o){ o.classList.toggle("sel", o.dataset.v === "5"); });
+  $("snCustom").value = "";
+  $("snCustom").classList.remove("sel");
+});
+$("snGo").addEventListener("click", function(){ snToggle(); });
+
+/* Swipe to steer. The axis with the larger travel wins, so a lazy diagonal
+   still turns the way it was mostly heading. */
+var snTouch = null;
+snCanvas.addEventListener("pointerdown", function(e){
+  e.preventDefault();
+  snTouch = {x:e.clientX, y:e.clientY};
+});
+snCanvas.addEventListener("pointermove", function(e){
+  if(!snTouch) return;
+  var dx = e.clientX - snTouch.x, dy = e.clientY - snTouch.y;
+  if(Math.abs(dx) < 24 && Math.abs(dy) < 24) return;
+  if(Math.abs(dx) > Math.abs(dy)) snTurn(dx > 0 ? 1 : -1, 0);
+  else snTurn(0, dy > 0 ? 1 : -1);
+  snTouch = {x:e.clientX, y:e.clientY};                /* re-anchor so one drag can turn twice */
+});
+window.addEventListener("pointerup", function(){ snTouch = null; });
+
+var SN_KEYS = {
+  ArrowLeft:[-1,0], KeyA:[-1,0], ArrowRight:[1,0], KeyD:[1,0],
+  ArrowUp:[0,-1],   KeyW:[0,-1], ArrowDown:[0,1],  KeyS:[0,1]
+};
+document.addEventListener("keydown", function(e){
+  if(!$("tab-snake").classList.contains("on")) return;
+  var t = e.target;
+  if(t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
+  var d = SN_KEYS[e.code];
+  if(d){ e.preventDefault(); snTurn(d[0], d[1]); return; }   /* arrows must not scroll the page */
+  if(e.code === "KeyK"){
+    e.preventDefault();
+    if(e.repeat) return;                                     /* holding K must not re-bet */
+    snToggle();
+  }
+});
+
+snResize();
+snReset();
+syncSnakeUI();
 
 /* ============ boot ============ */
 applyTheme((saved && saved.theme) || "emerald");
