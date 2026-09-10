@@ -5836,25 +5836,38 @@ fbReset();
 syncFlappyUI();
 
 /* ================= SNAKE ================= */
-/* The same crash-game bones as Flappy, but the thing that kills you is the tail
-   you grew getting this far — so unlike a pipe you cannot see coming, the risk
-   is entirely of your own making, and it is worst exactly when the multiplier
-   is worth cashing. */
+/* The same crash-game bones as Flappy — stake on start, a multiplier that
+   compounds per bite, cash out or lose the lot — but the thing that kills you
+   is the tail you grew getting there.
+
+   It does not run on a grid. The head is a position rather than a cell and it
+   moves a fraction of a pixel per frame; the body is the path it has taken,
+   trimmed to whatever length the snake has earned and drawn as one continuous
+   stroke. So the animal is one long thing rather than a row of squares, and it
+   can be halfway between anywhere. */
 var snCanvas = $("snakeCanvas"), snCtx = snCanvas.getContext("2d");
-var SN_COLS = 24, SN_ROWS = 12;                        // the board, in cells
-var SN_VIEW_H = 240;                                   // a taller board than this magnifies rather than showing more
+var SN_VIEW_H = 240;                                   // the height the board is drawn for
+var SN_MARGIN = 9;                                     // wall inset, in world units
+var SN_R = 7;                                          // half the body's thickness
+var SN_FOOD_R = 6.5;
+var SN_LEN0 = 62;                                      // starting body length, in world units
+var SN_GROW = 30;                                      // ...and what a bite adds
+var SN_SPEED0 = 118, SN_SPEED_MAX = 235, SN_SPEED_RAMP = 7.5;   // units per second
+var SN_SAMPLE = 4;                                     // how often the path lays down a point
+/* The stretch of body just behind the head that cannot kill you. A square turn
+   leaves the neck lying right alongside the head, and without this every corner
+   would be fatal. It also forgives a very tight double-back, which is the trade
+   for being able to turn anywhere rather than only on a grid line. */
+var SN_GRACE = SN_R*4;
 var SN_MULT0 = 0.5;                                    // bail out too early and you take a haircut
 var SN_STEP  = 1.18;                                   // each bite compounds by this much
-/* Seconds per cell. Food is several moves apart where a pipe is one gap away,
-   so a bite is worth more than a pipe and they arrive more slowly. */
-var SN_PACE0 = 0.155, SN_PACE_MIN = 0.075, SN_PACE_RAMP = 0.005;
-var SN_GROW = 2;                                       // cells added per bite
 
-var snW = 860, snH = 240, snCssW = 0, snCssH = 0;
+var snW = 480, snH = 240, snCssW = 0, snCssH = 0;
 var snStake = 25, snState = "idle";                    // idle | live | dead
-var snBody = [], snDir = {x:1, y:0}, snTurns = [], snFood = null;
+var snHead = {x:0, y:0}, snDir = {x:1, y:0}, snTurns = [];
+var snPath = [], snLen = SN_LEN0, snFood = null;
 var snEaten = 0, snMult = SN_MULT0, snRig = 1;
-var snAcc = 0, snDeadAt = 0, snClock = 0;
+var snDeadAt = 0, snClock = 0;
 
 function snResize(){
   if(!snCanvas) return;
@@ -5870,47 +5883,43 @@ function snResize(){
   snCanvas.height = Math.round(rect.height*dpr);
   snCtx.setTransform(dpr*z, 0, 0, dpr*z, 0, 0);
 }
-/* Square cells, centred: the canvas is whatever shape the layout gave it, but
-   the grid is always the same 24x12 so the game is the same game on every
-   screen. */
-function snGeo(){
-  var cell = Math.floor(Math.min(snW/SN_COLS, snH/SN_ROWS));
-  var w = cell*SN_COLS, h = cell*SN_ROWS;
-  return {cell:cell, x:Math.round((snW - w)/2), y:Math.round((snH - h)/2), w:w, h:h};
+function snBoard(){
+  return {x:SN_MARGIN, y:SN_MARGIN, w:snW - SN_MARGIN*2, h:snH - SN_MARGIN*2};
 }
-
-function snPace(){ return Math.max(SN_PACE_MIN, SN_PACE0 - snEaten*SN_PACE_RAMP*snRig); }
+function snSpeed(){ return Math.min(SN_SPEED_MAX, (SN_SPEED0 + snEaten*SN_SPEED_RAMP) / snRig); }
 function snMultText(){ return snMult.toFixed(2) + "x"; }
 function snCashValue(){ return Math.floor(snStake * snMult); }
-function snHits(x, y, from){
-  for(var i = from || 0; i < snBody.length; i++){
-    if(snBody[i].x === x && snBody[i].y === y) return true;
-  }
-  return false;
-}
-/* Somewhere empty. The rig leans on WHERE rather than whether: a friendly round
-   puts the next bite close to the head, a hostile one puts it as far away as it
-   can, which is more moves surviving a longer tail. */
+function snDist(a, b){ var dx = a.x - b.x, dy = a.y - b.y; return Math.sqrt(dx*dx + dy*dy); }
+
+/* Somewhere clear of the body. The rig leans on WHERE rather than whether: a
+   friendly round drops the next bite near the head, a hostile one as far away
+   as it can, which is more ground covered on a longer body. */
 function snPlaceFood(){
-  var free = [], x, y;
-  for(x = 0; x < SN_COLS; x++){
-    for(y = 0; y < SN_ROWS; y++){ if(!snHits(x, y)) free.push({x:x, y:y}); }
+  var b = snBoard(), pad = SN_FOOD_R + SN_R + 4;
+  var best = null, bestD = 0;
+  for(var n = 0; n < 40; n++){
+    var c = {x: b.x + pad + Math.random()*(b.w - pad*2),
+             y: b.y + pad + Math.random()*(b.h - pad*2)};
+    var clear = true;
+    for(var i = 0; i < snPath.length; i++){
+      if(snDist(c, snPath[i]) < SN_R + SN_FOOD_R + 6){ clear = false; break; }
+    }
+    if(!clear) continue;
+    if(snRig === 1){ snFood = c; return; }
+    var d = snDist(c, snHead);
+    if(!best || (snRig > 1 ? d < bestD : d > bestD)){ best = c; bestD = d; }
   }
-  if(!free.length){ snFood = null; return; }           /* board full — nothing left to eat */
-  if(snRig === 1){ snFood = free[rnd(free.length)]; return; }
-  var head = snBody[0], pick = null, pickD = 0;
-  for(var i = 0; i < 12; i++){                         /* a handful of candidates, not the whole board */
-    var c = free[rnd(free.length)];
-    var d = Math.abs(c.x - head.x) + Math.abs(c.y - head.y);
-    if(!pick || (snRig > 1 ? d < pickD : d > pickD)){ pick = c; pickD = d; }
-  }
-  snFood = pick;
+  /* On a crowded board every candidate may have been rejected; anywhere inside
+     the walls beats leaving the player with nothing to chase. */
+  snFood = best || {x: b.x + pad + Math.random()*(b.w - pad*2),
+                    y: b.y + pad + Math.random()*(b.h - pad*2)};
 }
 function snReset(){
-  var y = Math.floor(SN_ROWS/2), x = Math.floor(SN_COLS/4);
-  snBody = [{x:x, y:y}, {x:x-1, y:y}, {x:x-2, y:y}];
+  var b = snBoard();
+  snHead = {x: b.x + b.w*0.25, y: b.y + b.h/2};
   snDir = {x:1, y:0}; snTurns = [];
-  snEaten = 0; snMult = SN_MULT0; snAcc = 0;
+  snLen = SN_LEN0; snEaten = 0; snMult = SN_MULT0;
+  snPath = [{x:snHead.x, y:snHead.y}, {x:snHead.x - SN_LEN0, y:snHead.y}];
   snPlaceFood();
 }
 function snStart(){
@@ -5928,9 +5937,9 @@ function snStart(){
   msg($("snMsg"), "Off you go — every bite compounds, and the tail is the trap.", "info");
   syncSnakeUI();
 }
-/* A turn is queued rather than applied, because two keys inside one step would
-   otherwise let you fold straight back into your own neck. Each queued turn is
-   checked against the one before it, not against the direction on screen. */
+/* A turn is queued rather than applied, and each queued turn is checked against
+   the one before it rather than against the direction on screen, so two keys
+   inside one frame cannot fold the head straight back into its own neck. */
 function snTurn(dx, dy){
   if(snState !== "live") return;
   var last = snTurns.length ? snTurns[snTurns.length-1] : snDir;
@@ -5938,34 +5947,67 @@ function snTurn(dx, dy){
   if(last.x === dx && last.y === dy) return;           /* already going that way */
   if(snTurns.length < 2) snTurns.push({x:dx, y:dy});
 }
+/* Trim the recorded path back to the body's length, cutting the last segment
+   part-way so the tail ends exactly where it should rather than at whichever
+   sample happened to be nearest. */
+function snTrim(){
+  var run = 0;
+  for(var i = 1; i < snPath.length; i++){
+    var seg = snDist(snPath[i-1], snPath[i]);
+    if(run + seg >= snLen){
+      var t = (snLen - run) / (seg || 1);
+      snPath[i] = {x: snPath[i-1].x + (snPath[i].x - snPath[i-1].x)*t,
+                   y: snPath[i-1].y + (snPath[i].y - snPath[i-1].y)*t};
+      snPath.length = i + 1;
+      return;
+    }
+    run += seg;
+  }
+}
 function snStep(dt){
   if(snState === "dead"){
     if(snClock - snDeadAt > 1.1){ snState = "idle"; snReset(); syncSnakeUI(); }
     return;
   }
   if(snState !== "live") return;
-  snAcc += dt;
-  var pace = snPace();
-  while(snAcc >= pace){
-    snAcc -= pace;
-    if(snTurns.length) snDir = snTurns.shift();
-    var head = {x: snBody[0].x + snDir.x, y: snBody[0].y + snDir.y};
-    if(head.x < 0 || head.y < 0 || head.x >= SN_COLS || head.y >= SN_ROWS){ snDie("wall"); return; }
-    /* The tail tip is skipped: it moves out of that cell on this same step, so
-       chasing your own tail at full speed is legal rather than instant death. */
-    if(snHits(head.x, head.y, 0) && !(head.x === snBody[snBody.length-1].x &&
-                                      head.y === snBody[snBody.length-1].y)){ snDie("self"); return; }
-    snBody.unshift(head);
-    if(snFood && head.x === snFood.x && head.y === snFood.y){
-      snEaten++;
-      snMult *= SN_STEP;
-      for(var g = 1; g < SN_GROW; g++) snBody.push({x:snBody[snBody.length-1].x, y:snBody[snBody.length-1].y});
-      snPlaceFood();
-      playCoin();
-      syncSnakeUI();
-    }else{
-      snBody.pop();
-    }
+
+  /* One queued turn per frame, pinned at the head's current position so the
+     corner lands exactly where it was asked for. */
+  if(snTurns.length){
+    snDir = snTurns.shift();
+    snPath.unshift({x:snHead.x, y:snHead.y});
+  }
+
+  var move = snSpeed() * dt;
+  snHead.x += snDir.x*move;
+  snHead.y += snDir.y*move;
+
+  /* The head is always path[0]; a new fixed point is laid down behind it once
+     it has travelled far enough to be worth recording. */
+  if(snPath.length < 2 || snDist(snHead, snPath[1]) >= SN_SAMPLE) snPath.unshift({x:snHead.x, y:snHead.y});
+  else snPath[0] = {x:snHead.x, y:snHead.y};
+  snTrim();
+
+  var b = snBoard();
+  if(snHead.x - SN_R < b.x || snHead.y - SN_R < b.y ||
+     snHead.x + SN_R > b.x + b.w || snHead.y + SN_R > b.y + b.h){ snDie(); return; }
+
+  /* Walk back along the path, skipping the stretch of neck a square turn always
+     leaves lying beside the head, then look for anything the head overlaps. */
+  var run = 0;
+  for(var i = 1; i < snPath.length; i++){
+    run += snDist(snPath[i-1], snPath[i]);
+    if(run < SN_GRACE) continue;
+    if(snDist(snHead, snPath[i]) < SN_R*1.5){ snDie(); return; }
+  }
+
+  if(snFood && snDist(snHead, snFood) < SN_R + SN_FOOD_R){
+    snEaten++;
+    snMult *= SN_STEP;
+    snLen += SN_GROW;
+    snPlaceFood();
+    playCoin();
+    syncSnakeUI();
   }
 }
 function snDie(){
@@ -6007,78 +6049,63 @@ function snCashOut(){
 function snToggle(){ if(snState === "live") snCashOut(); else snStart(); }
 
 function snRender(){
-  var g = snGeo();
+  var b = snBoard();
   snCtx.clearRect(0, 0, snW, snH);
   var bg = snCtx.createLinearGradient(0, 0, 0, snH);
   bg.addColorStop(0, "#0e2a1b"); bg.addColorStop(1, "#050f0a");
   snCtx.fillStyle = bg;
   snCtx.fillRect(0, 0, snW, snH);
 
-  /* a dot per cell rather than a full grid: enough to read distance by, quiet
-     enough not to compete with the snake */
-  snCtx.fillStyle = "rgba(255,255,255,.055)";
-  for(var cx = 0; cx < SN_COLS; cx++){
-    for(var cy = 0; cy < SN_ROWS; cy++){
-      snCtx.fillRect(g.x + cx*g.cell + g.cell/2 - 1, g.y + cy*g.cell + g.cell/2 - 1, 2, 2);
-    }
-  }
   snCtx.strokeStyle = "rgba(255,255,255,.10)";
   snCtx.lineWidth = 1;
-  snCtx.strokeRect(g.x + 0.5, g.y + 0.5, g.w - 1, g.h - 1);
+  snCtx.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1);
 
   if(snFood){
-    var fr = g.cell*0.32, fx = g.x + snFood.x*g.cell + g.cell/2, fy = g.y + snFood.y*g.cell + g.cell/2;
     var pulse = 1 + Math.sin(snClock*6)*0.12;
     snCtx.fillStyle = "#ffcf4d";
-    snCtx.beginPath(); snCtx.arc(fx, fy, fr*pulse, 0, Math.PI*2); snCtx.fill();
+    snCtx.beginPath(); snCtx.arc(snFood.x, snFood.y, SN_FOOD_R*pulse, 0, Math.PI*2); snCtx.fill();
     snCtx.fillStyle = "rgba(255,255,255,.55)";
-    snCtx.beginPath(); snCtx.arc(fx - fr*0.3, fy - fr*0.35, fr*0.3, 0, Math.PI*2); snCtx.fill();
+    snCtx.beginPath();
+    snCtx.arc(snFood.x - SN_FOOD_R*0.3, snFood.y - SN_FOOD_R*0.35, SN_FOOD_R*0.3, 0, Math.PI*2);
+    snCtx.fill();
   }
 
-  /* barely any gap between segments: at this cell size a wider one reads as a
-     string of beads rather than one animal */
-  var pad = Math.max(0.5, g.cell*0.05), r = Math.max(2, g.cell*0.24);
-  /* How far through the current step we are. The logic still moves a whole cell
-     at a time — that is what makes it Snake — but the drawing slides between
-     cells, so the animal glides at the screen's refresh rate instead of
-     teleporting six and a half times a second. Frozen on death so the crash
-     stops exactly where it happened. */
-  var slide = snState === "live" ? Math.min(1, Math.max(0, snAcc / snPace())) : 0;
-  var at = function(i){
-    var a = snBody[i];
-    /* the head slides into the cell ahead; everything else slides into the
-       cell the segment in front of it is leaving */
-    var b = i === 0 ? {x:a.x + snDir.x, y:a.y + snDir.y} : snBody[i-1];
-    return {x: a.x + (b.x - a.x)*slide, y: a.y + (b.y - a.y)*slide};
-  };
-  /* Clipped to the board: at the very end of a step the head is most of the way
-     into the cell it is about to be killed by, which may be off the edge. */
-  snCtx.save();
-  snCtx.beginPath();
-  snCtx.rect(g.x, g.y, g.w, g.h);
-  snCtx.clip();
-  for(var i = snBody.length - 1; i >= 0; i--){
-    var s = at(i);
-    /* head brightest, fading down the body, so which end is which is readable
-       at a glance even when it is folded on top of itself */
-    var t = snBody.length > 1 ? i/(snBody.length - 1) : 0;
-    snCtx.fillStyle = snState === "dead"
-      ? "rgba(200,60,60," + (0.9 - t*0.5).toFixed(3) + ")"
-      : "rgba(" + Math.round(96 - t*40) + "," + Math.round(224 - t*90) + "," + Math.round(140 - t*50) + ",1)";
-    snRound(g.x + s.x*g.cell + pad, g.y + s.y*g.cell + pad, g.cell - pad*2, g.cell - pad*2, r);
-  }
-  if(snBody.length){
-    var h = at(0), hx = g.x + h.x*g.cell + g.cell/2, hy = g.y + h.y*g.cell + g.cell/2;
+  if(snPath.length > 1){
+    snCtx.save();
+    snCtx.beginPath();
+    snCtx.rect(b.x, b.y, b.w, b.h);
+    snCtx.clip();
+    snCtx.lineCap = "round"; snCtx.lineJoin = "round";
+    snCtx.beginPath();
+    snCtx.moveTo(snPath[0].x, snPath[0].y);
+    for(var i = 1; i < snPath.length; i++) snCtx.lineTo(snPath[i].x, snPath[i].y);
+    /* Stroked twice: a dark outline underneath, so where the body runs close to
+       itself you can still see which strand is which, then the body over it. */
+    snCtx.strokeStyle = "rgba(4,20,12,.85)";
+    snCtx.lineWidth = SN_R*2 + 3;
+    snCtx.stroke();
+    var tail = snPath[snPath.length-1];
+    var grad = snCtx.createLinearGradient(snPath[0].x, snPath[0].y, tail.x, tail.y);
+    if(snState === "dead"){ grad.addColorStop(0, "#e05a5a"); grad.addColorStop(1, "#7a2222"); }
+    else                  { grad.addColorStop(0, "#7ef2a8"); grad.addColorStop(1, "#2c8f56"); }
+    snCtx.strokeStyle = grad;
+    snCtx.lineWidth = SN_R*2;
+    snCtx.stroke();
+
+    /* eyes, set either side of the direction of travel */
+    var off = SN_R*0.46, fwd = SN_R*0.34;
     snCtx.fillStyle = "#04120a";
-    var ex = snDir.x*g.cell*0.16, ey = snDir.y*g.cell*0.16, off = g.cell*0.16;
-    snCtx.beginPath(); snCtx.arc(hx + ex - snDir.y*off, hy + ey - snDir.x*off, Math.max(1, g.cell*0.09), 0, Math.PI*2); snCtx.fill();
-    snCtx.beginPath(); snCtx.arc(hx + ex + snDir.y*off, hy + ey + snDir.x*off, Math.max(1, g.cell*0.09), 0, Math.PI*2); snCtx.fill();
+    snCtx.beginPath();
+    snCtx.arc(snHead.x + snDir.x*fwd - snDir.y*off, snHead.y + snDir.y*fwd - snDir.x*off, SN_R*0.26, 0, Math.PI*2);
+    snCtx.fill();
+    snCtx.beginPath();
+    snCtx.arc(snHead.x + snDir.x*fwd + snDir.y*off, snHead.y + snDir.y*fwd + snDir.x*off, SN_R*0.26, 0, Math.PI*2);
+    snCtx.fill();
+    snCtx.restore();
   }
-  snCtx.restore();
 
-  /* Pinned to the canvas rather than the board: where the two differ there is a
-     letterbox band, and the readout would rather sit in that than on top of the
-     row the snake is about to occupy. */
+  /* Pinned to the canvas rather than the board, so where the two differ the
+     readout sits in the band instead of over the play area. */
   snCtx.textAlign = "center";
   if(snState === "live"){
     snCtx.font = "700 30px system-ui, sans-serif";
@@ -6093,16 +6120,6 @@ function snRender(){
     snCtx.fillText("CRASHED", snW/2, 34);
   }
   snCtx.textAlign = "left";
-}
-function snRound(x, y, w, h, r){
-  snCtx.beginPath();
-  snCtx.moveTo(x + r, y);
-  snCtx.arcTo(x + w, y, x + w, y + h, r);
-  snCtx.arcTo(x + w, y + h, x, y + h, r);
-  snCtx.arcTo(x, y + h, x, y, r);
-  snCtx.arcTo(x, y, x + w, y, r);
-  snCtx.closePath();
-  snCtx.fill();
 }
 
 function syncSnakeUI(){
