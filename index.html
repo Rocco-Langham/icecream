@@ -50,7 +50,7 @@
     background-image:radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px);
     background-size:3px 3px;
   }
-  .app-shell{position:relative;max-width:1100px;margin:0 auto;padding:18px 16px 0;display:flex;align-items:stretch;gap:18px}
+  .app-shell{position:relative;max-width:var(--shell-max,1100px);margin:0 auto;padding:18px 16px 0;display:flex;align-items:stretch;gap:18px}
   .main{flex:1;min-width:0}
 
   /* ---------- sidebar menu bar ---------- */
@@ -648,7 +648,7 @@
   /* Sits outside .app-shell so the sidebar stretches to the game panel and no
      further — inside it, the sidebar ran on down beside this caption. */
   footer{
-    max-width:1100px;margin:24px auto 0;padding:0 16px 60px;
+    max-width:var(--shell-max,1100px);margin:24px auto 0;padding:0 16px 60px;
     text-align:center;font-size:11px;line-height:1.7;
     color:rgba(var(--cream-rgb),.38);
   }
@@ -667,6 +667,14 @@
   .stats b{color:var(--gold);font-size:13px;font-variant-numeric:tabular-nums}
 
   /* ---------- horse racing ---------- */
+  /* The playfields are drawn for a particular shape, so they stop widening once
+     they reach it and centre in whatever is left. Growing to fill the card
+     instead just meant more empty grass and a smaller-looking track on a big
+     screen — the zoom in fitGame() is what makes a game bigger, and because
+     this cap is in the card's own pixels the zoom scales it too. */
+  .track-wrap, #stripCanvas, #plinkoCanvas, #flappyCanvas, .fb-action{
+    max-width:var(--play-max,860px);margin-left:auto;margin-right:auto;
+  }
   .track-wrap{
     position:relative;border-radius:14px;overflow:hidden;
     border:1px solid var(--edge);background:#07130d;
@@ -914,6 +922,22 @@
   @media(min-width:761px){
     html,body{height:100%}
     body{overflow:hidden;display:flex;flex-direction:column}
+
+    /* A 1100px column left a wide screen with empty gutters either side. The
+       shell spreads into them, which gives the zoom below room to grow before
+       anything has to wrap. */
+    :root{--shell-max:1280px}
+
+    /* Every playfield has a designed size, so on a tall window a game floated
+       in the middle of a lot of empty card. Stretching the pieces would change
+       their proportions and bring back the resizing we just removed, so the
+       whole card is scaled by one factor instead — see fitGame(), which sets
+       --gz to whatever makes the game exactly fill the space it has.
+       `zoom` rather than `transform`: it scales layout instead of pixels, so
+       text and canvases stay crisp, and a zoomed child still resolves
+       height:100% against its parent — the card's own size, and therefore the
+       page's, does not change. */
+    .game.on > .table{zoom:var(--gz,1)}
 
     /* width:100% is load-bearing. As a flex item of the body, `margin:0 auto`
        cancels the default cross-axis stretch, so the shell would size to its
@@ -1883,7 +1907,76 @@ function showTab(name){
   Array.prototype.forEach.call(document.querySelectorAll(".game"), function(o){
     o.classList.toggle("on", o.id === "tab-" + name);
   });
+  fitGame();                                         /* each game fills its space by a different amount */
 }
+
+/* ---- fill the space a game is given ---- */
+/* The playfields are deliberately fixed-size, which stopped the page resizing
+   itself mid-play but also meant a game sat in the middle of a lot of empty
+   card on a big screen. So the card is scaled up by a single factor until it
+   fills the height it has been handed — the pieces keep their proportions, and
+   because the scale is only recomputed on a tab or window change, nothing moves
+   while you play. The canvases fold the same factor into their draw transform
+   (see hrResize/pkResize/fbResize) so they zoom rather than reveal more board. */
+var GZ = 1;                                          /* current zoom, 1 on mobile */
+var GZ_MAX = 1.8;                                    /* past this the chips look like dinner plates */
+var GZ_MIN = 0.72;                                    /* and below this the labels stop being readable */
+var GZ_FILL = 0.99;                                  /* a hair of slack so rounding can't summon a scrollbar */
+
+/* Height of the children themselves, which is what we are fitting — the card's
+   own scrollHeight can't tell us, since it reports the box when content is
+   smaller than it and free space is exactly what we are looking for. */
+function gzContentH(card){
+  var top = Infinity, bot = -Infinity, found = false;
+  for(var i = 0; i < card.children.length; i++){
+    var el = card.children[i];
+    if(el.hidden) continue;
+    var r = el.getBoundingClientRect();
+    if(!r.height) continue;
+    if(getComputedStyle(el).position === "absolute") continue;   /* pinned corners are out of flow */
+    top = Math.min(top, r.top); bot = Math.max(bot, r.bottom); found = true;
+  }
+  return found ? bot - top : 0;
+}
+function setGZ(z){
+  GZ = z;
+  document.documentElement.style.setProperty("--gz", z);
+}
+function fitGame(){
+  var sec = document.querySelector(".game.on");
+  if(!sec) return;
+  var card = sec.querySelector(".table");
+  /* The leaderboard is as tall as however many rows came back from the server,
+     so there is no settled size to fit to — it stays at 1. */
+  if(!card || sec.id === "tab-leaderboard" || !window.matchMedia("(min-width:761px)").matches){
+    setGZ(1); return;
+  }
+  setGZ(1);                                          /* measure unzoomed, then scale from that */
+  var cs = getComputedStyle(card);
+  var room = card.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  var content = gzContentH(card);
+  if(room <= 0 || content <= 0) return;
+  /* The same sum run the other way on a short window: rather than hiding the
+     bottom of the table behind a scrollbar, the game shrinks until it fits. */
+  var z = Math.max(GZ_MIN, Math.min(GZ_MAX, room * GZ_FILL / content));
+  setGZ(z);
+  /* Zooming shrinks the card's width in its own coordinates, which can wrap a
+     control row and make the content taller than the estimate. Correcting off
+     the real overflow settles it in a pass or two. */
+  for(var n = 0; n < 3 && z > GZ_MIN; n++){
+    var over = Math.max(card.scrollHeight / card.clientHeight, card.scrollWidth / card.clientWidth);
+    if(over <= 1.002) break;
+    z = Math.max(GZ_MIN, z / over);
+    setGZ(z);
+  }
+}
+/* Re-fit on a window change, once the resize has stopped rather than on every
+   intermediate pixel. */
+var gzTimer = 0;
+window.addEventListener("resize", function(){
+  clearTimeout(gzTimer);
+  gzTimer = setTimeout(fitGame, 120);
+});
 Array.prototype.forEach.call(document.querySelectorAll(".sidebar-link[data-tab]"), function(b){
   b.addEventListener("click", function(){
     playClick();
@@ -3187,6 +3280,7 @@ function applyFont(id){
   root.setProperty("--ui-track", String(font.track));
   currentFont = font.id;
   renderFontGrid();
+  if(typeof fitGame === "function") fitGame();        /* a wider typeface leaves less room to zoom into */
 }
 
 function renderFontGrid(){
@@ -3772,19 +3866,23 @@ var hrGallop = 0;
 function hrResize(){
   if(!hrCanvas) return;
   var dpr = window.devicePixelRatio || 1;
+  /* The rect is what the canvas takes up on screen, which includes the card's
+     zoom; dividing it back out leaves the size the track is drawn at, and
+     folding the zoom into the transform paints it larger at full resolution
+     rather than showing more of the course. */
   var rect = hrCanvas.getBoundingClientRect();
   if(rect.width){
-    hrW = rect.width; hrH = rect.height;
-    hrCanvas.width = Math.round(hrW * dpr);
-    hrCanvas.height = Math.round(hrH * dpr);
-    hrCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    hrW = rect.width / GZ; hrH = rect.height / GZ;
+    hrCanvas.width = Math.round(rect.width * dpr);
+    hrCanvas.height = Math.round(rect.height * dpr);
+    hrCtx.setTransform(dpr*GZ, 0, 0, dpr*GZ, 0, 0);
   }
   var srect = stripCanvas.getBoundingClientRect();
   if(srect.width){
-    sW = srect.width; sH = srect.height;
-    stripCanvas.width = Math.round(sW * dpr);
-    stripCanvas.height = Math.round(sH * dpr);
-    stripCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    sW = srect.width / GZ; sH = srect.height / GZ;
+    stripCanvas.width = Math.round(srect.width * dpr);
+    stripCanvas.height = Math.round(srect.height * dpr);
+    stripCtx.setTransform(dpr*GZ, 0, 0, dpr*GZ, 0, 0);
   }
 }
 
@@ -4490,21 +4588,23 @@ hrCanvas.addEventListener("wheel", function(e){
 /* The canvases now flex to fill the viewport, so height changes on its own
    without the width moving — both dimensions have to be watched or the backing
    store goes stale and the scene renders stretched. */
-function stale(canvas, w, h){
-  var r = canvas.getBoundingClientRect();
-  return Math.abs(r.width - w) > 1 || Math.abs(r.height - h) > 1;
+/* w/h are the sizes the game draws at; k is the card zoom they are shown at, so
+   changing tabs into a differently-zoomed game also counts as stale. */
+function stale(canvas, w, h, k){
+  var r = canvas.getBoundingClientRect(), s = k || 1;
+  return Math.abs(r.width - w*s) > 1 || Math.abs(r.height - h*s) > 1;
 }
 function hrFrame(now){
   var dt = Math.min(0.05, (now - hrLast) / 1000 || 0);
   hrLast = now;
   if($("tab-horse").classList.contains("on")){
-    if(hrW < 5 || stale(hrCanvas, hrW, hrH)) hrResize();
+    if(hrW < 5 || stale(hrCanvas, hrW, hrH, GZ)) hrResize();
     hrStep(dt);
     hrRender();
     hrDrawStrip();
   }
   if($("tab-plinko").classList.contains("on")){
-    if(pkW < 5 || stale(pkCanvas, pkW, pkH)) pkResize();
+    if(pkW < 5 || stale(pkCanvas, pkW, pkH, GZ)) pkResize();
     pkStep(dt);
     pkRender();
   }
@@ -4584,10 +4684,10 @@ function pkResize(){
   var rect = pkCanvas.getBoundingClientRect();
   if(!rect.width) return;
   var dpr = window.devicePixelRatio || 1;
-  pkW = rect.width; pkH = rect.height;
-  pkCanvas.width = Math.round(pkW*dpr);
-  pkCanvas.height = Math.round(pkH*dpr);
-  pkCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  pkW = rect.width / GZ; pkH = rect.height / GZ;      /* board size; the card's zoom rides in the transform */
+  pkCanvas.width = Math.round(rect.width*dpr);
+  pkCanvas.height = Math.round(rect.height*dpr);
+  pkCtx.setTransform(dpr*GZ, 0, 0, dpr*GZ, 0, 0);
 }
 
 /* board geometry, recomputed each frame so it tracks canvas resizes */
@@ -4950,13 +5050,14 @@ function fbResize(){
   var rect = fbCanvas.getBoundingClientRect();
   if(!rect.width) return;
   var dpr = window.devicePixelRatio || 1;
-  fbCssW = rect.width; fbCssH = rect.height;
+  fbCssW = rect.width; fbCssH = rect.height;           // on-screen size, for the staleness check
+  var cw = rect.width / GZ, ch = rect.height / GZ;     // ...with the card's zoom taken back out
   fbCanvas.width  = Math.round(rect.width*dpr);
   fbCanvas.height = Math.round(rect.height*dpr);
-  fbScale = rect.width < FB_MIN_VIEW ? rect.width/FB_MIN_VIEW : 1;
-  fbW = rect.width  / fbScale;                         // logical world size
-  fbH = rect.height / fbScale;
-  fbCtx.setTransform(dpr*fbScale, 0, 0, dpr*fbScale, 0, 0);
+  fbScale = cw < FB_MIN_VIEW ? cw/FB_MIN_VIEW : 1;
+  fbW = cw / fbScale;                                  // logical world size
+  fbH = ch / fbScale;
+  fbCtx.setTransform(dpr*fbScale*GZ, 0, 0, dpr*fbScale*GZ, 0, 0);
 }
 
 function fbFloor(){ return fbH - FB_GROUND; }
@@ -5294,6 +5395,9 @@ renderCodes();
 $("versionTag").textContent = VERSION;
 $("betaVersion").textContent = VERSION;
 betaOverlay.classList.add("on");
+/* After a frame, so the fit is measured against a laid-out page rather than
+   whatever the browser had managed by the end of the script. */
+requestAnimationFrame(fitGame);
 </script>
 </body>
 </html>
