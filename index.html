@@ -1713,7 +1713,7 @@
     <h2>Codes</h2>
     <!-- a noticeboard, not a form: redeeming happens in the Code box in
          Settings, so there is only one place to type a code -->
-    <p class="sub">Type one into the Code box in Settings. Each can be claimed once.</p>
+    <p class="sub">Type one into the Code box in Settings. Most are once only &mdash; the row says which.</p>
     <div class="code-list" id="codesList"></div>
     <p class="modal-note">Settings &rarr; General &rarr; Code.</p>
   </div>
@@ -2663,7 +2663,7 @@ var CHANGELOG = {
   version: VERSION,
   notes: [
     "Daily streak calendar &mdash; open a door a day, 50 chips up to 500 on day five.",
-    "New code BROKE123 &mdash; 15 chips, for when you have run out.",
+    "New code BROKE123 &mdash; 15 chips, any time you run out. Reusable.",
     "Every table now scales to fill your screen &mdash; playfield, chips and all.",
     "The games spread out sideways on a wide screen instead of leaving gutters.",
     "No more scrollbar on the taller tables.",
@@ -2752,10 +2752,11 @@ $("settingsChangelog").addEventListener("click", function(){
 /* ---- redeemable codes ---- */
 var CODES = {
   "RELEASE26!": {chips: 500, label: "Release bonus"},
-  /* The balance condition is enforced by redeem_code(), not here. The flag only
-     decides what the noticeboard says and whether the balance is flushed to the
-     server before claiming — see tryRedeem. */
-  "BROKE123":   {chips: 15,  label: "Emergency top-up", when: "only with 0 chips", onBroke: true}
+  /* The balance condition and the repeat are enforced by redeem_code(), not
+     here. These flags only decide what the noticeboard says and whether the
+     balance is flushed to the server before claiming — see tryRedeem. */
+  "BROKE123":   {chips: 15,  label: "Emergency top-up", when: "whenever you hit 0 chips",
+                 onBroke: true, repeat: true}
 };
 function openCodes(){
   renderCodes();
@@ -2769,14 +2770,16 @@ function closeCodes(){
    done in the Code box in Settings, so there is only one place to type one. */
 function renderCodes(){
   $("codesList").innerHTML = Object.keys(CODES).map(function(c){
-    var reward = CODES[c], claimed = redeemed.indexOf(c) !== -1;
+    /* A repeatable code is never spent, so it never greys out — what limits it
+       is its condition, and that is what the row says instead. */
+    var reward = CODES[c], claimed = !reward.repeat && redeemed.indexOf(c) !== -1;
     return '<div class="code-row' + (claimed ? " claimed" : "") + '">' +
              '<span class="code-name">' + c +
                '<span class="code-what">' + reward.label + " &middot; " + fmt(reward.chips) + " chips" +
                  (reward.when ? " &middot; " + reward.when : "") + '</span>' +
              '</span>' +
              '<span class="code-state' + (claimed ? "" : " open") + '">' +
-               (claimed ? "Claimed" : "Available") +
+               (claimed ? "Claimed" : reward.repeat ? "Repeatable" : "Available") +
              '</span>' +
            '</div>';
   }).join("");
@@ -2832,7 +2835,8 @@ function tryRedeem(code, done){
     playWin("big");
     setTimeout(playCoin, 90);
     renderCodes();
-    done({ok:true, msg:r.label + " — " + fmt(r.chips) + " chips added."});
+    done({ok:true, msg:r.label + " — " + fmt(r.chips) + " chips added." +
+      (r.times > 1 ? " (claim " + fmt(r.times) + ")" : "")});
   });
   return true;
 }
