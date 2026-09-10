@@ -3325,6 +3325,7 @@ function openDevPopup(){
     '      print("&nbsp;&nbsp;<b>rig host</b> &lt;0-100&gt; &mdash; rig rounds for the house");',
     '      print("&nbsp;&nbsp;<b>rig</b> &mdash; show current rig levels");',
     '      print("&nbsp;&nbsp;<b>rig off</b> &mdash; back to fair odds");',
+    '      print("&nbsp;&nbsp;<b>reset codes</b> &mdash; make every code claimable again");',
     '      print("&nbsp;&nbsp;<b>clear</b> &mdash; clear this console");',
     '      print("&nbsp;&nbsp;<b>exit</b> &mdash; close this window");',
     '      print("Chip amounts take k/m/b &mdash; e.g. chips add 1.5m", "out-dim");',
@@ -3336,7 +3337,7 @@ function openDevPopup(){
     '      setTimeout(function(){ window.close(); }, 250);',
     '      return;',
     '    }',
-    '    if(cmd !== "chips" && cmd !== "rig"){',
+    '    if(cmd !== "chips" && cmd !== "rig" && cmd !== "reset" && cmd !== "codes"){',
     '      print("Unknown command: " + esc(cmd) + " (try \\"help\\")", "out-err");',
     '      return;',
     '    }',
@@ -3447,6 +3448,40 @@ window.addEventListener("message", function(e){
     reply("Rig " + who + " set to " + pct + "%" +
           (pct === 0 ? " (normal odds)." : pct === 100 ? " (every round forced)." : "."), "ok");
     reply("Now &mdash; user: " + rigUser + ", host: " + rigHost, "info");
+  }else if(cmd === "reset" || cmd === "codes"){
+    /* Written either way round, because "reset codes" reads like English and
+       "codes reset" matches the verb-second shape of the commands above it. */
+    var sub = (args[0] || "").toLowerCase();
+    if(!(cmd === "reset" && sub === "codes") && !(cmd === "codes" && sub === "reset")){
+      reply("Usage: reset codes", "err"); return;
+    }
+    /* A claim is a row in the database, not a note in this browser, so this
+       cannot be done locally — and that is the whole reason the claim was moved
+       there in the first place. */
+    if(!CLOUD_OK || !sbUser){
+      reply("Sign in first &mdash; claims are recorded against your account, not this browser.", "err");
+      return;
+    }
+    reply("Clearing…", "info");
+    sb.rpc("reset_redemptions").then(function(res){
+      if(res.error){
+        reply(/function|schema cache/i.test(res.error.message)
+          ? "reset_redemptions is not installed. Run supabase/10-reset-codes.sql."
+          : res.error.message, "err");
+        return;
+      }
+      var r = res.data || {};
+      if(!r.ok){
+        reply(r.error === "not_dev"
+          ? "Your account is not on the dev list. Add it in 10-reset-codes.sql."
+          : "Sign in first.", "err");
+        return;
+      }
+      redeemed = [];
+      renderCodes();
+      reply("Cleared " + fmt(r.cleared) + " claim" + (r.cleared === 1 ? "" : "s") +
+            ". Every code is claimable again.", "ok");
+    });
   }
 });
 
