@@ -3472,6 +3472,8 @@ window.addEventListener("message", function(e){
       }
       var r = res.data || {};
       if(!r.ok){
+        /* not_dev only comes back from the gated version in 10. Kept so the
+           console works against either that or the open one in 11. */
         reply(r.error === "not_dev"
           ? "Your account is not on the dev list. Add it in 10-reset-codes.sql."
           : "Sign in first.", "err");
