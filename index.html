@@ -429,9 +429,14 @@
   /* the margin lives on the wrapper, because :first-of-type above would match
      the nested title as the first div of this flex row and collapse it to 2px */
   .section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:20px 0 8px}
-  /* the panel's own heading with its one action alongside; the heading keeps its
-     4px bottom margin so whatever follows sits exactly where it did before */
-  .panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  /* The panel's own heading with its one action alongside; the heading keeps its
+     4px bottom margin so whatever follows sits exactly where it did before.
+     The right padding is for the close button, which floats over this corner —
+     without it the changelog button slid underneath the cross. */
+  .panel-head{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    padding-right:34px;
+  }
   .section-head .section-title{margin:0}
   /* 92px min fits all five across the panel; the label tracking comes in to
      match, because "Biggest hit" at the old spacing wrapped inside the cell */
@@ -678,11 +683,10 @@
   .stats b{color:var(--gold);font-size:13px;font-variant-numeric:tabular-nums}
 
   /* ---------- horse racing ---------- */
-  /* The playfields are drawn for a particular shape, so they stop widening once
-     they reach it and centre in whatever is left. Growing to fill the card
-     instead just meant more empty grass and a smaller-looking track on a big
-     screen — the zoom in fitGame() is what makes a game bigger, and because
-     this cap is in the card's own pixels the zoom scales it too. */
+  /* Each playfield is drawn at a fixed size and painted scaled up, so a wider
+     one is a BIGGER game rather than more empty grass around the same small
+     track. fitGame() picks the width: as wide as the card allows, or narrower
+     if that is what it takes to fit the table on screen. */
   .track-wrap, #stripCanvas, #plinkoCanvas, #flappyCanvas, .fb-action{
     max-width:var(--play-max,860px);margin-left:auto;margin-right:auto;
   }
@@ -940,7 +944,28 @@
     /* A 1100px column left a wide screen with empty gutters either side. The
        shell spreads into them, which gives the zoom below room to grow before
        anything has to wrap. */
-    :root{--shell-max:1280px}
+    :root{--shell-max:1680px}
+
+    /* On a phone a playfield is as wide as the phone and no wider, so its height
+       is fixed and that is that. With room to spread, the height becomes the
+       dial fitGame() turns — --play-h is whatever leaves the table exactly one
+       screen tall — and each playfield takes its share of it.
+
+       Racing and Flappy then run the full width of the card, which is the point:
+       a wider racecourse is more of the course, and a wider sky is further
+       ahead. Plinko is the exception. Its board is a triangle, so width past
+       what its height can fill is just empty sky, and it stays capped and
+       centred. */
+    :root{--play-h:280px}
+    .track-wrap,#stripCanvas,#flappyCanvas,.fb-action{max-width:none}
+    #trackCanvas{height:var(--play-h)}
+    #stripCanvas{height:calc(var(--play-h) * 0.63)}
+    #flappyCanvas{height:calc(var(--play-h) * 1.5)}
+    #plinkoCanvas{height:calc(var(--play-h) * 1.5);max-width:calc(var(--play-h) * 3.07)}
+    /* the wheel is roulette's playfield: without a dial of its own the board
+       and the bet slips left nothing that could give, and a short window put a
+       scrollbar on the one table that can least afford one */
+    .wheel{width:calc(var(--play-h) * 0.535);height:calc(var(--play-h) * 0.535)}
 
     /* Every playfield has a designed size, so on a tall window a game floated
        in the middle of a lot of empty card. Stretching the pieces would change
@@ -1113,7 +1138,7 @@
       <h2 class="title">European Roulette</h2>
       <p class="sub">Single zero &middot; Straight up pays 35:1 &middot; Click the layout to place chips</p>
 
-      <div class="wheelbox">
+      <div class="wheelbox playfield">
         <div class="wheel" id="wheel"><div class="hub" id="wheelNum">&mdash;</div></div>
       </div>
 
@@ -1141,13 +1166,13 @@
       <h2 class="title">Horse Racing</h2>
       <p class="sub">Two laps &middot; drag the track to orbit, scroll to zoom &middot; back a runner to win</p>
 
-      <div class="track-wrap" id="trackWrap">
+      <div class="track-wrap playfield" id="trackWrap">
         <canvas id="trackCanvas"></canvas>
         <div class="race-board" id="raceBoard"></div>
         <div class="track-hint">Drag to orbit &middot; scroll to zoom</div>
       </div>
 
-      <canvas id="stripCanvas"></canvas>
+      <canvas class="playfield" id="stripCanvas"></canvas>
 
       <div class="field-inline">
         <span class="lbl">Runners</span>
@@ -1193,7 +1218,7 @@
       <h2 class="title">Plinko</h2>
       <p class="sub">Drop the ball &middot; the edges pay big but almost never land</p>
 
-      <canvas id="plinkoCanvas"></canvas>
+      <canvas class="playfield" id="plinkoCanvas"></canvas>
 
       <div class="field-inline">
         <span class="lbl">Rows</span>
@@ -1239,7 +1264,7 @@
       <h2 class="title">Flappy</h2>
       <p class="sub">Starts at 0.50x and compounds with every pipe &middot; it speeds up the longer you stay airborne</p>
 
-      <canvas id="flappyCanvas"></canvas>
+      <canvas class="playfield" id="flappyCanvas"></canvas>
 
       <button class="btn fb-action" id="fbGo">Fly</button>
 
@@ -1662,7 +1687,7 @@
 <script>
 "use strict";
 
-var VERSION = "v1.0";
+var VERSION = "v1.5";
 
 /* ============ cloud (Supabase) ============ */
 /* The anon key is meant to ship in the page — row level security decides what
@@ -1952,9 +1977,14 @@ var GZ_FILL = 0.99;                                  /* a hair of slack so round
 
 /* Height of the children themselves, which is what we are fitting — the card's
    own scrollHeight can't tell us, since it reports the box when content is
-   smaller than it and free space is exactly what we are looking for. */
-function gzContentH(card){
-  var top = Infinity, bot = -Infinity, found = false;
+   smaller than it and free space is exactly what we are looking for.
+   The playfields are counted separately because they behave differently under
+   zoom: their width comes from the card, so zooming the card in leaves them
+   exactly the same size on screen while everything around them grows. Solving
+   for the zoom without knowing which is which put the tall tables a pixel or
+   two over and put the scrollbar back. */
+function gzMeasure(card){
+  var top = Infinity, bot = -Infinity, play = 0, found = false;
   for(var i = 0; i < card.children.length; i++){
     var el = card.children[i];
     if(el.hidden) continue;
@@ -1962,12 +1992,21 @@ function gzContentH(card){
     if(!r.height) continue;
     if(getComputedStyle(el).position === "absolute") continue;   /* pinned corners are out of flow */
     top = Math.min(top, r.top); bot = Math.max(bot, r.bottom); found = true;
+    if(el.classList.contains("playfield")) play += r.height;
   }
-  return found ? bot - top : 0;
+  return {h: found ? bot - top : 0, play: play};
 }
 function setGZ(z){
   GZ = z;
   document.documentElement.style.setProperty("--gz", z);
+}
+/* How tall the playfield is allowed to be — the racecourse's own height, which
+   the other tables take their share of. It is the dial fitGame() turns first,
+   because it is the one piece of a table that can give up height without
+   anything becoming unreadable. */
+var PLAY_MIN = 150, PLAY_MAX = 900;
+function setPlay(px){
+  document.documentElement.style.setProperty("--play-h", Math.round(px) + "px");
 }
 function fitGame(){
   var sec = document.querySelector(".game.on");
@@ -1976,26 +2015,52 @@ function fitGame(){
   /* The leaderboard is as tall as however many rows came back from the server,
      so there is no settled size to fit to — it stays at 1. */
   if(!card || sec.id === "tab-leaderboard" || !window.matchMedia("(min-width:761px)").matches){
-    setGZ(1); return;
+    setGZ(1); setPlay(PLAY_MAX); return;
   }
   setGZ(1);                                          /* measure unzoomed, then scale from that */
+  setPlay(PLAY_MAX);                                 /* start as wide as allowed and give width back only if we must */
+  /* A scrollbar appearing mid-measurement narrows the card by its own width and
+     changes the very numbers being measured, so it is held off until the sums
+     are done. */
+  card.style.overflowY = "hidden";
   var cs = getComputedStyle(card);
   var room = card.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-  var content = gzContentH(card);
-  if(room <= 0 || content <= 0) return;
-  /* The same sum run the other way on a short window: rather than hiding the
-     bottom of the table behind a scrollbar, the game shrinks until it fits. */
-  var z = Math.max(GZ_MIN, Math.min(GZ_MAX, room * GZ_FILL / content));
+  if(room <= 0) return;
+
+  /* Too tall to fit, and the playfield is the first thing to give: bisect its
+     height down until the table clears the fold. This is what removes the
+     scrollbar on the deep tables — they used to be stuck at one height with
+     nowhere to give. Tables with no playfield fall straight past it to the
+     zoom below. */
+  var target = room * GZ_FILL;
+  if(card.querySelector(".playfield") && gzMeasure(card).h > target){
+    var lo = PLAY_MIN, hi = PLAY_MAX;
+    for(var i = 0; i < 10; i++){
+      var mid = (lo + hi) / 2;
+      setPlay(mid);
+      if(gzMeasure(card).h <= target) lo = mid; else hi = mid;
+    }
+    setPlay(lo);
+  }
+
+  /* Whatever height is left over goes into the zoom, which scales the table
+     whole — playfield included, since its height is a length of its own rather
+     than something the card's width dictates. */
+  var content = gzMeasure(card).h;
+  if(content <= 0){ card.style.overflowY = ""; return; }
+  var z = Math.max(GZ_MIN, Math.min(GZ_MAX, target / content));
   setGZ(z);
   /* Zooming shrinks the card's width in its own coordinates, which can wrap a
-     control row and make the content taller than the estimate. Correcting off
-     the real overflow settles it in a pass or two. */
-  for(var n = 0; n < 3 && z > GZ_MIN; n++){
-    var over = Math.max(card.scrollHeight / card.clientHeight, card.scrollWidth / card.clientWidth);
+     control row and leave the table taller than the sum allowed for. Correcting
+     off the real overflow settles it in a pass or two. */
+  for(var n = 0; n < 4 && z > GZ_MIN; n++){
+    var over = Math.max(card.scrollHeight / card.clientHeight,
+                        card.scrollWidth  / card.clientWidth);
     if(over <= 1.002) break;
     z = Math.max(GZ_MIN, z / over);
     setGZ(z);
   }
+  card.style.overflowY = "";
 }
 /* Re-fit on a window change, once the resize has stopped rather than on every
    intermediate pixel. */
@@ -2412,12 +2477,12 @@ var CHANGELOG_KEY = "sparxmaths-casino-changelog";
 var CHANGELOG = {
   version: VERSION,
   notes: [
-    "Six tables: Slots, Blackjack, Roulette, Racing, Plinko and Flappy.",
-    "Accounts &mdash; your chips, stats and streak follow you between devices.",
-    "Leaderboard ranking how far up or down you are on each table.",
-    "Daily play streaks, with your best kept in Settings.",
-    "Themes and fonts, and a menu button on phones.",
-    "New players now start with 1,000 chips."
+    "Every table now scales to fill your screen &mdash; playfield, chips and all.",
+    "The games spread out sideways on a wide screen instead of leaving gutters.",
+    "No more scrollbar on the taller tables.",
+    "Sound has moved into its own section in Settings.",
+    "Settings shows who you are signed in as, with sign out beside it.",
+    "The changelog now sits beside the General heading."
   ]
 };
 function renderChangelog(){
@@ -3902,7 +3967,10 @@ var RX = 150, RZ = 95, LANE = 6.5;
 var hrCanvas = $("trackCanvas"), hrCtx = hrCanvas.getContext("2d");
 var stripCanvas = $("stripCanvas"), stripCtx = stripCanvas.getContext("2d");
 var sW = 700, sH = 120;
-var hrW = 700, hrH = 340, hrFocal = 560;
+var hrW = 700, hrH = 340, hrFocal = 740;   /* the course only ever used the middle of its frame; a longer lens fills it */
+/* The width the course is drawn for. Anything wider is magnification, not a
+   bigger world — see hrResize. */
+var HR_VIEW_W = 860, HR_VIEW_H = 280, HR_STRIP_H = 176, hrZoom = 1, hrCssW = 0, hrCssH = 0;
 var hrCam = {yaw:0.85, pitch:0.58, dist:440, tx:0, ty:0, tz:0};
 var hrCount = 6, hrPick = 1, hrStake = 25, hrLaps = 2, hrQuick = false;
 var horses = [], hrRacing = false, hrLast = 0, hrTime = 0, hrWinner = -1, hrSettled = true;
@@ -3911,23 +3979,26 @@ var hrGallop = 0;
 function hrResize(){
   if(!hrCanvas) return;
   var dpr = window.devicePixelRatio || 1;
-  /* The rect is what the canvas takes up on screen, which includes the card's
-     zoom; dividing it back out leaves the size the track is drawn at, and
-     folding the zoom into the transform paints it larger at full resolution
-     rather than showing more of the course. */
+  /* Height is what magnifies the course, not width: a taller frame means a
+     bigger track drawn at full resolution, while a wider one is simply more of
+     the course either side of it. Below the design height nothing changes,
+     which is what keeps phones as they were. */
   var rect = hrCanvas.getBoundingClientRect();
   if(rect.width){
-    hrW = rect.width / GZ; hrH = rect.height / GZ;
+    hrZoom = Math.max(1, rect.height / HR_VIEW_H);
+    hrW = rect.width / hrZoom; hrH = rect.height / hrZoom;
+    hrCssW = rect.width; hrCssH = rect.height;
     hrCanvas.width = Math.round(rect.width * dpr);
     hrCanvas.height = Math.round(rect.height * dpr);
-    hrCtx.setTransform(dpr*GZ, 0, 0, dpr*GZ, 0, 0);
+    hrCtx.setTransform(dpr*hrZoom, 0, 0, dpr*hrZoom, 0, 0);
   }
   var srect = stripCanvas.getBoundingClientRect();
   if(srect.width){
-    sW = srect.width / GZ; sH = srect.height / GZ;
+    var sz = Math.max(1, srect.height / HR_STRIP_H);
+    sW = srect.width / sz; sH = srect.height / sz;
     stripCanvas.width = Math.round(srect.width * dpr);
     stripCanvas.height = Math.round(srect.height * dpr);
-    stripCtx.setTransform(dpr*GZ, 0, 0, dpr*GZ, 0, 0);
+    stripCtx.setTransform(dpr*sz, 0, 0, dpr*sz, 0, 0);
   }
 }
 
@@ -3958,7 +4029,11 @@ function hrView(p){
   };
 }
 function hrScreen(v){
-  var k = hrFocal / v.vz;
+  /* The lens follows the frame, so a shallower one sees the same course from the
+     same place rather than cropping the top off the bend. Width counts too, but
+     with a floor: a phone is far narrower than the frame this is drawn for, and
+     backing all the way off would leave the course a postage stamp. */
+  var k = (hrFocal * Math.min(hrH / HR_VIEW_H, Math.max(0.75, hrW / HR_VIEW_W))) / v.vz;
   return {x: hrW/2 + v.vx*k, y: hrH/2 - v.vy*k, k: k};
 }
 function hrPoint(p){
@@ -4633,23 +4708,24 @@ hrCanvas.addEventListener("wheel", function(e){
 /* The canvases now flex to fill the viewport, so height changes on its own
    without the width moving — both dimensions have to be watched or the backing
    store goes stale and the scene renders stretched. */
-/* w/h are the sizes the game draws at; k is the card zoom they are shown at, so
-   changing tabs into a differently-zoomed game also counts as stale. */
-function stale(canvas, w, h, k){
-  var r = canvas.getBoundingClientRect(), s = k || 1;
-  return Math.abs(r.width - w*s) > 1 || Math.abs(r.height - h*s) > 1;
+/* w/h are the last size the canvas took up on screen, which is not the size it
+   draws at any more — the two differ by whatever magnification fitGame's width
+   left it at. */
+function stale(canvas, w, h){
+  var r = canvas.getBoundingClientRect();
+  return Math.abs(r.width - w) > 1 || Math.abs(r.height - h) > 1;
 }
 function hrFrame(now){
   var dt = Math.min(0.05, (now - hrLast) / 1000 || 0);
   hrLast = now;
   if($("tab-horse").classList.contains("on")){
-    if(hrW < 5 || stale(hrCanvas, hrW, hrH, GZ)) hrResize();
+    if(hrCssW < 5 || stale(hrCanvas, hrCssW, hrCssH)) hrResize();
     hrStep(dt);
     hrRender();
     hrDrawStrip();
   }
   if($("tab-plinko").classList.contains("on")){
-    if(pkW < 5 || stale(pkCanvas, pkW, pkH, GZ)) pkResize();
+    if(pkCssW < 5 || stale(pkCanvas, pkCssW, pkCssH)) pkResize();
     pkStep(dt);
     pkRender();
   }
@@ -4668,6 +4744,7 @@ requestAnimationFrame(hrFrame);
 /* ================= PLINKO ================= */
 var pkCanvas = $("plinkoCanvas"), pkCtx = pkCanvas.getContext("2d");
 var pkW = 700, pkH = 420;
+var PK_VIEW = 860, pkCssW = 0, pkCssH = 0;           /* the width the board is drawn for */
 var pkRows = 12, pkRisk = "medium", pkStake = 25;
 var pkMults = [], pkBalls = [], pkFlash = {}, pkHits = {}, pkClock = 0;
 var pkBallCount = 1;
@@ -4729,10 +4806,14 @@ function pkResize(){
   var rect = pkCanvas.getBoundingClientRect();
   if(!rect.width) return;
   var dpr = window.devicePixelRatio || 1;
-  pkW = rect.width / GZ; pkH = rect.height / GZ;      /* board size; the card's zoom rides in the transform */
+  /* Same deal as the racecourse: past PK_VIEW the board is magnified rather
+     than surrounded by more empty sky. */
+  var z = Math.max(1, rect.width / PK_VIEW);
+  pkW = rect.width / z; pkH = rect.height / z;
+  pkCssW = rect.width; pkCssH = rect.height;
   pkCanvas.width = Math.round(rect.width*dpr);
   pkCanvas.height = Math.round(rect.height*dpr);
-  pkCtx.setTransform(dpr*GZ, 0, 0, dpr*GZ, 0, 0);
+  pkCtx.setTransform(dpr*z, 0, 0, dpr*z, 0, 0);
 }
 
 /* board geometry, recomputed each frame so it tracks canvas resizes */
@@ -5087,6 +5168,7 @@ var FB_MULT0 = 0.5;                                    // bail out too early and
    its own coordinates and we scale the drawing down to fit, so a narrow screen
    shows the same distance ahead instead of less. */
 var FB_MIN_VIEW = 560;
+var FB_VIEW_H = 420;                                   // a taller sky than this magnifies instead
 var FB_PLAY_H = 420;                                   // playable band height, matching desktop
 var fbScale = 1, fbCssW = 0, fbCssH = 0;
 
@@ -5096,13 +5178,19 @@ function fbResize(){
   if(!rect.width) return;
   var dpr = window.devicePixelRatio || 1;
   fbCssW = rect.width; fbCssH = rect.height;           // on-screen size, for the staleness check
-  var cw = rect.width / GZ, ch = rect.height / GZ;     // ...with the card's zoom taken back out
+  /* Two scales, stacked. The first keeps the climb the same game whatever shape
+     the sky is: the world stays FB_VIEW_H tall and is drawn to fit, so a short
+     window is a smaller picture of the same flight rather than a narrower gap
+     to thread. The second is the phone rule — below FB_MIN_VIEW across, zoom out
+     so there is still a useful distance of warning. */
+  var mag = Math.max(0.7, rect.height / FB_VIEW_H);
+  var cw = rect.width / mag, ch = rect.height / mag;
   fbCanvas.width  = Math.round(rect.width*dpr);
   fbCanvas.height = Math.round(rect.height*dpr);
   fbScale = cw < FB_MIN_VIEW ? cw/FB_MIN_VIEW : 1;
   fbW = cw / fbScale;                                  // logical world size
   fbH = ch / fbScale;
-  fbCtx.setTransform(dpr*fbScale*GZ, 0, 0, dpr*fbScale*GZ, 0, 0);
+  fbCtx.setTransform(dpr*fbScale*mag, 0, 0, dpr*fbScale*mag, 0, 0);
 }
 
 function fbFloor(){ return fbH - FB_GROUND; }
