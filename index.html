@@ -368,6 +368,14 @@
   /* the rail is a flex column, so an auto top margin drops this to the bottom
      edge and separates the account from the settings proper */
   .subtab-foot{margin-top:auto}
+  .subtab-acct{
+    padding:6px 18px 0;display:flex;flex-direction:column;align-items:flex-start;gap:7px;
+  }
+  .subtab-acct .who{
+    max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    font-size:10px;letter-spacing:calc(1px * var(--ui-track));color:rgba(var(--cream-rgb),.42);
+  }
+  .subtab-acct .btn{padding:6px 12px;font-size:10px}
   .subtab:hover{color:var(--cream);background:rgba(var(--panel-tint-rgb),.18)}
   .subtab.on{color:var(--gold);border-left-color:var(--gold);background:rgba(var(--gold-rgb),.1)}
   .modal-content{flex:1;min-width:0;padding:28px;overflow-y:auto}
@@ -827,6 +835,9 @@
     /* the rail is a row here, where an auto top margin would shove it out of
        line with its siblings rather than to the end */
     .subtab-foot{margin-top:0}
+    /* and the account line runs along beside the tabs instead of under them */
+    .subtab-acct{flex-direction:row;align-items:center;gap:8px;padding:0 4px 0 8px;flex:0 0 auto}
+    .subtab-acct .who{max-width:110px}
     .subtab.on{border-left-color:transparent;border-bottom-color:var(--gold)}
     .theme-grid{grid-template-columns:1fr}
     /* fonts stay three across as designed, just tighter — the note is illegible
@@ -1301,6 +1312,12 @@
       <button class="subtab" data-subtab="sound">Sound</button>
       <button class="subtab" data-subtab="appearance">Appearance</button>
       <button class="subtab subtab-foot" data-subtab="account">Account</button>
+      <!-- who you are and the one action that goes with it, so signing in or
+           out doesn't mean opening the tab first -->
+      <div class="subtab-acct" id="railAcct" hidden>
+        <span class="who" id="railWho">Playing as guest</span>
+        <button class="btn ghost sm" id="railAuth">Log in</button>
+      </div>
     </div>
 
     <div class="modal-content">
@@ -2617,10 +2634,19 @@ function acctSay(text, kind){
   n.textContent = text || "";
   n.style.color = kind === "bad" ? "var(--bad)" : kind === "good" ? "var(--good)" : "";
 }
+/* Whatever the profile row says you are called, remembered so the rail can show
+   it without going back to the server every time the panel re-renders. */
+var sbName = "";
 function renderAccount(){
   $("acctOffline").hidden = CLOUD_OK;
   $("acctOut").hidden     = !CLOUD_OK || !!sbUser;
   $("acctIn").hidden      = !CLOUD_OK || !sbUser;
+  /* the same state, mirrored under the Account tab in the rail. Off the file://
+     build entirely, where there is no account to be signed in to. */
+  $("railAcct").hidden = !CLOUD_OK;
+  if(!CLOUD_OK) return;
+  $("railWho").textContent  = sbUser ? (sbName || sbUser.email) : "Playing as guest";
+  $("railAuth").textContent = sbUser ? "Sign out" : "Log in";
 }
 function applyCloudRow(row){
   stats.hands = row.hands; stats.won = row.won; stats.big = row.big; stats.peak = row.peak;
@@ -2707,7 +2733,9 @@ function cloudSync(){
     }
   });
   sb.from("profiles").select("username").eq("id", sbUser.id).maybeSingle().then(function(res){
-    $("acctName").textContent = (res.data && res.data.username) || sbUser.email;
+    sbName = (res.data && res.data.username) || sbUser.email;
+    $("acctName").textContent = sbName;
+    renderAccount();                                 /* the rail shows the name too */
   });
   loadRedemptions();
 }
@@ -2895,8 +2923,15 @@ if(CLOUD_OK){
     playClick();
     sb.auth.signOut().then(function(){
       try{ localStorage.removeItem(AUTH_AT_KEY); }catch(e){}
+      sbName = "";
       acctSay("Signed out. Your chips stay on this device.", "good");
     });
+  });
+
+  /* One button under the Account tab, doing whichever of those two you need. */
+  $("railAuth").addEventListener("click", function(){
+    if(sbUser) $("acctSignOut").click();
+    else{ playClick(); gateShow("gateChoice"); }
   });
 }
 renderAccount();
