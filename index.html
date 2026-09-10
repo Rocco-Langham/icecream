@@ -2541,6 +2541,7 @@ var CHANGELOG = {
   version: VERSION,
   notes: [
     "Daily streak rewards &mdash; 50 chips on day one, up to 500 on day five.",
+    "New code BROKE123 &mdash; 15 chips, for when you have run out.",
     "Every table now scales to fill your screen &mdash; playfield, chips and all.",
     "The games spread out sideways on a wide screen instead of leaving gutters.",
     "No more scrollbar on the taller tables.",
@@ -2621,7 +2622,11 @@ $("settingsChangelog").addEventListener("click", function(){
 
 /* ---- redeemable codes ---- */
 var CODES = {
-  "RELEASE26!": {chips: 500, label: "Release bonus"}
+  "RELEASE26!": {chips: 500, label: "Release bonus"},
+  /* The balance condition is enforced by redeem_code(), not here. The flag only
+     decides what the noticeboard says and whether the balance is flushed to the
+     server before claiming — see tryRedeem. */
+  "BROKE123":   {chips: 15,  label: "Emergency top-up", when: "only with 0 chips", onBroke: true}
 };
 function openCodes(){
   renderCodes();
@@ -2638,7 +2643,8 @@ function renderCodes(){
     var reward = CODES[c], claimed = redeemed.indexOf(c) !== -1;
     return '<div class="code-row' + (claimed ? " claimed" : "") + '">' +
              '<span class="code-name">' + c +
-               '<span class="code-what">' + reward.label + " &middot; " + fmt(reward.chips) + ' chips</span>' +
+               '<span class="code-what">' + reward.label + " &middot; " + fmt(reward.chips) + " chips" +
+                 (reward.when ? " &middot; " + reward.when : "") + '</span>' +
              '</span>' +
              '<span class="code-state' + (claimed ? "" : " open") + '">' +
                (claimed ? "Claimed" : "Available") +
@@ -2665,7 +2671,14 @@ function tryRedeem(code, done){
   }
 
   done({pending:true, msg:"Claiming…"});
-  sb.rpc("redeem_code", {p_code: code}).then(function(res){
+  /* A code whose condition is your balance needs the server to be looking at
+     the current one. save() only syncs every couple of seconds, so going broke
+     and typing this straight away would otherwise be judged against the balance
+     from before the last bet. */
+  var ready = CODES[code].onBroke ? Promise.resolve(cloudPush()) : Promise.resolve();
+  ready.catch(function(){}).then(function(){
+    return sb.rpc("redeem_code", {p_code: code});
+  }).then(function(res){
     /* the function is a separate migration, so say something useful rather than
        surfacing "function not found" from Postgres */
     if(res.error){
@@ -2679,6 +2692,7 @@ function tryRedeem(code, done){
       done({ok:false, msg:
         r.error === "already"       ? "You have already claimed that code." :
         r.error === "not_signed_in" ? "Sign in to claim codes." :
+        r.error === "not_eligible"  ? "That one is for when you are out of chips — spend what you have first." :
                                       "That code is not valid."});
       return;
     }
@@ -2803,7 +2817,7 @@ function applyCloudRow(row){
 function cloudPush(){
   if(!sbUser) return;
   $("acctSync").textContent = "Saving…";
-  sb.from("scores").upsert({
+  return sb.from("scores").upsert({                  /* returned so a caller can wait for the balance to land */
     user_id: sbUser.id, bank: bank, hands: stats.hands, won: stats.won,
     big: stats.big, peak: stats.peak, net: gameNet,
     streak_count: streak.count, streak_best: streak.best, streak_last: streak.last,
