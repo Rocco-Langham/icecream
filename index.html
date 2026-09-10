@@ -6038,8 +6038,27 @@ function snRender(){
   /* barely any gap between segments: at this cell size a wider one reads as a
      string of beads rather than one animal */
   var pad = Math.max(0.5, g.cell*0.05), r = Math.max(2, g.cell*0.24);
+  /* How far through the current step we are. The logic still moves a whole cell
+     at a time — that is what makes it Snake — but the drawing slides between
+     cells, so the animal glides at the screen's refresh rate instead of
+     teleporting six and a half times a second. Frozen on death so the crash
+     stops exactly where it happened. */
+  var slide = snState === "live" ? Math.min(1, Math.max(0, snAcc / snPace())) : 0;
+  var at = function(i){
+    var a = snBody[i];
+    /* the head slides into the cell ahead; everything else slides into the
+       cell the segment in front of it is leaving */
+    var b = i === 0 ? {x:a.x + snDir.x, y:a.y + snDir.y} : snBody[i-1];
+    return {x: a.x + (b.x - a.x)*slide, y: a.y + (b.y - a.y)*slide};
+  };
+  /* Clipped to the board: at the very end of a step the head is most of the way
+     into the cell it is about to be killed by, which may be off the edge. */
+  snCtx.save();
+  snCtx.beginPath();
+  snCtx.rect(g.x, g.y, g.w, g.h);
+  snCtx.clip();
   for(var i = snBody.length - 1; i >= 0; i--){
-    var s = snBody[i];
+    var s = at(i);
     /* head brightest, fading down the body, so which end is which is readable
        at a glance even when it is folded on top of itself */
     var t = snBody.length > 1 ? i/(snBody.length - 1) : 0;
@@ -6049,12 +6068,13 @@ function snRender(){
     snRound(g.x + s.x*g.cell + pad, g.y + s.y*g.cell + pad, g.cell - pad*2, g.cell - pad*2, r);
   }
   if(snBody.length){
-    var h = snBody[0], hx = g.x + h.x*g.cell + g.cell/2, hy = g.y + h.y*g.cell + g.cell/2;
+    var h = at(0), hx = g.x + h.x*g.cell + g.cell/2, hy = g.y + h.y*g.cell + g.cell/2;
     snCtx.fillStyle = "#04120a";
     var ex = snDir.x*g.cell*0.16, ey = snDir.y*g.cell*0.16, off = g.cell*0.16;
     snCtx.beginPath(); snCtx.arc(hx + ex - snDir.y*off, hy + ey - snDir.x*off, Math.max(1, g.cell*0.09), 0, Math.PI*2); snCtx.fill();
     snCtx.beginPath(); snCtx.arc(hx + ex + snDir.y*off, hy + ey + snDir.x*off, Math.max(1, g.cell*0.09), 0, Math.PI*2); snCtx.fill();
   }
+  snCtx.restore();
 
   /* Pinned to the canvas rather than the board: where the two differ there is a
      letterbox band, and the readout would rather sit in that than on top of the
