@@ -660,6 +660,27 @@
   }
   .slips span{padding:3px 9px;border-radius:999px;background:rgba(var(--panel-tint-rgb),.4);border:1px solid var(--edge)}
 
+  /* ---------- toast ---------- */
+  /* Bottom centre and click-through: it appears while you are mid-bet, so it
+     must never land on top of the thing you are about to press. */
+  .toast{
+    position:fixed;left:50%;bottom:20px;z-index:60;pointer-events:none;
+    display:flex;align-items:center;gap:11px;
+    padding:12px 20px;border-radius:999px;
+    border:1px solid rgba(var(--gold-rgb),.45);
+    background:linear-gradient(180deg,var(--modal-a),var(--modal-b));
+    box-shadow:0 14px 36px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08);
+    opacity:0;transform:translate(-50%,140%);
+    transition:transform .4s cubic-bezier(.2,.9,.3,1.25), opacity .3s ease;
+  }
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+  .toast .ic{font-size:19px;line-height:1}
+  .toast b{
+    display:block;font-size:12px;font-weight:700;color:var(--gold);
+    letter-spacing:calc(1.5px * var(--ui-track));text-transform:var(--ui-case);
+  }
+  .toast span{display:block;font-size:11px;color:rgba(var(--cream-rgb),.6);margin-top:2px}
+
   /* ---------- footer ---------- */
   /* Sits outside .app-shell so the sidebar stretches to the game panel and no
      further — inside it, the sidebar ran on down beside this caption. */
@@ -929,6 +950,7 @@
   :root[data-theme="light"] .stats{color:rgba(24,24,24,.6)}
   :root[data-theme="light"] .custom-bet::placeholder{color:rgba(24,24,24,.45)}
   :root[data-theme="light"] .modal-note{color:rgba(24,24,24,.62)}
+  :root[data-theme="light"] .toast span{color:rgba(24,24,24,.62)}
   :root[data-theme="light"] .subtab{color:rgba(24,24,24,.62)}
   :root[data-theme="light"] .segmented button{color:rgba(24,24,24,.62)}
 
@@ -1330,6 +1352,13 @@
   <b>No real money.</b> Chips are imaginary and saved only in your own browser.<br>
   Built as a single file &mdash; nothing is uploaded anywhere.
 </footer>
+
+<!-- Slides up, says its piece, and goes. Nothing to dismiss, because it arrives
+     while you are placing a bet. -->
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <span class="ic">&#128293;</span>
+  <div><b id="toastTitle"></b><span id="toastSub"></span></div>
+</div>
 
 <div class="modal-overlay" id="settingsOverlay">
   <div class="modal">
@@ -1866,13 +1895,31 @@ function liveStreak(){
   var gap = dayNum() - streak.last;
   return gap <= 1 ? streak.count : 0;
 }
+/* What each day of a streak pays. Day five is the prize; past it the ladder
+   holds there rather than starting over, so a long streak is never worth less
+   than the day before it. */
+var STREAK_REWARDS = [50, 100, 150, 200, 500];
+function streakReward(n){
+  return n < 1 ? 0 : STREAK_REWARDS[Math.min(n, STREAK_REWARDS.length) - 1];
+}
 function renderStreak(){
   var n = liveStreak();
   $("streak").hidden = n === 0;
   $("streakNum").textContent = n;
+  /* What tomorrow is worth, so the ladder is visible without having to climb it
+     blind. */
   $("streak").title = n === 0
-    ? "Play today to start a streak"
-    : n + (n === 1 ? " day streak" : " day streak") + " — best " + streak.best;
+    ? "Play today for 50 chips and start a streak"
+    : n + " day streak — best " + streak.best +
+      " · play tomorrow for " + fmt(streakReward(n + 1)) + " chips";
+}
+var toastTimer = 0;
+function toast(title, sub){
+  $("toastTitle").textContent = title;
+  $("toastSub").textContent = sub || "";
+  $("toast").classList.add("on");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ $("toast").classList.remove("on"); }, 4200);
 }
 function touchStreak(){
   var today = dayNum();
@@ -1881,6 +1928,22 @@ function touchStreak(){
   streak.last = today;
   if(streak.count > streak.best) streak.best = streak.count;
   renderStreak();
+
+  /* The day's chips, credited straight to the balance rather than through
+     payout(): a daily bonus is not something you won at a table, and running it
+     through there would inflate the win stats and the game's leaderboard line.
+     Banked synchronously — and saved with it — so closing the tab a second
+     later cannot lose chips the streak has already been marked as paying.
+     The announcement waits a beat instead, because this fires from inside
+     wager() and would otherwise land in the same frame as the stake coming
+     off, leaving the balance to flash once for two different things. */
+  var reward = streakReward(streak.count);
+  if(!reward) return;
+  setBank(bank + reward, 0);
+  setTimeout(function(){
+    playCoin();
+    toast("Day " + streak.count + " streak", "+" + fmt(reward) + " chips");
+  }, 420);
 }
 function payout(amount, game){                      // amount = chips returned to the player
   if(amount > stats.big) stats.big = amount;
@@ -2477,6 +2540,7 @@ var CHANGELOG_KEY = "sparxmaths-casino-changelog";
 var CHANGELOG = {
   version: VERSION,
   notes: [
+    "Daily streak rewards &mdash; 50 chips on day one, up to 500 on day five.",
     "Every table now scales to fill your screen &mdash; playfield, chips and all.",
     "The games spread out sideways on a wide screen instead of leaving gutters.",
     "No more scrollbar on the taller tables.",
