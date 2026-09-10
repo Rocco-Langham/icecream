@@ -429,6 +429,9 @@
   /* the margin lives on the wrapper, because :first-of-type above would match
      the nested title as the first div of this flex row and collapse it to 2px */
   .section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:20px 0 8px}
+  /* the panel's own heading with its one action alongside; the heading keeps its
+     4px bottom margin so whatever follows sits exactly where it did before */
+  .panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
   .section-head .section-title{margin:0}
   /* 92px min fits all five across the panel; the label tracking comes in to
      match, because "Biggest hit" at the old spacing wrapped inside the cell */
@@ -1322,7 +1325,13 @@
 
     <div class="modal-content">
       <div class="subpanel on" id="sub-general">
-        <h2>General</h2>
+        <!-- the changelog sits up here beside the heading: it is a link out of
+             settings rather than one of the settings, so it does not belong in
+             the run of controls below -->
+        <div class="panel-head">
+          <h2>General</h2>
+          <button class="btn ghost sm" id="settingsChangelog">Changelog &mdash; <span id="settingsChangelogVer"></span></button>
+        </div>
 
         <div class="section-head">
           <div class="section-title">Stats</div>
@@ -1346,10 +1355,6 @@
           <button class="btn ghost sm" id="devSubmit">Submit</button>
         </div>
         <p class="modal-note" id="devNote"></p>
-
-        <div class="modal-actions">
-          <button class="btn ghost sm" id="settingsChangelog">Changelog &mdash; <span id="settingsChangelogVer"></span></button>
-        </div>
       </div>
 
       <div class="subpanel" id="sub-sound">
