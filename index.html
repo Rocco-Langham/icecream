@@ -1298,6 +1298,7 @@
 
     <div class="modal-sidebar">
       <button class="subtab on" data-subtab="general">General</button>
+      <button class="subtab" data-subtab="sound">Sound</button>
       <button class="subtab" data-subtab="appearance">Appearance</button>
       <button class="subtab subtab-foot" data-subtab="account">Account</button>
     </div>
@@ -1305,20 +1306,6 @@
     <div class="modal-content">
       <div class="subpanel on" id="sub-general">
         <h2>General</h2>
-
-        <div class="section-title">Sound</div>
-        <div class="toggle-row">
-          <span class="toggle-label">Sound effects</span>
-          <label class="switch">
-            <input type="checkbox" id="soundToggle" checked>
-            <span class="slider-track"></span>
-          </label>
-        </div>
-        <div class="field">
-          <label for="volumeSlider">Volume</label>
-          <input type="range" id="volumeSlider" min="0" max="100" step="5" value="45">
-        </div>
-        <p class="modal-note">Chip clicks, dealing, spins, and win/lose cues.</p>
 
         <div class="section-head">
           <div class="section-title">Stats</div>
@@ -1346,6 +1333,24 @@
         <div class="modal-actions">
           <button class="btn ghost sm" id="settingsChangelog">Changelog &mdash; <span id="settingsChangelogVer"></span></button>
         </div>
+      </div>
+
+      <div class="subpanel" id="sub-sound">
+        <h2>Sound</h2>
+        <p class="sub">Chip clicks, dealing, spins, and win/lose cues.</p>
+
+        <div class="toggle-row">
+          <span class="toggle-label">Sound effects</span>
+          <label class="switch">
+            <input type="checkbox" id="soundToggle" checked>
+            <span class="slider-track"></span>
+          </label>
+        </div>
+        <div class="field">
+          <label for="volumeSlider">Volume</label>
+          <input type="range" id="volumeSlider" min="0" max="100" step="5" value="45">
+        </div>
+        <p class="modal-note">The mute button at the bottom of the menu bar does the same as the switch.</p>
       </div>
 
       <div class="subpanel" id="sub-appearance">
