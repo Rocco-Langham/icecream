@@ -6891,6 +6891,70 @@ function pokChips(c,x,y,n,col){
    the table, so the count is capped and the number beside it stays exact. */
 function pokStackH(n){ return Math.max(0, Math.min(9, Math.round(n/60))); }
 
+/* ---- dealing ----
+   Cards are thrown from the dealer's hands to where they will sit. A slot is
+   only painted at rest once its card has landed, so nothing is ever drawn in
+   two places at once, and the pile arrives in the order it was dealt. */
+var pokFly = [], pokBoardShown = 0;
+/* The player's own cards used to sit 18px off the bottom of the scene, which
+   hung them over the edge and cut them in half on a short screen. Everything on
+   the felt is now placed as a fraction of the scene height, so the layout
+   breathes with the box instead of running off it. */
+function pokHeroY(){ return POK_H*0.915; }
+function pokHeroS(){ return 1.26*Math.min(1, POK_H/520); }
+function pokBoardY(){ return TBL.cy - POK_H*0.085; }
+function pokPotY(){   return TBL.cy - POK_H*0.20; }
+
+function pokDealPos(kind, seat, idx){
+  if(kind === "board") return {x:TBL.cx+(idx-2)*50, y:pokBoardY(), rot:0, s:0.96};
+  if(seat === 0) return {x:TBL.cx+(idx?32:-32), y:pokHeroY(), rot:idx?0.12:-0.12, s:pokHeroS()};
+  var deg = POK_SEAT_DEG[seat-1], cf = onFelt(deg,0.76);
+  return {x:cf.x+(idx?10:-10), y:cf.y, rot:(deg-270)*Math.PI/180*0.30, s:0.64};
+}
+function pokQueueDeal(T){
+  pokFly = []; pokBoardShown = 0;
+  var now = Date.now(), k = 0;
+  /* one card each, round the table twice, starting left of the button */
+  for(var round=0; round<2; round++){
+    for(var i=0; i<T.players.length; i++){
+      var seat = (T.dealer + 1 + i) % T.players.length;
+      if(!T.players[seat].inHand) continue;
+      pokFly.push({kind:"hole", seat:seat, idx:round, start:now + k*80, dur:260});
+      k++;
+    }
+  }
+}
+/* Answered from the clock, not from whether a frame happened to run. Pruning
+   only occurs while painting, and requestAnimationFrame stops when the tab is
+   hidden -- tying "has it landed?" to that meant switching away mid-deal could
+   bring you back to a table with no cards on it. */
+function pokLanded(kind, seat, idx){
+  var now = Date.now();
+  for(var i=0; i<pokFly.length; i++){
+    var f = pokFly[i];
+    if(f.kind === kind && f.idx === idx && (kind === "board" || f.seat === seat))
+      return now >= f.start + f.dur;
+  }
+  return true;
+}
+function pokDrawFlights(c){
+  var now = Date.now(), dp = seatPos(POK_DEALER_DEG);
+  for(var i=pokFly.length-1; i>=0; i--){
+    var f = pokFly[i], p = (now - f.start) / f.dur;
+    if(p >= 1){ pokFly.splice(i,1); continue; }      /* landed: the slot paints it now */
+    if(p <= 0) continue;                              /* still in the dealer's hands */
+    var to = pokDealPos(f.kind, f.seat, f.idx);
+    var e = 1 - Math.pow(1 - p, 3);                   /* ease out, like a card losing speed */
+    c.save();
+    c.globalAlpha = Math.min(1, p*4);
+    pokCard(c,
+      dp.x + (to.x - dp.x)*e,
+      dp.y - 6 + (to.y - (dp.y-6))*e - Math.sin(p*Math.PI)*20,   /* a little lift */
+      to.rot*e, 0.5 + (to.s-0.5)*e, null, true);
+    c.restore();
+  }
+}
+
 function pokScene(t){
   var c = pokCtx, T = pok.T;
   c.clearRect(0,0,POK_W,POK_H);
@@ -6943,8 +7007,8 @@ function pokScene(t){
     var cf = onFelt(deg,0.76), rot = (deg-270)*Math.PI/180*0.30;
     if(p.hole.length && p.inHand){
       var show = pok.revealed && T.stage === "done";
-      pokCard(c,cf.x-10,cf.y,rot,0.64,show?p.hole[0]:null,!show);
-      pokCard(c,cf.x+10,cf.y,rot,0.64,show?p.hole[1]:null,!show);
+      if(pokLanded("hole",seat,0)) pokCard(c,cf.x-10,cf.y,rot,0.64,show?p.hole[0]:null,!show);
+      if(pokLanded("hole",seat,1)) pokCard(c,cf.x+10,cf.y,rot,0.64,show?p.hole[1]:null,!show);
     }
     pokChips(c,cf.x+42,cf.y+5,pokStackH(p.stack),POK_CHIPCOL[i]);
     if(p.bet > 0){                                    /* chips pushed out in front */
@@ -6981,25 +7045,36 @@ function pokScene(t){
     c.restore();
   });
 
+  if(T.board.length > pokBoardShown){
+    for(var bi=pokBoardShown; bi<T.board.length; bi++)
+      pokFly.push({kind:"board", idx:bi, start:Date.now()+(bi-pokBoardShown)*110, dur:250});
+    pokBoardShown = T.board.length;
+  }
+
   var pot = T.stage === "done" ? T.lastPot : pokPot(T);
   if(pot > 0){
-    pokChips(c,TBL.cx-46,TBL.cy-64,Math.max(1,pokStackH(pot)),"#c9a227");
+    pokChips(c,TBL.cx-46,pokPotY(),Math.max(1,pokStackH(pot)),"#c9a227");
     c.fillStyle="rgba(244,234,215,.92)"; c.textAlign="left";
-    c.font="700 "+pokFont(14)+"px system-ui,sans-serif"; c.fillText("POT "+fmt(pot),TBL.cx-22,TBL.cy-60);
+    c.font="700 "+pokFont(14)+"px system-ui,sans-serif"; c.fillText("POT "+fmt(pot),TBL.cx-22,pokPotY()+4);
   }
   T.board.forEach(function(cd,i){
-    pokCard(c,TBL.cx+(i-2)*50,TBL.cy-16,0,0.96,cd,false);
+    if(pokLanded("board",0,i)) pokCard(c,TBL.cx+(i-2)*50,pokBoardY(),0,0.96,cd,false);
   });
 
   var me = T.players[0];
   if(me.hole.length){
-    pokCard(c,TBL.cx-32,POK_H-18,-0.12,1.26,me.hole[0],false);
-    pokCard(c,TBL.cx+32,POK_H-18, 0.12,1.26,me.hole[1],false);
+    var hy = pokHeroY(), hs = pokHeroS();
+    /* a soft pool of light under them, so it reads at a glance which two are yours */
+    var hl = c.createRadialGradient(TBL.cx,hy,4,TBL.cx,hy,86);
+    hl.addColorStop(0,"rgba(255,240,200,.16)"); hl.addColorStop(1,"rgba(255,240,200,0)");
+    c.fillStyle=hl; c.beginPath(); c.ellipse(TBL.cx,hy,86,44,0,0,7); c.fill();
+    if(pokLanded("hole",0,0)) pokCard(c,TBL.cx-32,hy,-0.12,hs,me.hole[0],false);
+    if(pokLanded("hole",0,1)) pokCard(c,TBL.cx+32,hy, 0.12,hs,me.hole[1],false);
   }
   if(T.dealer === 0){
-    c.fillStyle="#f2ead6"; c.beginPath(); c.arc(TBL.cx-110,POK_H-52,9,0,7); c.fill();
+    c.fillStyle="#f2ead6"; c.beginPath(); c.arc(TBL.cx-110,pokHeroY()-32,9,0,7); c.fill();
     c.fillStyle="#1a1410"; c.textAlign="center"; c.font="700 10px system-ui,sans-serif";
-    c.fillText("D",TBL.cx-110,POK_H-48.5);
+    c.fillText("D",TBL.cx-110,pokHeroY()-28.5);
   }
   if(me.bet > 0){
     pokChips(c,TBL.cx-150,TBL.cy+96,Math.max(1,pokStackH(me.bet)),"#c9a227");
@@ -7008,15 +7083,16 @@ function pokScene(t){
   }
   c.save();
   c.fillStyle = T.toAct === 0 ? "rgba(232,194,100,.2)" : "rgba(0,0,0,.55)";
-  pokRR(c,TBL.cx+96,POK_H-64,140,34,9); c.fill();
+  pokRR(c,TBL.cx+96,pokHeroY()-30,140,34,9); c.fill();
   c.strokeStyle = T.toAct === 0 ? "rgba(232,194,100,.85)" : "rgba(232,194,100,.25)";
   c.lineWidth = T.toAct === 0 ? 2 : 1; c.stroke();
   c.textAlign="center"; c.fillStyle="#efe2c2"; c.font="700 "+pokFont(10)+"px system-ui,sans-serif";
-  c.fillText("YOUR STACK",TBL.cx+166,POK_H-48);
+  c.fillText("YOUR STACK",TBL.cx+166,pokHeroY()-14);
   c.fillStyle="#e8c264"; c.font="700 "+pokFont(15)+"px system-ui,sans-serif";
-  c.fillText(fmt(me.stack),TBL.cx+166,POK_H-34);
+  c.fillText(fmt(me.stack),TBL.cx+166,pokHeroY());
   c.restore();
 
+  pokDrawFlights(c);
   pokVignette(c);
 }
 var pokLayer = null;
@@ -7112,6 +7188,7 @@ function pokDeal(){
   }
   pok.revealed = false;
   if(!pokStartHand(pok.T)){ pokLeave(); return; }
+  pokQueueDeal(pok.T);
   stats.hands++;
   pokSetPokerStack(pok.T.players[0].stack + pok.T.players[0].committed);
   playDeal();
