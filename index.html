@@ -350,55 +350,20 @@
   .iconbtn:hover{background:rgba(var(--gold-rgb),.12);border-color:var(--gold);transform:rotate(35deg)}
 
   /* ---------- poker ---------- */
-  .pok-seats{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:14px}
-  .pok-seat{
-    flex:1 1 150px;max-width:210px;border:1px solid var(--edge);border-radius:12px;padding:9px 10px;
-    background:rgba(var(--panel-tint-rgb),.22);transition:border-color .2s,opacity .2s;
+  /* The table itself is a canvas; only the controls are DOM. */
+  #pokCanvas{
+    display:block;width:100%;
+    /* The scene is composed at 900x520 and painted to fit. Carrying that shape
+       on the element itself is what stops it being letterboxed into a wide
+       short box with dead bars either side. */
+    /* Taller than the scene's own 900x520 on a phone: the layout is derived
+       from the box, so the extra height goes into the table rather than bars. */
+    aspect-ratio:900/640;
+    border-radius:14px;border:1px solid var(--edge);background:#07100c;
   }
-  .pok-seat.turn{border-color:var(--gold);box-shadow:0 0 14px rgba(var(--gold-rgb),.25)}
-  .pok-seat.folded{opacity:.42}
-  .pok-seat .pok-who{display:flex;align-items:baseline;gap:6px;font-size:12px;font-weight:700;color:var(--gold)}
-  .pok-seat .pok-tag{font-size:9.5px;font-weight:400;color:rgba(var(--cream-rgb),.45);letter-spacing:0}
-  .pok-seat .pok-stack{font-size:15px;font-weight:700;margin-top:1px}
-  .pok-seat .pok-state{font-size:10.5px;color:rgba(var(--cream-rgb),.55);min-height:14px}
-  .pok-mini{display:flex;gap:3px;margin-top:6px;min-height:46px}
-  .pok-dealer{
-    display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;
-    background:var(--gold);color:var(--ink);font-size:9px;font-weight:800;flex:0 0 auto;
-  }
-  .pok-board{
-    display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 10px;margin-bottom:12px;
-    border:1px solid var(--edge);border-radius:14px;
-    background:radial-gradient(420px 160px at 50% 0%, rgba(var(--gold-rgb),.09), transparent 70%),
-               rgba(var(--panel-tint-rgb),.3);
-  }
-  .pok-community{display:flex;gap:6px;min-height:110px;align-items:center}
-  .pok-pot{font-size:12px;letter-spacing:calc(1px * var(--ui-track));color:rgba(var(--cream-rgb),.65)}
-  .pok-pot b{color:var(--gold);font-size:17px}
-  .pok-hero{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;margin-bottom:10px}
-  .pok-hero .hand{display:flex;gap:6px}
-  .pok-herostack{font-size:12px;color:rgba(var(--cream-rgb),.6)}
-  .pok-herostack b{color:var(--gold);font-size:18px;display:block}
-  .pok-raise{display:flex;align-items:center;gap:8px;flex:1 1 220px;max-width:320px}
+  .pok-raise{display:flex;align-items:center;gap:8px;flex:1 1 200px;max-width:300px}
   .pok-raise input[type=range]{flex:1;accent-color:var(--gold)}
-  .pok-raiseval{min-width:58px;text-align:right;font-weight:700;color:var(--gold)}
-  /* a card at bot size, small enough that four seats still fit a phone */
-  .pok-mini .card{width:32px;height:46px;box-shadow:0 3px 7px rgba(0,0,0,.35)}
-  .pok-mini .card .corner{font-size:8px;top:3px;left:3px}
-  .pok-mini .card .corner.br{bottom:3px;right:3px}
-  .pok-mini .card .pip{font-size:15px}
-  .pok-win{color:var(--good);font-weight:700}
-  @media(max-width:560px){
-    .pok-seat{flex:1 1 90px;padding:7px 8px}
-    .pok-seat .pok-who{font-size:10.5px}
-    .pok-seat .pok-tag{display:none}
-    /* the reserve matches the smaller cards, so an empty pre-flop board does not
-       leave a tall gap on a phone */
-    .pok-community{min-height:74px}
-    .pok-community .card{width:52px;height:74px}
-    .pok-community .card .corner{font-size:10px}
-    .pok-community .card .pip{font-size:22px}
-  }
+  .pok-raiseval{min-width:54px;text-align:right;font-weight:700;color:var(--gold)}
 
   /* ---------- settings modal ---------- */
   .modal-overlay{
@@ -807,7 +772,7 @@
      one is a BIGGER game rather than more empty grass around the same small
      track. fitGame() picks the width: as wide as the card allows, or narrower
      if that is what it takes to fit the table on screen. */
-  .track-wrap, #stripCanvas, #plinkoCanvas, #flappyCanvas, #snakeCanvas, .fb-action{
+  .track-wrap, #stripCanvas, #plinkoCanvas, #flappyCanvas, #snakeCanvas, #pokCanvas, .fb-action{
     max-width:var(--play-max,860px);margin-left:auto;margin-right:auto;
   }
   .track-wrap{
@@ -1102,10 +1067,17 @@
        what its height can fill is just empty sky, and it stays capped and
        centred. */
     :root{--play-h:280px}
-    .track-wrap,#stripCanvas,#flappyCanvas,.fb-action{max-width:none}
+    .track-wrap,#stripCanvas,#flappyCanvas,#pokCanvas,.fb-action{max-width:none}
     #trackCanvas{height:var(--play-h)}
     #stripCanvas{height:calc(var(--play-h) * 0.63)}
     #flappyCanvas{height:calc(var(--play-h) * 1.5)}
+    /* The poker room is a view onto a scene, so it takes the full width it is
+       given and its height rides --play-h with the rest. */
+    /* Height is the dial fitGame turns, so the width is pinned to it at the
+       scene's own ratio rather than to the card. */
+    /* The scene lays itself out down whatever height it is given, so the box
+       just takes the card's width and the height fitGame can spare. */
+    #pokCanvas{aspect-ratio:auto;height:calc(var(--play-h) * 1.15);max-height:600px;max-width:none}
     /* Plinko and Snake are both boards rather than views onto a bigger world, so
        past their own shape the extra width is dead space and they stay capped. */
     #plinkoCanvas{height:calc(var(--play-h) * 1.5);max-width:calc(var(--play-h) * 3.07)}
@@ -1525,15 +1497,7 @@
       </div>
 
       <div id="pokTableView" hidden>
-        <div class="pok-seats" id="pokSeats"></div>
-        <div class="pok-board">
-          <div class="pok-community" id="pokCommunity"></div>
-          <div class="pok-pot">POT <b id="pokPot">0</b></div>
-        </div>
-        <div class="pok-hero">
-          <div class="hand" id="pokHole"></div>
-          <div class="pok-herostack">YOUR STACK <b id="pokStack">0</b></div>
-        </div>
+        <canvas class="playfield" id="pokCanvas"></canvas>
         <div class="betbar" id="pokActions">
           <button class="btn ghost" id="pokFold">Fold (F)</button>
           <button class="btn" id="pokCheck">Check (C)</button>
@@ -6690,51 +6654,390 @@ function pokMiniCard(card, hidden){
   var el = cardEl(card, hidden);
   return el;
 }
-function pokRenderSeats(){
-  var wrap = $("pokSeats");
-  if(!pok.T){ wrap.innerHTML = ""; return; }
-  wrap.innerHTML = "";
-  for(var i=1; i<pok.T.players.length; i++){
-    var p = pok.T.players[i], style = POK_PERSONAS[POK_WHO[i]];
-    var seat = document.createElement("div");
-    seat.className = "pok-seat" + (pok.T.toAct === i ? " turn" : "") + (p.inHand ? "" : " folded");
-    var state = !p.inHand ? "folded"
-              : p.allIn ? "all in"
-              : pok.T.toAct === i ? "thinking…"
-              : p.bet > 0 ? "bet " + fmt(p.bet) : "";
-    var won = null;
-    pok.T.lastWinners.forEach(function(w){ if(w.id === i) won = w; });
-    seat.innerHTML =
-      '<div class="pok-who">' + (pok.T.dealer === i ? '<span class="pok-dealer">D</span>' : '') +
-        p.name + '<span class="pok-tag">' + style.tag + '</span></div>' +
-      '<div class="pok-stack">' + fmt(p.stack) + '</div>' +
-      '<div class="pok-state' + (won ? ' pok-win' : '') + '">' +
-        (won ? "won " + fmt(won.won) : state) + '</div>';
-    var mini = document.createElement("div");
-    mini.className = "pok-mini";
-    if(p.hole.length){
-      var show = pok.revealed && p.inHand;
-      p.hole.forEach(function(c){ mini.appendChild(pokMiniCard(c, !show)); });
+/* ==========================================================================
+   The room. Everything below is presentation only — it reads pok.T and draws
+   it, and never changes a chip.
+   ========================================================================== */
+var pokCanvas = $("pokCanvas"), pokCtx = pokCanvas.getContext("2d");
+var POK_W = 900, POK_H = 520, POK_ROOM = 300, pokZ = 1, pokCssW = 0, pokCssH = 0;
+var TBL = {cx:450, cy:442, rx:400, ry:176};
+
+/* The scene is composed 900 wide and then laid out down whatever height the box
+   actually has. Pinning both axes meant any box that was not 900x520 got black
+   bars, and no single CSS rule keeps that ratio across a phone, a 4:3 tablet
+   and an ultrawide at once. Deriving the layout from the box removes the
+   problem rather than chasing it. */
+function pokResize(){
+  var rect = pokCanvas.getBoundingClientRect();
+  if(!rect.width) return;
+  var dpr = window.devicePixelRatio || 1, z = rect.width / POK_W;
+  pokZ = z;
+  POK_H = Math.max(330, Math.min(1000, rect.height / z));
+  POK_ROOM = Math.round(POK_H * 0.577);
+  TBL = {cx:POK_W/2, cy:POK_H*0.845, rx:400, ry:POK_H*0.338};
+  pokCssW = rect.width; pokCssH = rect.height;
+  pokCanvas.width  = Math.round(rect.width * dpr);
+  pokCanvas.height = Math.round(rect.height * dpr);
+  pokCtx.setTransform(dpr*z, 0, 0, dpr*z, 0, (rect.height - POK_H*z)*dpr/2);
+  pokBuildRoom(POK_ROOM);
+}
+function onFelt(deg, k){
+  var a = deg*Math.PI/180;
+  return {x:TBL.cx + TBL.rx*k*Math.cos(a), y:TBL.cy + TBL.ry*k*Math.sin(a)};
+}
+/* Seats sit back from the felt rather than straight out from it: pushed out on
+   an ellipse this wide, the end seats walk off the canvas. Squeezed in x and
+   stretched in y instead. */
+function seatPos(deg){
+  var a = deg*Math.PI/180;
+  return {x:TBL.cx + TBL.rx*0.92*Math.cos(a), y:TBL.cy + TBL.ry*1.16*Math.sin(a)};
+}
+var POK_SEAT_DEG = [196, 232, 308], POK_EMPTY_DEG = 344, POK_DEALER_DEG = 270;
+var POK_LOOK = [
+  {skin:"#b97a4e", hair:"#191210", shirt:"#35456b", style:0, glasses:true},
+  {skin:"#7b4a2a", hair:"#2b1e16", shirt:"#6e3230", style:1, glasses:false},
+  {skin:"#e8b98a", hair:"#4a3423", shirt:"#2b5547", style:2, glasses:false}
+];
+var POK_CHIPCOL = ["#1f6fae", "#b3242e", "#2f8f5a"];
+
+/* A label sized in scene units disappears once the scene is squeezed onto a
+   phone: at 230px wide a scene pixel is a third of a real one. Sizes are set
+   from the real pixels they will end up as, so the text stays readable and the
+   table simply carries bigger writing. */
+function pokFont(px){ return Math.round(px * Math.max(1, Math.min(2.4, 0.62/pokZ))); }
+
+function pokRR(c,x,y,w,h,r){ c.beginPath(); c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r);
+  c.arcTo(x+w,y+h,x,y+h,r); c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath(); }
+
+/* ---- the room, painted once and reused ---- */
+var pokBg = document.createElement("canvas"), pokBgH = 0;
+function pokBuildRoom(RH){
+  if(pokBgH === RH) return;                          /* only when the shape changes */
+  pokBgH = RH;
+  pokBg.width = POK_W; pokBg.height = RH;
+  var c = pokBg.getContext("2d"), i;
+  var sc = RH/300;                                   /* the room was drawn for 300 */
+  c.setTransform(1,0,0,sc,0,0);
+  var g = c.createLinearGradient(0,0,0,300);
+  g.addColorStop(0,"#0f0b09"); g.addColorStop(.45,"#1d1512"); g.addColorStop(1,"#0a0807");
+  c.fillStyle=g; c.fillRect(0,0,POK_W,300);
+  for(i=0;i<POK_W;i+=60){ c.fillStyle="rgba(255,190,120,.02)"; c.fillRect(i,40,30,150); }
+  for(i=0;i<8;i++){
+    var x=26+i*112, y=64, w=82, h=122;
+    c.fillStyle="#1b1410"; pokRR(c,x,y,w,h,7); c.fill();
+    c.fillStyle="#241a14"; pokRR(c,x+4,y+4,w-8,h-8,5); c.fill();
+    var sg=c.createLinearGradient(0,y+12,0,y+72);
+    sg.addColorStop(0,"rgba(255,196,96,.55)"); sg.addColorStop(1,"rgba(230,90,60,.30)");
+    c.fillStyle=sg; pokRR(c,x+10,y+12,w-20,60,3); c.fill();
+    for(var r2=0;r2<3;r2++){
+      c.fillStyle="rgba(20,12,8,.45)"; c.fillRect(x+13+r2*((w-26)/3),y+22,(w-32)/3,38);
+      c.fillStyle="rgba(255,235,180,.7)";
+      c.beginPath(); c.arc(x+13+r2*((w-26)/3)+(w-32)/6,y+41,4,0,7); c.fill();
     }
-    seat.appendChild(mini);
-    wrap.appendChild(seat);
+    c.fillStyle="rgba(255,150,60,.22)"; pokRR(c,x+10,y+80,w-20,16,3); c.fill();
+    c.fillStyle="rgba(255,220,160,.55)"; c.fillRect(x+12,y+h-12,w-24,3);
+    c.fillStyle="#120d0a"; pokRR(c,x+26,y+h,30,26,6); c.fill();
+  }
+  [[150,214,86],[730,208,74]].forEach(function(d){          /* other tables, for depth */
+    c.fillStyle="rgba(40,22,14,.5)";
+    c.beginPath(); c.ellipse(d[0],d[1],d[2]+7,d[2]*0.34+5,0,0,7); c.fill();
+    c.fillStyle="rgba(14,46,32,.6)";
+    c.beginPath(); c.ellipse(d[0],d[1],d[2],d[2]*0.34,0,0,7); c.fill();
+  });
+  for(i=0;i<20;i++){
+    var bx=(i*151)%POK_W, by=8+((i*61)%46), br=9+((i*31)%20);
+    var b2=c.createRadialGradient(bx,by,0,bx,by,br);
+    b2.addColorStop(0,"rgba(255,208,128,.34)"); b2.addColorStop(1,"rgba(255,190,100,0)");
+    c.fillStyle=b2; c.beginPath(); c.arc(bx,by,br,0,7); c.fill();
+  }
+  var cg=c.createLinearGradient(0,206,0,300);
+  cg.addColorStop(0,"#3a1c1c"); cg.addColorStop(1,"#150b0b");
+  c.fillStyle=cg; c.fillRect(0,206,POK_W,94);
+  c.globalAlpha=.13; c.fillStyle="#c9a227";
+  for(i=0;i<POK_W;i+=46) for(var j=212;j<300;j+=26){
+    c.beginPath(); c.ellipse(i+((j/26)%2?23:0),j,9,4,0,0,7); c.fill();
+  }
+  c.globalAlpha=1;
+  var hz=c.createLinearGradient(0,196,0,300);
+  hz.addColorStop(0,"rgba(255,170,80,.06)"); hz.addColorStop(1,"rgba(0,0,0,.62)");
+  c.fillStyle=hz; c.fillRect(0,196,POK_W,104);
+  c.setTransform(1,0,0,1,0,0);
+}
+pokBuildRoom(300);
+
+var POK_WALK = [];
+(function(){ for(var i=0;i<12;i++){ var d=i%3;
+  POK_WALK.push({x:Math.random()*POK_W, yf:[0.567,0.633,0.707][d], s:[0.60,0.74,0.90][d],
+    sp:[0.5,0.7,0.9][d]*(0.8+Math.random()*0.5), a:[0.5,0.62,0.72][d],
+    dir:Math.random()<0.5?-1:1, col:["#070605","#0a0807","#0d0a08"][d], ph:Math.random()*7}); } })();
+function pokWalker(c,p,t){
+  var ph=t*p.sp*2.2+p.ph, sw=Math.sin(ph)*0.5, bob=Math.abs(Math.cos(ph))*1.5;
+  c.save(); c.translate(p.x,POK_ROOM*p.yf-bob); c.scale(p.s*p.dir,p.s); c.globalAlpha=p.a; c.fillStyle=p.col;
+  c.save(); c.rotate(sw*0.30); pokRR(c,-5,0,7,26,3); c.fill(); c.restore();
+  c.save(); c.rotate(-sw*0.30); pokRR(c,-2,0,7,26,3); c.fill(); c.restore();
+  pokRR(c,-11,-32,22,34,8); c.fill();
+  c.beginPath(); c.arc(0,-40,8.5,0,7); c.fill();
+  c.save(); c.rotate(-sw*0.5); pokRR(c,8,-28,6,22,3); c.fill(); c.restore();
+  c.restore();
+}
+
+function pokDrawTable(c){
+  c.fillStyle="rgba(0,0,0,.6)";
+  c.beginPath(); c.ellipse(TBL.cx,TBL.cy+18,TBL.rx+52,TBL.ry+34,0,0,7); c.fill();
+  var wg=c.createLinearGradient(0,TBL.cy-TBL.ry-42,0,TBL.cy+TBL.ry);
+  wg.addColorStop(0,"#5a3a22"); wg.addColorStop(.45,"#3a2411"); wg.addColorStop(1,"#1d1208");
+  c.fillStyle=wg; c.beginPath(); c.ellipse(TBL.cx,TBL.cy,TBL.rx+42,TBL.ry+28,0,0,7); c.fill();
+  var lg=c.createLinearGradient(0,TBL.cy-TBL.ry-28,0,TBL.cy+TBL.ry);
+  lg.addColorStop(0,"#553227"); lg.addColorStop(.4,"#39221b"); lg.addColorStop(1,"#20130e");
+  c.fillStyle=lg; c.beginPath(); c.ellipse(TBL.cx,TBL.cy,TBL.rx+23,TBL.ry+15,0,0,7); c.fill();
+  c.strokeStyle="rgba(255,205,150,.16)"; c.lineWidth=2;
+  c.beginPath(); c.ellipse(TBL.cx,TBL.cy,TBL.rx+23,TBL.ry+15,0,0,7); c.stroke();
+  c.strokeStyle="rgba(0,0,0,.35)"; c.lineWidth=1;
+  for(var a=0;a<Math.PI*2;a+=0.105){                       /* stitching on the rail */
+    c.beginPath();
+    c.moveTo(TBL.cx+(TBL.rx+9)*Math.cos(a), TBL.cy+(TBL.ry+6)*Math.sin(a));
+    c.lineTo(TBL.cx+(TBL.rx+20)*Math.cos(a), TBL.cy+(TBL.ry+13)*Math.sin(a));
+    c.stroke();
+  }
+  var fg=c.createRadialGradient(TBL.cx,TBL.cy-60,20,TBL.cx,TBL.cy,TBL.rx);
+  fg.addColorStop(0,"#1f7049"); fg.addColorStop(.42,"#12513a");
+  fg.addColorStop(.78,"#0a3526"); fg.addColorStop(1,"#052018");
+  c.fillStyle=fg; c.beginPath(); c.ellipse(TBL.cx,TBL.cy,TBL.rx,TBL.ry,0,0,7); c.fill();
+  var sp=c.createRadialGradient(TBL.cx,TBL.cy-40,10,TBL.cx,TBL.cy-20,240);
+  sp.addColorStop(0,"rgba(255,246,214,.13)"); sp.addColorStop(1,"rgba(255,246,214,0)");
+  c.fillStyle=sp; c.beginPath(); c.ellipse(TBL.cx,TBL.cy,TBL.rx,TBL.ry,0,0,7); c.fill();
+  c.strokeStyle="rgba(220,240,225,.10)"; c.lineWidth=2;
+  c.beginPath(); c.ellipse(TBL.cx,TBL.cy,TBL.rx*0.72,TBL.ry*0.72,0,0,7); c.stroke();
+  c.save(); c.globalAlpha=.12; c.fillStyle="#f4e7c8"; c.textAlign="center";
+  c.font="700 20px Georgia, serif"; c.fillText(CASINO_NAME.toUpperCase(),TBL.cx,TBL.cy+86);
+  c.font="10px Georgia, serif"; c.fillText("T E X A S   H O L D ’ E M",TBL.cx,TBL.cy+104);
+  c.restore();
+}
+
+function pokPerson(c,x,y,s,o,t,seed,dim){
+  var br=Math.sin(t*1.05+seed)*1.1;
+  c.save(); c.translate(x,y+br); c.scale(s,s);
+  if(dim) c.globalAlpha=0.42;
+  c.fillStyle=o.shirt;
+  c.save(); c.rotate(-0.40); pokRR(c,-48,-6,46,16,8); c.fill(); c.restore();
+  c.save(); c.rotate( 0.40); pokRR(c,  2,-6,46,16,8); c.fill(); c.restore();
+  c.fillStyle=o.skin;
+  c.beginPath(); c.ellipse(-44,6,8,6,-0.4,0,7); c.fill();
+  c.beginPath(); c.ellipse( 44,6,8,6, 0.4,0,7); c.fill();
+  var tg=c.createLinearGradient(-38,-56,38,12);
+  tg.addColorStop(0,"rgba(255,255,255,.13)"); tg.addColorStop(.35,o.shirt); tg.addColorStop(1,"rgba(0,0,0,.6)");
+  c.fillStyle=o.shirt; pokRR(c,-40,-54,80,68,24); c.fill();
+  c.fillStyle=tg; pokRR(c,-40,-54,80,68,24); c.fill();
+  c.fillStyle="rgba(0,0,0,.35)";
+  c.beginPath(); c.moveTo(-13,-54); c.lineTo(0,-36); c.lineTo(13,-54); c.closePath(); c.fill();
+  c.fillStyle=o.skin; pokRR(c,-9,-74,18,22,7); c.fill();
+  c.fillStyle="rgba(0,0,0,.28)"; pokRR(c,-9,-74,18,8,4); c.fill();
+  c.fillStyle=o.skin;
+  c.beginPath(); c.ellipse(0,-86,20,23,0,0,7); c.fill();
+  c.beginPath(); c.ellipse(-20,-86,4,6,0,0,7); c.fill();
+  c.beginPath(); c.ellipse( 20,-86,4,6,0,0,7); c.fill();
+  var hg=c.createLinearGradient(-20,-96,20,-70);
+  hg.addColorStop(0,"rgba(255,240,220,.16)"); hg.addColorStop(.55,"rgba(0,0,0,0)"); hg.addColorStop(1,"rgba(0,0,0,.30)");
+  c.fillStyle=hg; c.beginPath(); c.ellipse(0,-86,20,23,0,0,7); c.fill();
+  c.fillStyle=o.hair;
+  if(o.style===0){ c.beginPath(); c.ellipse(0,-94,21,16,0,Math.PI,0); c.fill(); c.fillRect(-21,-95,42,10); }
+  else if(o.style===1){ c.beginPath(); c.ellipse(0,-92,23,21,0,0,7); c.fill();
+    c.fillStyle=o.skin; c.beginPath(); c.ellipse(0,-80,17,15,0,0,7); c.fill(); }
+  else { c.beginPath(); c.ellipse(0,-97,20,11,0,Math.PI,0); c.fill(); c.fillRect(-20,-98,40,5); }
+  c.fillStyle="rgba(15,10,8,.55)"; c.fillRect(-11,-93,8,2); c.fillRect(3,-93,8,2);
+  c.fillStyle="rgba(15,10,8,.9)";
+  c.beginPath(); c.ellipse(-7,-86,2.7,2.2,0,0,7); c.fill();
+  c.beginPath(); c.ellipse( 7,-86,2.7,2.2,0,0,7); c.fill();
+  c.fillStyle="rgba(0,0,0,.22)"; pokRR(c,-5,-75,10,2,1); c.fill();
+  if(o.glasses){
+    c.strokeStyle="rgba(235,225,205,.6)"; c.lineWidth=1.6;
+    c.beginPath(); c.arc(-7,-86,7,0,7); c.stroke();
+    c.beginPath(); c.arc( 7,-86,7,0,7); c.stroke();
+    c.beginPath(); c.moveTo(-1,-86); c.lineTo(1,-86); c.stroke();
+  }
+  c.restore();
+}
+
+function pokCard(c,x,y,rot,s,cd,down){
+  c.save(); c.translate(x,y); c.rotate(rot); c.scale(s,s);
+  c.shadowColor="rgba(0,0,0,.6)"; c.shadowBlur=9; c.shadowOffsetY=4;
+  if(down || !cd){
+    var bgr=c.createLinearGradient(-17,-24,17,24);
+    bgr.addColorStop(0,"#8a2330"); bgr.addColorStop(1,"#4a0f18");
+    c.fillStyle=bgr; pokRR(c,-17,-24,34,48,4); c.fill(); c.shadowColor="transparent";
+    c.strokeStyle="rgba(255,225,190,.32)"; c.lineWidth=1; pokRR(c,-13,-20,26,40,3); c.stroke();
+    c.fillStyle="rgba(255,225,190,.2)"; c.beginPath(); c.arc(0,0,5,0,7); c.fill();
+  }else{
+    var cg=c.createLinearGradient(-17,-24,17,24);
+    cg.addColorStop(0,"#fffdf6"); cg.addColorStop(1,"#e9e2d0");
+    c.fillStyle=cg; pokRR(c,-17,-24,34,48,4); c.fill(); c.shadowColor="transparent";
+    c.strokeStyle="rgba(0,0,0,.18)"; c.lineWidth=.8; pokRR(c,-17,-24,34,48,4); c.stroke();
+    c.fillStyle=cd.su.red ? "#b3242e" : "#15110d";
+    c.font="700 13px Georgia, serif"; c.textAlign="left"; c.fillText(cd.r,-14,-10);
+    c.font="11px Georgia, serif"; c.fillText(cd.su.s,-14,2);
+    c.font="21px Georgia, serif"; c.textAlign="center"; c.fillText(cd.su.s,3,17);
+  }
+  c.restore();
+}
+function pokChips(c,x,y,n,col){
+  for(var i=0;i<n;i++){ var yy=y-i*3.3;
+    c.fillStyle="rgba(0,0,0,.4)"; c.beginPath(); c.ellipse(x,yy+1.7,11,4.5,0,0,7); c.fill();
+    c.fillStyle=col; c.beginPath(); c.ellipse(x,yy,11,4.5,0,0,7); c.fill();
+    c.strokeStyle="rgba(255,255,255,.4)"; c.lineWidth=.8;
+    c.beginPath(); c.ellipse(x,yy,11,4.5,0,0,7); c.stroke();
   }
 }
-function pokRenderBoard(){
-  var b = $("pokCommunity");
-  b.innerHTML = "";
-  if(!pok.T) return;
-  pok.T.board.forEach(function(c){ b.appendChild(cardEl(c, false)); });
-  $("pokPot").textContent = fmt(pok.T.stage === "done" ? pok.T.lastPot : pokPot(pok.T));
+/* Chips are a picture of the money, not the money: a tall stack would run off
+   the table, so the count is capped and the number beside it stays exact. */
+function pokStackH(n){ return Math.max(0, Math.min(9, Math.round(n/60))); }
+
+function pokScene(t){
+  var c = pokCtx, T = pok.T;
+  c.clearRect(0,0,POK_W,POK_H);
+
+  var lay = pokLayer || (pokLayer = document.createElement("canvas"));
+  lay.width = POK_W; lay.height = POK_ROOM;
+  var lc = lay.getContext("2d");
+  lc.drawImage(pokBg,0,0);
+  POK_WALK.forEach(function(p){
+    p.x += p.dir*p.sp*0.55;
+    if(p.x < -40) p.x = POK_W+40;
+    if(p.x > POK_W+40) p.x = -40;
+    pokWalker(lc,p,t);
+  });
+  /* composited through a blur: a real depth of field does more for how solid
+     the table looks than any amount of detail painted behind it */
+  c.save(); c.filter = "blur(2.6px)"; c.drawImage(lay,0,0); c.restore();
+
+  pokDrawTable(c);
+
+  var dp = seatPos(POK_DEALER_DEG);
+  pokPerson(c,dp.x,dp.y-24,0.72,{skin:"#e8b98a",hair:"#191210",shirt:"#20242a",style:0,glasses:false},t,0.4,false);
+  c.save(); c.translate(dp.x,dp.y-24); c.scale(0.72,0.72);
+  c.fillStyle="#ece6d8"; pokRR(c,-15,-62,30,16,4); c.fill();
+  c.fillStyle="#8d1f2b";
+  c.beginPath(); c.moveTo(-10,-56); c.lineTo(0,-50); c.lineTo(-10,-44); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo( 10,-56); c.lineTo(0,-50); c.lineTo( 10,-44); c.closePath(); c.fill();
+  c.restore();
+  var tray = onFelt(POK_DEALER_DEG,0.70);
+  c.save(); c.fillStyle="rgba(18,11,7,.7)"; pokRR(c,tray.x-66,tray.y-9,132,19,7); c.fill();
+  c.strokeStyle="rgba(255,210,150,.16)"; c.lineWidth=1; c.stroke();
+  ["#c9a227","#b3242e","#1f6fae","#2f8f5a","#c9a227"].forEach(function(col,i){
+    c.fillStyle=col; c.beginPath(); c.ellipse(tray.x-52+i*26,tray.y,11,4.4,0,0,7); c.fill();
+    c.strokeStyle="rgba(255,255,255,.35)"; c.stroke();
+  });
+  c.restore();
+
+  var ec = seatPos(POK_EMPTY_DEG);
+  c.save(); c.globalAlpha=.6; c.fillStyle="#1c1310";
+  pokRR(c,ec.x-27,ec.y-36,54,48,14); c.fill();
+  c.fillStyle="#291d16"; pokRR(c,ec.x-22,ec.y-30,44,17,8); c.fill(); c.restore();
+
+  if(!T){ pokVignette(c); return; }
+
+  POK_SEAT_DEG.forEach(function(deg,i){
+    var seat = i+1, p = T.players[seat], sp2 = seatPos(deg);
+    var out = !p.inHand, turn = T.toAct === seat;
+    pokPerson(c,sp2.x,sp2.y-10,0.86,POK_LOOK[i],t,i*2.1,out);
+
+    var cf = onFelt(deg,0.76), rot = (deg-270)*Math.PI/180*0.30;
+    if(p.hole.length && p.inHand){
+      var show = pok.revealed && T.stage === "done";
+      pokCard(c,cf.x-10,cf.y,rot,0.64,show?p.hole[0]:null,!show);
+      pokCard(c,cf.x+10,cf.y,rot,0.64,show?p.hole[1]:null,!show);
+    }
+    pokChips(c,cf.x+42,cf.y+5,pokStackH(p.stack),POK_CHIPCOL[i]);
+    if(p.bet > 0){                                    /* chips pushed out in front */
+      var bp = onFelt(deg,0.52);
+      pokChips(c,bp.x,bp.y,Math.max(1,pokStackH(p.bet)),"#c9a227");
+      c.fillStyle="rgba(244,234,215,.8)"; c.textAlign="center";
+      c.font="700 11px system-ui,sans-serif"; c.fillText(fmt(p.bet),bp.x,bp.y+16);
+    }
+    if(T.dealer === seat){
+      var bt = onFelt(deg,0.90);
+      c.fillStyle="#f2ead6"; c.beginPath(); c.arc(bt.x-26,bt.y,9,0,7); c.fill();
+      c.fillStyle="#1a1410"; c.textAlign="center"; c.font="700 10px system-ui,sans-serif";
+      c.fillText("D",bt.x-26,bt.y+3.5);
+    }
+
+    var won = null;
+    T.lastWinners.forEach(function(w){ if(w.id === seat) won = w; });
+    c.save();
+    c.fillStyle = turn ? "rgba(232,194,100,.20)" : "rgba(0,0,0,.55)";
+    pokRR(c,sp2.x-44,sp2.y+16,88,31,9); c.fill();
+    c.strokeStyle = turn ? "rgba(232,194,100,.85)" : "rgba(232,194,100,.25)";
+    c.lineWidth = turn ? 2 : 1; c.stroke();
+    c.textAlign="center";
+    c.fillStyle = out ? "rgba(239,226,194,.45)" : "#efe2c2";
+    c.font="700 "+pokFont(11)+"px system-ui,sans-serif"; c.fillText(p.name,sp2.x,sp2.y+29);
+    if(won){ c.fillStyle="#5fd39a"; c.font="700 "+pokFont(12)+"px system-ui,sans-serif";
+      c.fillText("+"+fmt(won.won),sp2.x,sp2.y+42); }
+    else if(out){ c.fillStyle="rgba(239,226,194,.45)"; c.font=pokFont(11)+"px system-ui,sans-serif";
+      c.fillText("folded",sp2.x,sp2.y+42); }
+    else if(p.allIn){ c.fillStyle="#e08a4a"; c.font="700 "+pokFont(11)+"px system-ui,sans-serif";
+      c.fillText("ALL IN",sp2.x,sp2.y+42); }
+    else { c.fillStyle="#e8c264"; c.font="700 "+pokFont(13)+"px system-ui,sans-serif";
+      c.fillText(fmt(p.stack),sp2.x,sp2.y+42); }
+    c.restore();
+  });
+
+  var pot = T.stage === "done" ? T.lastPot : pokPot(T);
+  if(pot > 0){
+    pokChips(c,TBL.cx-46,TBL.cy-64,Math.max(1,pokStackH(pot)),"#c9a227");
+    c.fillStyle="rgba(244,234,215,.92)"; c.textAlign="left";
+    c.font="700 "+pokFont(14)+"px system-ui,sans-serif"; c.fillText("POT "+fmt(pot),TBL.cx-22,TBL.cy-60);
+  }
+  T.board.forEach(function(cd,i){
+    pokCard(c,TBL.cx+(i-2)*50,TBL.cy-16,0,0.96,cd,false);
+  });
+
+  var me = T.players[0];
+  if(me.hole.length){
+    pokCard(c,TBL.cx-32,POK_H-18,-0.12,1.26,me.hole[0],false);
+    pokCard(c,TBL.cx+32,POK_H-18, 0.12,1.26,me.hole[1],false);
+  }
+  if(T.dealer === 0){
+    c.fillStyle="#f2ead6"; c.beginPath(); c.arc(TBL.cx-110,POK_H-52,9,0,7); c.fill();
+    c.fillStyle="#1a1410"; c.textAlign="center"; c.font="700 10px system-ui,sans-serif";
+    c.fillText("D",TBL.cx-110,POK_H-48.5);
+  }
+  if(me.bet > 0){
+    pokChips(c,TBL.cx-150,TBL.cy+96,Math.max(1,pokStackH(me.bet)),"#c9a227");
+    c.fillStyle="rgba(244,234,215,.8)"; c.textAlign="center";
+    c.font="700 11px system-ui,sans-serif"; c.fillText(fmt(me.bet),TBL.cx-150,TBL.cy+112);
+  }
+  c.save();
+  c.fillStyle = T.toAct === 0 ? "rgba(232,194,100,.2)" : "rgba(0,0,0,.55)";
+  pokRR(c,TBL.cx+96,POK_H-64,140,34,9); c.fill();
+  c.strokeStyle = T.toAct === 0 ? "rgba(232,194,100,.85)" : "rgba(232,194,100,.25)";
+  c.lineWidth = T.toAct === 0 ? 2 : 1; c.stroke();
+  c.textAlign="center"; c.fillStyle="#efe2c2"; c.font="700 "+pokFont(10)+"px system-ui,sans-serif";
+  c.fillText("YOUR STACK",TBL.cx+166,POK_H-48);
+  c.fillStyle="#e8c264"; c.font="700 "+pokFont(15)+"px system-ui,sans-serif";
+  c.fillText(fmt(me.stack),TBL.cx+166,POK_H-34);
+  c.restore();
+
+  pokVignette(c);
 }
-function pokRenderHero(){
-  var h = $("pokHole");
-  h.innerHTML = "";
-  if(!pok.T) return;
-  var me = pok.T.players[0];
-  me.hole.forEach(function(c){ h.appendChild(cardEl(c, false)); });
-  $("pokStack").textContent = fmt(me.stack);
+var pokLayer = null;
+function pokVignette(c){
+  var vg=c.createRadialGradient(POK_W/2,POK_H*0.5,POK_H*0.38,POK_W/2,POK_H*0.46,POK_H*1.05);
+  vg.addColorStop(0,"rgba(0,0,0,0)"); vg.addColorStop(1,"rgba(0,0,0,.6)");
+  c.fillStyle=vg; c.fillRect(0,0,POK_W,POK_H);
 }
+
+/* One loop, and it only paints while the poker table is the tab on screen. */
+var pokT0 = Date.now();
+function pokFrame(){
+  var sec = document.querySelector(".game.on");
+  if(sec && sec.id === "tab-poker"){
+    if(pokCssW < 5 || stale(pokCanvas, pokCssW, pokCssH)) pokResize();
+    if(pokCssW > 4) pokScene((Date.now()-pokT0)/1000);
+  }
+  requestAnimationFrame(pokFrame);
+}
+requestAnimationFrame(pokFrame);
+
 function pokRenderActions(){
   var lg = pok.T && pok.T.toAct === 0 ? pokLegal(pok.T) : null;
   var on = !!lg;
@@ -6758,9 +7061,8 @@ function pokRenderActions(){
   }
   $("pokNext").style.display = pok.T && pok.T.stage === "done" ? "" : "none";
 }
-function pokRender(){
-  pokRenderSeats(); pokRenderBoard(); pokRenderHero(); pokRenderActions();
-}
+/* The scene repaints itself every frame; only the buttons need telling. */
+function pokRender(){ pokRenderActions(); }
 
 function pokSay(text, kind){ msg($("pokMsg"), text, kind || "info"); }
 
@@ -6775,6 +7077,10 @@ function pokSit(){
   pokSetPokerStack(pok.buyin);
   $("pokBuyBar").hidden = true;
   $("pokTableView").hidden = false;
+  /* The table is the tallest thing on this card and it was display:none when
+     the tab was last measured, so fitGame sized the card without it and left
+     the zoom at maximum. Re-fit now that the canvas is actually on the page. */
+  fitGame();
   playChip();
   pokSay("Seated for " + fmt(pok.buyin) + ". Blinds are " + bl.sb + "/" + bl.bb + ".", "info");
   pokDeal();
@@ -6790,6 +7096,7 @@ function pokLeave(){
   pokSetPokerStack(0);
   $("pokBuyBar").hidden = false;
   $("pokTableView").hidden = true;
+  fitGame();                                         /* the card just lost its tallest child */
   pokRender();
   if(net > 0){ playWin(net > pok.buyin ? "big" : "small"); pokSay("Stood up with " + fmt(stack) + " chips (+" + fmt(net) + ").", "win"); }
   else if(net < 0){ playLose(); pokSay("Stood up with " + fmt(stack) + " chips (" + fmt(net) + ").", "lose"); }
