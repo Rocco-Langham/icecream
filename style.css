@@ -1,0 +1,1126 @@
+:root{
+    --ink:#050807;
+    --gold:#e8c264;
+    --gold-dim:#a8863a;
+    --gold-rgb:232,194,100;
+    --cream:#f4ead7;
+    --cream-rgb:244,234,215;
+    --red:#c8353a;
+    --black:#1b1b1b;
+    --good:#4ade80;
+    --bad:#f87171;
+    --bg-glow:#145b41;
+    --bg1:#0b3d2c;
+    --bg2:#062419;
+    --bg3:#030d09;
+    --bg1-rgb:11,61,44;
+    --bg3-rgb:3,13,9;
+    --modal-a:#0e4632;
+    --modal-b:#062419;
+    --pop:var(--gold-dim);
+    --panel:rgba(0,0,0,.32);
+    --edge:rgba(var(--gold-rgb),.28);
+    --panel-tint-rgb:0,0,0;
+    --ui-font:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+    --ui-case:uppercase;                /* the alternative fonts set this to none */
+    --ui-track:1;                       /* tracking multiplier — caps want more air than lowercase */
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    min-height:100vh;
+    min-height:100dvh;                               /* the visible height on a phone, chrome excluded */
+    font-family:var(--ui-font);
+    color:var(--cream);
+    background:
+      radial-gradient(900px 520px at 50% -10%, var(--bg-glow) 0%, transparent 60%),
+      radial-gradient(1100px 700px at 50% 0%, var(--bg-glow) 0%, transparent 62%),
+      linear-gradient(180deg,var(--bg1) 0%, var(--bg2) 55%, var(--bg3) 100%);
+    background-attachment:fixed;
+    -webkit-font-smoothing:antialiased;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;opacity:.35;
+    background-image:radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px);
+    background-size:3px 3px;
+  }
+  .app-shell{position:relative;max-width:var(--shell-max,1100px);margin:0 auto;padding:18px 16px 0;display:flex;align-items:stretch;gap:18px}
+  .main{flex:1;min-width:0}
+
+  /* ---------- sidebar menu bar ---------- */
+  .sidebar{
+    flex:0 0 220px;display:flex;flex-direction:column;
+    border:1px solid var(--edge);border-radius:14px;padding:18px 0;
+    background:linear-gradient(180deg,rgba(var(--panel-tint-rgb),.42),rgba(var(--panel-tint-rgb),.22));
+    box-shadow:0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
+  }
+  .sidebar-brand{padding:0 18px 16px;margin-bottom:8px;border-bottom:1px solid rgba(var(--gold-rgb),.15)}
+  .sidebar-brand .suits{font-size:20px;letter-spacing:calc(2px * var(--ui-track))}
+  .sidebar-brand .suits .r{color:var(--red)}
+  .sidebar-brand h1{
+    margin:8px 0 2px;font-size:18px;font-weight:700;letter-spacing:calc(2px * var(--ui-track));text-transform:var(--ui-case);
+    color:var(--gold);text-shadow:0 2px 10px rgba(var(--gold-rgb),.25);word-break:break-word;
+  }
+  .sidebar-brand small{display:block;font-size:9px;letter-spacing:calc(3px * var(--ui-track));color:var(--gold-dim);text-transform:var(--ui-case)}
+  /* ---------- daily streak badge ---------- */
+  /* Desktop stacks the sidebar vertically, so the badge is pinned to the top
+     right of the brand block to sit beside the name rather than under it. The
+     brand reserves room for it so a long casino name ellipsises instead of
+     colliding. */
+  .streak{
+    display:flex;align-items:center;gap:5px;
+    padding:5px 9px;border-radius:999px;
+    border:1px solid rgba(var(--gold-rgb),.35);background:rgba(var(--gold-rgb),.12);
+    font-size:12px;font-weight:700;line-height:1;color:var(--gold);
+    font-variant-numeric:tabular-nums;white-space:nowrap;
+  }
+  .streak .flame{font-size:13px;line-height:1}
+  /* display:flex above outranks the browser's [hidden]{display:none}, so an
+     unearned streak would otherwise sit in the bar reading "0" */
+  .streak[hidden]{display:none}
+  /* top:16px puts it level with the suits, above the name, so the name keeps the
+     full column width — reserving space for it made it break mid-word */
+  .sidebar{position:relative}
+  .streak{position:absolute;top:16px;right:14px}
+
+  .sidebar-nav{display:flex;flex-direction:column}
+  .sidebar-section{display:flex;flex-direction:column;gap:2px;padding:0 10px}
+  .sidebar-label{padding:10px 8px 6px;font-size:10px;letter-spacing:calc(2px * var(--ui-track));text-transform:var(--ui-case);color:rgba(var(--cream-rgb),.35)}
+  .sidebar-link{
+    display:flex;align-items:center;gap:10px;width:100%;
+    padding:11px 12px;border-radius:10px;border:none;cursor:pointer;text-align:left;
+    font:inherit;font-size:12px;font-weight:700;letter-spacing:calc(1.5px * var(--ui-track));text-transform:var(--ui-case);
+    color:var(--gold-dim);background:transparent;transition:.15s;
+  }
+  .sidebar-link .ic{font-size:16px;width:18px;text-align:center;flex:0 0 auto}
+  .sidebar-link:hover{color:var(--cream);background:rgba(var(--panel-tint-rgb),.25)}
+  .sidebar-link.on{
+    color:var(--ink);background:linear-gradient(135deg,var(--gold),var(--pop));
+    box-shadow:0 6px 16px rgba(var(--gold-rgb),.22);
+  }
+  /* ---------- friends ---------- */
+  .people-list{display:flex;flex-direction:column;gap:6px}
+  .person{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:9px 12px;border-radius:10px;
+    border:1px solid var(--edge);background:rgba(var(--panel-tint-rgb),.4);
+  }
+  .person .who{font-size:13px;font-weight:700;color:var(--cream);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .person .acts{display:flex;gap:6px;flex:0 0 auto}
+  .person .acts .btn{padding:6px 10px;font-size:10px}
+  .people-empty{font-size:11.5px;color:rgba(var(--cream-rgb),.45);padding:4px 2px}
+  /* the friends board reuses .board-row, so only the name column differs */
+  #friendsBoard .board-game{font-weight:700}
+  #friendsBoard .board-row.you{border-color:var(--gold);background:rgba(var(--gold-rgb),.1)}
+
+  /* the panel becomes the positioning context so the button can sit in its
+     corner without pushing the title or subtitle around */
+  #tab-leaderboard .table{position:relative}
+  /* the button is out of flow, so the heading text has to be told to keep
+     clear of it — without this the subtitle wraps underneath it on a phone */
+  #tab-leaderboard .title,#lbSub{padding-right:44px}
+  .lb-refresh{
+    position:absolute;top:14px;right:14px;
+    width:30px;height:30px;border-radius:50%;cursor:pointer;
+    font-size:15px;line-height:1;color:var(--gold);
+    background:transparent;border:1px solid var(--edge);
+    display:flex;align-items:center;justify-content:center;
+    transition:background .18s,border-color .18s,opacity .18s;
+  }
+  .lb-refresh:hover{background:rgba(var(--gold-rgb),.12);border-color:var(--gold)}
+  .lb-refresh:disabled{opacity:.5;cursor:default}
+  /* spin the glyph, not the button, so the border stays still */
+  .lb-refresh.spin > span{display:block;animation:wheelSpin .6s linear infinite}
+
+  /* ---------- changelog & codes ---------- */
+  .changelog-list{margin:0 0 4px;padding:0 0 0 18px;font-size:12.5px;line-height:1.65;color:rgba(var(--cream-rgb),.72)}
+  .changelog-list li{margin-bottom:5px}
+  .changelog-list li::marker{color:var(--gold-dim)}
+  .code-list{display:flex;flex-direction:column;gap:8px}
+  .code-row{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:10px 12px;border-radius:10px;
+    border:1px solid var(--edge);background:rgba(var(--panel-tint-rgb),.4);
+  }
+  .code-row .code-name{font-size:14px;font-weight:700;color:var(--gold);letter-spacing:.5px}
+  .code-row .code-what{display:block;font-size:10.5px;font-weight:400;color:rgba(var(--cream-rgb),.55);letter-spacing:0;text-transform:none;margin-top:2px}
+  .code-row .code-state{font-size:10px;letter-spacing:calc(1px * var(--ui-track));text-transform:var(--ui-case);white-space:nowrap}
+  .code-row.claimed .code-name{color:var(--gold-dim)}
+  .code-row.claimed .code-state{color:var(--good)}
+  .code-row .code-state.open{color:var(--gold-dim)}
+
+  /* ---------- show/hide password ---------- */
+  /* .field .pw-wrap input outranks .field input, so the right padding that keeps
+     the text clear of the button actually sticks */
+  .pw-wrap{position:relative}
+  .field .pw-wrap input{padding-right:46px}
+  .pw-toggle{
+    position:absolute;right:6px;top:50%;transform:translateY(-50%);
+    width:32px;height:32px;padding:0;border:none;border-radius:8px;
+    display:flex;align-items:center;justify-content:center;
+    background:transparent;color:var(--gold-dim);cursor:pointer;transition:.15s;
+  }
+  .pw-toggle:hover{color:var(--gold);background:rgba(var(--gold-rgb),.12)}
+  .pw-toggle svg{width:18px;height:18px;display:block}
+  .pw-toggle .eye-off{display:none}
+  .pw-toggle.on .eye-on{display:none}
+  .pw-toggle.on .eye-off{display:block}
+
+  /* ---------- welcome gate ---------- */
+  .gate-view .modal-actions{margin-top:18px}
+  .gate-view .modal-actions .btn{flex:1}
+  #gateNote a, .modal-note a{color:var(--gold);text-decoration:none;border-bottom:1px solid rgba(var(--gold-rgb),.4)}
+  #gateNote a:hover, .modal-note a:hover{color:var(--cream);border-bottom-color:var(--cream)}
+
+  /* ---------- mobile nav sheet ---------- */
+  /* Both the button and the sheet are desktop-hidden; the rail is the nav there.
+     Closed state is visibility+opacity rather than display:none so the sheet has
+     something to animate from. */
+  /* two classes deep so this outranks .iconbtn{display:flex}, which is defined
+     further down the sheet and would otherwise win on source order */
+  .iconbtn.menu-btn{display:none}
+  .navsheet-overlay{
+    position:fixed;inset:0;z-index:45;display:none;
+    align-items:flex-start;justify-content:center;padding:98px 14px 14px;
+    background:rgba(0,0,0,.55);
+    opacity:0;visibility:hidden;
+    transition:opacity .22s ease, visibility .22s ease;
+  }
+  .navsheet-overlay.on{opacity:1;visibility:visible}
+  .navsheet{
+    width:100%;max-width:420px;
+    /* vh counts the space behind a phone's collapsing address bar, so a tall
+       modal ran off the bottom of the screen. dvh measures what is actually
+       visible; the vh line stays first as the fallback. */
+    max-height:calc(100vh - 120px);max-height:calc(100dvh - 120px);overflow-y:auto;
+    padding:10px;border-radius:16px;
+    border:1px solid var(--edge);
+    background:linear-gradient(180deg,var(--modal-a),var(--modal-b));
+    box-shadow:0 24px 60px rgba(0,0,0,.5);
+    transform:translateY(-12px) scale(.97);opacity:0;
+    transition:transform .26s cubic-bezier(.2,.9,.3,1.15), opacity .2s ease;
+  }
+  .navsheet-overlay.on .navsheet{transform:none;opacity:1}
+  .navsheet-label{
+    padding:10px 10px 6px;font-size:10px;letter-spacing:calc(2px * var(--ui-track));
+    text-transform:var(--ui-case);color:rgba(var(--cream-rgb),.35);
+  }
+  .navsheet-link{
+    display:flex;align-items:center;gap:12px;width:100%;
+    padding:13px 12px;border-radius:10px;border:none;cursor:pointer;text-align:left;
+    font:inherit;font-size:13px;font-weight:700;letter-spacing:calc(1.5px * var(--ui-track));
+    text-transform:var(--ui-case);color:var(--gold-dim);background:transparent;transition:.15s;
+  }
+  .navsheet-link .ic{font-size:17px;width:20px;text-align:center;flex:0 0 auto}
+  .navsheet-link:hover{color:var(--cream);background:rgba(var(--panel-tint-rgb),.25)}
+  .navsheet-link.on{
+    color:var(--ink);background:linear-gradient(135deg,var(--gold),var(--pop));
+    box-shadow:0 6px 16px rgba(var(--gold-rgb),.22);
+  }
+
+  .sidebar-spacer{flex:1}
+  .sidebar-bottom{
+    padding:10px 10px 14px;margin-top:8px;border-top:1px solid rgba(var(--gold-rgb),.15);
+    display:flex;flex-direction:column;align-items:flex-start;gap:8px;
+  }
+  .sidebar-actions{display:flex;align-items:center;gap:8px}
+
+  /* ---------- header ---------- */
+  header{
+    display:flex;align-items:center;gap:14px;
+    padding:10px 14px;margin-bottom:16px;
+    border:1px solid var(--edge);border-radius:14px;
+    background:linear-gradient(180deg,rgba(var(--panel-tint-rgb),.42),rgba(var(--panel-tint-rgb),.22));
+    box-shadow:0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
+  }
+  .chipstack{
+    flex:1;display:flex;align-items:center;justify-content:center;gap:12px;
+    padding:12px 16px;border-radius:12px;
+    border:1px solid var(--edge);background:rgba(var(--panel-tint-rgb),.35);
+  }
+  .chipstack .lbl{font-size:11px;letter-spacing:calc(3px * var(--ui-track));color:var(--gold-dim);text-transform:var(--ui-case)}
+  /* Reserving room for a big balance keeps the CHIPS label still. Without it
+     the number is content-sized, so every win or loss that changes its digit
+     count slid the label sideways — the most constantly visible movement in
+     the app, since the balance updates on literally every bet. */
+  .chipstack .amt{
+    font-size:28px;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums;line-height:1;
+    min-width:176px;text-align:center;
+  }
+  .chipstack .amt.flash-up{animation:flashUp .6s ease}
+  .chipstack .amt.flash-dn{animation:flashDn .6s ease}
+  @keyframes flashUp{0%,100%{color:var(--gold)}30%{color:var(--good);transform:scale(1.12)}}
+  @keyframes flashDn{0%,100%{color:var(--gold)}30%{color:var(--bad);transform:scale(.93)}}
+
+  /* ---------- panels ---------- */
+  .game{display:none}
+  .game.on{display:block;animation:fade .3s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .table{
+    border:1px solid var(--edge);border-radius:16px;padding:20px;
+    background:
+      radial-gradient(600px 300px at 50% 0%, rgba(255,255,255,.05), transparent 70%),
+      linear-gradient(180deg, rgba(var(--bg1-rgb),.75), rgba(var(--bg3-rgb),.75));
+    box-shadow:0 16px 40px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  h2.title{
+    margin:0 0 4px;font-size:15px;letter-spacing:calc(4px * var(--ui-track));text-transform:var(--ui-case);color:var(--gold);
+  }
+  p.sub{margin:0 0 18px;font-size:12px;color:rgba(var(--cream-rgb),.5)}
+
+  .msg{
+    min-height:26px;margin:14px 0 0;text-align:center;
+    font-size:15px;font-weight:600;letter-spacing:calc(1px * var(--ui-track));
+  }
+  .msg.win{color:var(--good)}
+  .msg.lose{color:var(--bad)}
+  .msg.info{color:var(--cream)}
+
+  /* ---------- bet controls ---------- */
+  .betbar{
+    display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;
+    margin-top:18px;padding-top:16px;border-top:1px solid rgba(var(--gold-rgb),.15);
+  }
+  /* display:flex above outranks the browser's [hidden]{display:none}, so the
+     poker buy-in bar needs telling explicitly to go away once you are seated. */
+  .betbar[hidden]{display:none}
+  .betbar .lbl{font-size:10px;letter-spacing:calc(2px * var(--ui-track));text-transform:var(--ui-case);color:var(--gold-dim)}
+  .chipbtn{
+    width:52px;height:52px;border-radius:50%;cursor:pointer;
+    font:inherit;font-size:13px;font-weight:700;color:#fff;
+    border:3px dashed rgba(255,255,255,.65);
+    box-shadow:0 4px 10px rgba(0,0,0,.45);
+    transition:.15s;
+  }
+  .chipbtn:hover{transform:translateY(-3px)}
+  .chipbtn.sel{outline:3px solid var(--gold);outline-offset:2px}
+  .chipbtn[data-v="5"]{background:radial-gradient(circle at 35% 30%,#e05a5f,#a3242a)}
+  .chipbtn[data-v="25"]{background:radial-gradient(circle at 35% 30%,#4c9d6b,#1c6640)}
+  .chipbtn[data-v="100"]{background:radial-gradient(circle at 35% 30%,#3a3a3a,#111)}
+  .chipbtn[data-v="500"]{background:radial-gradient(circle at 35% 30%,#7f5ad6,#42227e)}
+  /* width:0 against the min-width pins every readout to exactly its min-width,
+     so its size comes from the rule and never from what is inside it. With only
+     a min-width, a big typed stake ("100,000,000,000") stretched the box from
+     110px to 192px, sliding its neighbours along the centred bet bar and — with
+     less slack — flipping the whole row onto a second line mid-play. Anything
+     too long to fit is now clipped rather than allowed to reflow the row. */
+  .stake{
+    padding:10px 18px;border-radius:10px;border:1px solid var(--edge);background:rgba(var(--panel-tint-rgb),.4);
+    font-size:20px;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums;min-width:110px;text-align:center;
+    width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .custom-bet{
+    width:92px;padding:10px 10px;border-radius:10px;border:1px solid var(--edge);
+    background:rgba(var(--panel-tint-rgb),.4);color:var(--gold);font:inherit;font-size:14px;font-weight:700;
+    text-align:center;font-variant-numeric:tabular-nums;transition:.15s;
+  }
+  .custom-bet::placeholder{color:rgba(var(--cream-rgb),.35);font-weight:400;letter-spacing:0}
+  .custom-bet:focus{outline:none;border-color:var(--gold)}
+  .custom-bet.sel{outline:2px solid var(--gold);outline-offset:2px}
+  .custom-bet::-webkit-outer-spin-button,.custom-bet::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .custom-bet[type="number"]{-moz-appearance:textfield}
+  .btn{
+    padding:12px 26px;cursor:pointer;font:inherit;font-size:13px;font-weight:700;
+    letter-spacing:calc(2px * var(--ui-track));text-transform:var(--ui-case);border-radius:10px;
+    color:var(--ink);background:linear-gradient(135deg,var(--gold),var(--pop));
+    border:1px solid var(--gold);box-shadow:0 6px 16px rgba(var(--gold-rgb),.2);
+    transition:.15s;
+  }
+  .btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 10px 22px rgba(var(--gold-rgb),.3)}
+  .btn:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
+  .btn.ghost{
+    color:var(--gold);background:transparent;border:1px solid var(--edge);box-shadow:none;
+  }
+  .btn.ghost:hover:not(:disabled){background:rgba(var(--gold-rgb),.1)}
+  .btn.sm{padding:9px 16px;font-size:11px}
+  .iconbtn{
+    width:38px;height:38px;border-radius:50%;cursor:pointer;
+    font-size:17px;line-height:1;color:var(--gold);
+    background:transparent;border:1px solid var(--edge);
+    display:flex;align-items:center;justify-content:center;
+    transition:.18s;
+  }
+  .iconbtn:hover{background:rgba(var(--gold-rgb),.12);border-color:var(--gold);transform:rotate(35deg)}
+
+  /* ---------- poker ---------- */
+  /* The table itself is a canvas; only the controls are DOM. */
+  #pokCanvas{
+    display:block;width:100%;
+    /* The scene is composed at 900x520 and painted to fit. Carrying that shape
+       on the element itself is what stops it being letterboxed into a wide
+       short box with dead bars either side. */
+    /* Taller than the scene's own 900x520 on a phone: the layout is derived
+       from the box, so the extra height goes into the table rather than bars. */
+    aspect-ratio:900/640;
+    border-radius:14px;border:1px solid var(--edge);background:#07100c;
+  }
+  .pok-raise{display:flex;align-items:center;gap:8px;flex:1 1 200px;max-width:300px}
+  .pok-raise input[type=range]{flex:1;accent-color:var(--gold)}
+  .pok-raiseval{min-width:54px;text-align:right;font-weight:700;color:var(--gold)}
+
+  /* ---------- settings modal ---------- */
+  .modal-overlay{
+    display:none;position:fixed;inset:0;z-index:50;
+    background:rgba(0,0,0,.6);
+    align-items:center;justify-content:center;padding:16px;
+  }
+  .modal-overlay.on{display:flex}
+  .modal{
+    width:100%;max-width:780px;max-height:min(740px, 92vh);border-radius:14px;
+    background:linear-gradient(180deg,var(--modal-a),var(--modal-b));
+    border:1px solid var(--edge);
+    box-shadow:0 20px 50px rgba(0,0,0,.5);
+    display:flex;overflow:hidden;position:relative;
+  }
+  .modal-sidebar{
+    flex:0 0 150px;padding:22px 0;display:flex;flex-direction:column;gap:2px;
+    background:rgba(var(--panel-tint-rgb),.22);border-right:1px solid var(--edge);overflow-y:auto;
+  }
+  .subtab{
+    background:transparent;border:none;border-left:3px solid transparent;
+    text-align:left;padding:12px 18px;cursor:pointer;
+    font:inherit;font-size:11px;font-weight:600;letter-spacing:calc(2px * var(--ui-track));text-transform:var(--ui-case);
+    color:rgba(var(--cream-rgb),.5);transition:.15s;
+  }
+  /* the rail is a flex column, so an auto top margin drops this to the bottom
+     edge and separates the account from the settings proper */
+  .subtab-foot{margin-top:auto}
+  .subtab-acct{
+    padding:6px 18px 0;display:flex;flex-direction:column;align-items:flex-start;gap:7px;
+  }
+  .subtab-acct .who{
+    max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    font-size:10px;letter-spacing:calc(1px * var(--ui-track));color:rgba(var(--cream-rgb),.42);
+  }
+  .subtab-acct .btn{padding:6px 12px;font-size:10px}
+  .subtab:hover{color:var(--cream);background:rgba(var(--panel-tint-rgb),.18)}
+  .subtab.on{color:var(--gold);border-left-color:var(--gold);background:rgba(var(--gold-rgb),.1)}
+  .modal-content{flex:1;min-width:0;padding:28px;overflow-y:auto}
+  .modal-close{
+    position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;
+    border:1px solid var(--edge);background:rgba(var(--panel-tint-rgb),.25);color:var(--cream);
+    cursor:pointer;font-size:15px;line-height:1;
+    display:flex;align-items:center;justify-content:center;transition:.15s;z-index:2;
+  }
+  .modal-close:hover{background:rgba(var(--gold-rgb),.15);border-color:var(--gold);color:var(--gold)}
+  .subpanel{display:none}
+  .subpanel.on{display:block;animation:fade .25s ease}
+  .modal h2{
+    margin:0 0 4px;font-size:15px;letter-spacing:calc(4px * var(--ui-track));text-transform:var(--ui-case);color:var(--gold);
+  }
+  .modal p.sub{margin:0 0 18px}
+  .field{margin-bottom:16px}
+  .field label{
+    display:block;font-size:10px;letter-spacing:calc(2px * var(--ui-track));text-transform:var(--ui-case);
+    color:var(--gold-dim);margin-bottom:6px;
+  }
+  .field input{
+    width:100%;padding:10px 12px;border-radius:8px;
+    border:1px solid var(--edge);background:rgba(var(--panel-tint-rgb),.4);
+    color:var(--cream);font:inherit;font-size:15px;font-variant-numeric:tabular-nums;
+  }
+  .field input:focus{outline:none;border-color:var(--gold)}
+  .modal-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;margin-top:20px}
+  .modal-note{font-size:11px;color:rgba(var(--cream-rgb),.45);margin-top:14px;line-height:1.6}
+
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0}
+  .toggle-label{font-size:13px;color:var(--cream)}
+  .switch{position:relative;display:inline-block;width:44px;height:24px;flex:0 0 auto}
+  .switch input{opacity:0;width:0;height:0;position:absolute}
+  .slider-track{
+    position:absolute;inset:0;cursor:pointer;border-radius:999px;
+    background:rgba(var(--panel-tint-rgb),.4);border:1px solid var(--edge);transition:.2s;
+  }
+  .slider-track::before{
+    content:"";position:absolute;height:16px;width:16px;left:3px;top:2px;
+    background:var(--cream);border-radius:50%;transition:.2s;
+  }
+  .switch input:checked + .slider-track{background:linear-gradient(135deg,var(--gold),var(--pop));border-color:var(--gold)}
+  .switch input:checked + .slider-track::before{transform:translateX(20px);background:var(--ink)}
+
+  .section-title{
+    font-size:10px;font-weight:700;letter-spacing:calc(2px * var(--ui-track));text-transform:var(--ui-case);
+    color:var(--gold-dim);margin:20px 0 8px;
+  }
+  .section-title:first-of-type{margin-top:2px}
+  /* the margin lives on the wrapper, because :first-of-type above would match
+     the nested title as the first div of this flex row and collapse it to 2px */
+  .section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:20px 0 8px}
+  /* The panel's own heading with its one action alongside; the heading keeps its
+     4px bottom margin so whatever follows sits exactly where it did before.
+     The right padding is for the close button, which floats over this corner —
+     without it the changelog button slid underneath the cross. */
+  .panel-head{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    padding-right:34px;
+  }
+  .section-head .section-title{margin:0}
+  /* 92px min fits all five across the panel; the label tracking comes in to
+     match, because "Biggest hit" at the old spacing wrapped inside the cell */
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px}
+  .stat-cell{
+    padding:8px 10px;border-radius:10px;min-width:0;
+    border:1px solid var(--edge);background:rgba(var(--panel-tint-rgb),.4);
+  }
+  .stat-cell span{
+    display:block;font-size:9px;letter-spacing:calc(1px * var(--ui-track));
+    text-transform:var(--ui-case);color:var(--gold-dim);margin-bottom:3px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .stat-cell b{display:block;font-size:16px;color:var(--gold);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  input[type="range"]{
+    -webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:999px;
+    background:rgba(var(--panel-tint-rgb),.4);border:1px solid var(--edge);cursor:pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:16px;height:16px;border-radius:50%;
+    background:var(--gold);border:2px solid var(--ink);cursor:pointer;
+  }
+  input[type="range"]::-moz-range-thumb{
+    width:16px;height:16px;border-radius:50%;background:var(--gold);border:2px solid var(--ink);cursor:pointer;
+  }
+  .modal.simple{display:block;max-width:380px;padding:24px}
+
+  /* ---------- appearance / theme picker ---------- */
+  .theme-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:2px}
+  .theme-card{
+    position:relative;height:78px;border-radius:12px;overflow:hidden;cursor:pointer;
+    border:2px solid rgba(255,255,255,.12);padding:0;font:inherit;
+    display:flex;align-items:flex-end;transition:.15s;
+  }
+  .theme-card:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.35)}
+  .theme-card.on{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.2)}
+  .theme-card .swatch-label{
+    position:relative;width:100%;padding:7px 10px;
+    background:linear-gradient(0deg, rgba(0,0,0,.8), transparent);
+    font-size:10.5px;font-weight:700;letter-spacing:calc(1px * var(--ui-track));text-transform:var(--ui-case);color:#fff;
+  }
+  .theme-card .swatch-tag{display:block;font-size:9px;font-weight:400;letter-spacing:.5px;text-transform:none;color:rgba(255,255,255,.7);margin-top:2px}
+  .theme-card .check{
+    position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:50%;
+    background:#fff;color:#111;font-size:11px;font-weight:800;
+    display:flex;align-items:center;justify-content:center;
+  }
+
+  /* ---------- appearance / font picker ---------- */
+  /* minmax(0,…) so a long name like Trebuchet MS can't widen its own column */
+  .font-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:2px}
+  .font-card{
+    position:relative;min-height:96px;padding:14px 10px;border-radius:12px;cursor:pointer;
+    border:1px solid var(--edge);background:rgba(var(--panel-tint-rgb),.32);
+    color:var(--cream);display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:6px;text-align:center;transition:.15s;
+  }
+  .font-card:hover{transform:translateY(-2px);border-color:var(--gold)}
+  .font-card.on{border-color:var(--gold);box-shadow:0 0 0 2px rgba(var(--gold-rgb),.35)}
+  /* the name is the sample, so it renders in its own face and never in caps */
+  .font-card .face{font-size:17px;font-weight:700;line-height:1.25;text-transform:none;letter-spacing:0}
+  .font-card .sample{font-size:11px;opacity:.62;text-transform:none;letter-spacing:0}
+  .font-card .check{
+    position:absolute;top:6px;right:6px;width:18px;height:18px;border-radius:50%;
+    background:var(--gold);color:var(--ink);font-size:10px;font-weight:800;
+    display:flex;align-items:center;justify-content:center;
+  }
+
+  /* ---------- appearance: themes | fonts, side by side ---------- */
+  /* Themes take the wider half so their swatches stay legible; the font cards
+     drop to one per row, which is the only way three of them fit a half-panel
+     without the longer names spilling past their own borders. */
+  .appearance-split > div{min-width:0}
+  .appearance-split > div + div .section-title{margin-top:20px}
+  @media(min-width:660px){
+    .appearance-split{display:grid;grid-template-columns:1.4fr 1fr;gap:20px;align-items:start}
+    .appearance-split > div + div .section-title{margin-top:2px}
+    .appearance-split .font-grid{grid-template-columns:minmax(0,1fr)}
+    .appearance-split .font-card{min-height:72px;padding:10px}
+    .appearance-split .theme-card{height:74px}
+    .appearance-split .theme-card .swatch-label{padding:5px 8px;font-size:10px;line-height:1.2}
+    .appearance-split .theme-card .swatch-tag{font-size:8.5px;line-height:1.2;margin-top:1px}
+  }
+
+  /* ---------- slots ---------- */
+  .machine{
+    max-width:520px;margin:0 auto;padding:20px;border-radius:16px;
+    background:linear-gradient(180deg,#2a1220,#150810);
+    border:2px solid var(--gold-dim);
+    box-shadow:0 14px 36px rgba(0,0,0,.5), inset 0 2px 0 rgba(255,255,255,.08);
+  }
+  .reels{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .reel{
+    height:120px;border-radius:12px;overflow:hidden;
+    background:linear-gradient(180deg,#fdfaf2,#d9cfb8);
+    border:2px solid var(--gold-dim);
+    display:flex;align-items:center;justify-content:center;
+    font-size:60px;line-height:1;
+    box-shadow:inset 0 8px 18px rgba(0,0,0,.35);
+  }
+  .reel.spin{animation:reelBlur .12s linear infinite}
+  @keyframes reelBlur{0%{transform:translateY(-6px);filter:blur(1.5px)}50%{transform:translateY(6px);filter:blur(2.5px)}100%{transform:translateY(-6px);filter:blur(1.5px)}}
+  .reel.hit{animation:hitPulse .5s ease 2;border-color:var(--gold)}
+  @keyframes hitPulse{0%,100%{box-shadow:inset 0 8px 18px rgba(0,0,0,.35)}50%{box-shadow:0 0 26px var(--gold), inset 0 0 20px rgba(var(--gold-rgb),.5)}}
+  .paytable{
+    margin:18px auto 0;max-width:520px;font-size:12px;
+    border:1px solid rgba(var(--gold-rgb),.18);border-radius:10px;overflow:hidden;
+  }
+  .paytable div{
+    display:flex;justify-content:space-between;padding:7px 14px;
+    color:rgba(var(--cream-rgb),.72);
+  }
+  .paytable div:nth-child(odd){background:rgba(var(--panel-tint-rgb),.22)}
+  .paytable b{color:var(--gold)}
+
+  /* ---------- leaderboard ---------- */
+  .leaderboard{display:flex;flex-direction:column;gap:8px;margin-top:18px;max-width:560px}
+  /* display:flex above outranks the browser's [hidden]{display:none}, so the
+     two boards would otherwise render on top of each other */
+  .leaderboard[hidden]{display:none}
+  .board-row{
+    display:grid;grid-template-columns:28px 132px 1fr auto;align-items:center;gap:12px;
+    padding:10px 14px;border-radius:10px;
+    border:1px solid var(--edge);background:rgba(var(--panel-tint-rgb),.22);
+  }
+  .board-row.lead{border-color:var(--gold);background:rgba(var(--gold-rgb),.1)}
+  .board-rank{font-size:15px;text-align:center;color:var(--gold-dim)}
+  .board-row.lead .board-rank{font-size:18px}
+  .board-game{font-size:13px;font-weight:600;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* diverging bar: profit grows right of centre, loss grows left, both scaled
+     to the biggest swing on the board */
+  .board-bar{position:relative;height:8px;border-radius:999px;background:rgba(var(--panel-tint-rgb),.35)}
+  .board-bar::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:rgba(var(--cream-rgb),.22)}
+  .board-fill{position:absolute;top:0;bottom:0;border-radius:999px;transition:width .3s ease}
+  .board-fill.pos{left:50%;background:linear-gradient(90deg,rgba(74,222,128,.55),var(--good))}
+  .board-fill.neg{right:50%;background:linear-gradient(270deg,rgba(248,113,113,.55),var(--bad))}
+  .board-amt{font-size:15px;font-variant-numeric:tabular-nums;text-align:right;min-width:76px}
+  .board-amt.up{color:var(--good)}
+  .board-amt.down{color:var(--bad)}
+  .board-amt.flat{color:rgba(var(--cream-rgb),.45)}
+
+  /* ---------- cards ---------- */
+  .seat{margin-bottom:20px}
+  .seat h3{
+    margin:0 0 8px;font-size:11px;letter-spacing:calc(3px * var(--ui-track));text-transform:var(--ui-case);color:var(--gold-dim);
+    display:flex;align-items:center;gap:10px;
+  }
+  /* The pill cycles through "—", "7 + ?", "18" and "soft 17" as a hand plays
+     out; reserving the widest keeps the seat heading from twitching. */
+  .seat h3 .score{
+    padding:2px 10px;border-radius:999px;background:rgba(var(--panel-tint-rgb),.45);
+    border:1px solid var(--edge);color:var(--gold);font-size:12px;letter-spacing:calc(1px * var(--ui-track));
+    display:inline-block;min-width:66px;text-align:center;
+  }
+  .hand{display:flex;gap:8px;min-height:112px;flex-wrap:wrap}
+  .card{
+    width:78px;height:110px;border-radius:8px;flex:0 0 auto;
+    background:linear-gradient(160deg,#fff,#e8e2d4);
+    border:1px solid rgba(0,0,0,.25);
+    box-shadow:0 6px 14px rgba(0,0,0,.4);
+    position:relative;color:var(--black);
+    animation:deal .32s cubic-bezier(.2,.9,.3,1.3);
+  }
+  @keyframes deal{from{opacity:0;transform:translateY(-26px) rotate(-8deg) scale(.9)}to{opacity:1;transform:none}}
+  .card.red{color:var(--red)}
+  .card .corner{position:absolute;font-size:15px;font-weight:700;line-height:1;text-align:center}
+  .card .corner.tl{top:7px;left:8px}
+  .card .corner.br{bottom:7px;right:8px;transform:rotate(180deg)}
+  .card .pip{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:34px}
+  .card.back{
+    background:
+      repeating-linear-gradient(45deg,#8b2230 0 6px,#6d1a26 6px 12px);
+    border:3px solid #f4ead7;
+  }
+  .card.back::after{content:"\2660";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px;color:rgba(244,234,215,.55)}
+
+  /* ---------- roulette ---------- */
+  .wheelbox{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:6px}
+  .wheel{
+    width:150px;height:150px;border-radius:50%;position:relative;
+    border:6px solid var(--gold-dim);
+    background:conic-gradient(#1b1b1b 0 10deg,#c8353a 10deg 20deg,#1b1b1b 20deg 30deg,#c8353a 30deg 40deg,#1b1b1b 40deg 50deg,#c8353a 50deg 60deg,#1b1b1b 60deg 70deg,#c8353a 70deg 80deg,#1b1b1b 80deg 90deg,#c8353a 90deg 100deg,#1b1b1b 100deg 110deg,#c8353a 110deg 120deg,#1b1b1b 120deg 130deg,#c8353a 130deg 140deg,#1b1b1b 140deg 150deg,#c8353a 150deg 160deg,#1b1b1b 160deg 170deg,#c8353a 170deg 180deg,#1b1b1b 180deg 190deg,#c8353a 190deg 200deg,#1b1b1b 200deg 210deg,#c8353a 210deg 220deg,#1b1b1b 220deg 230deg,#c8353a 230deg 240deg,#1b1b1b 240deg 250deg,#c8353a 250deg 260deg,#1b1b1b 260deg 270deg,#c8353a 270deg 280deg,#1b1b1b 280deg 290deg,#c8353a 290deg 300deg,#1b1b1b 300deg 310deg,#c8353a 310deg 320deg,#1b1b1b 320deg 330deg,#c8353a 330deg 340deg,#1b1b1b 340deg 350deg,#0b6b3a 350deg 360deg);
+    box-shadow:0 10px 30px rgba(0,0,0,.5), inset 0 0 30px rgba(0,0,0,.6);
+  }
+  .wheel.spinning{animation:wheelSpin .7s linear infinite}
+  @keyframes wheelSpin{to{transform:rotate(360deg)}}
+  .wheel .hub{
+    position:absolute;inset:30%;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#2b2b2b,#0a0a0a);
+    border:2px solid var(--gold-dim);
+    display:flex;align-items:center;justify-content:center;
+    font-size:30px;font-weight:700;color:#f4ead7;
+  }
+  .board{
+    display:grid;grid-template-columns:repeat(12,1fr);gap:4px;margin:14px 0 8px;
+  }
+  .cell{
+    padding:9px 0;text-align:center;cursor:pointer;border-radius:5px;
+    font-size:12px;font-weight:700;color:#fff;border:1px solid rgba(255,255,255,.14);
+    position:relative;transition:.12s;user-select:none;
+  }
+  .cell:hover{transform:translateY(-2px);border-color:var(--gold)}
+  .cell.red{background:linear-gradient(180deg,#d04045,#a3242a)}
+  .cell.black{background:linear-gradient(180deg,#333,#141414)}
+  .cell.green{background:linear-gradient(180deg,#12905a,#0a5334);grid-column:span 12}
+  .cell.out{background:rgba(var(--panel-tint-rgb),.4);border:1px solid var(--edge);color:var(--cream);grid-column:span 4;padding:11px 0;font-size:11px;letter-spacing:calc(1px * var(--ui-track))}
+  .cell.out.sm{grid-column:span 3}
+  .cell .stack{
+    position:absolute;top:-7px;right:-7px;min-width:22px;height:22px;line-height:20px;
+    border-radius:999px;background:var(--gold);color:var(--ink);
+    font-size:10px;font-weight:800;border:2px solid var(--ink);
+  }
+  .cell.hitnum{animation:hitPulse .5s ease 3;outline:2px solid var(--gold)}
+  /* Fixed height, not min-height: the strip used to grow a second row as bets
+     were placed and snap back on clear, moving the message and bet bar with it.
+     Two rows are always reserved and a heavy layout scrolls within them. */
+  .slips{
+    display:flex;flex-wrap:wrap;gap:6px;justify-content:center;
+    height:50px;overflow-y:auto;align-content:flex-start;margin-top:6px;
+    font-size:11px;color:rgba(var(--cream-rgb),.7);
+  }
+  .slips span{padding:3px 9px;border-radius:999px;background:rgba(var(--panel-tint-rgb),.4);border:1px solid var(--edge)}
+
+  /* ---------- streak calendar ---------- */
+  /* Five doors on one row down to phone width: at 60px minimum they still fit
+     across a 320px screen, so the ladder never wraps into a shape that hides
+     which rung is today. */
+  .cal-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:4px 0 4px}
+  .cal-day{
+    position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+    min-height:82px;padding:10px 4px;border-radius:12px;
+    border:1px solid var(--edge);background:rgba(var(--panel-tint-rgb),.35);
+    text-align:center;transition:.2s;
+  }
+  .cal-day .n{
+    font-size:9px;letter-spacing:calc(1.5px * var(--ui-track));text-transform:var(--ui-case);
+    color:rgba(var(--cream-rgb),.45);
+  }
+  .cal-day .v{font-size:15px;font-weight:700;color:rgba(var(--cream-rgb),.5);font-variant-numeric:tabular-nums}
+  .cal-day .tick{font-size:13px;line-height:1;color:var(--good)}
+  /* collected */
+  .cal-day.done{border-color:rgba(var(--gold-rgb),.28);background:rgba(var(--gold-rgb),.08)}
+  .cal-day.done .v{color:var(--gold-dim)}
+  /* today, still unopened — the one the eye should go to */
+  .cal-day.today{
+    border-color:var(--gold);background:rgba(var(--gold-rgb),.16);
+    box-shadow:0 0 0 1px rgba(var(--gold-rgb),.35), 0 8px 22px rgba(var(--gold-rgb),.18);
+    animation:calPulse 1.8s ease-in-out infinite;
+  }
+  .cal-day.today .n{color:var(--gold)}
+  .cal-day.today .v{color:var(--gold);font-size:17px}
+  @keyframes calPulse{0%,100%{transform:none}50%{transform:translateY(-3px)}}
+  .cal-day.locked{opacity:.45}
+
+  /* The flame carries a dot when there is something to open, because the
+     calendar is not shown mid-spin and the badge is how you get back to it. */
+  .streak.ready{cursor:pointer}
+  .streak.ready::after{
+    content:"";position:absolute;top:-2px;right:-2px;width:9px;height:9px;border-radius:50%;
+    background:var(--good);box-shadow:0 0 0 2px var(--bg2);
+    animation:calPulse 1.4s ease-in-out infinite;
+  }
+
+  /* ---------- toast ---------- */
+  /* Bottom centre and click-through: it appears while you are mid-bet, so it
+     must never land on top of the thing you are about to press. */
+  .toast{
+    position:fixed;left:50%;bottom:20px;z-index:60;pointer-events:none;
+    display:flex;align-items:center;gap:11px;
+    padding:12px 20px;border-radius:999px;
+    border:1px solid rgba(var(--gold-rgb),.45);
+    background:linear-gradient(180deg,var(--modal-a),var(--modal-b));
+    box-shadow:0 14px 36px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08);
+    opacity:0;transform:translate(-50%,140%);
+    transition:transform .4s cubic-bezier(.2,.9,.3,1.25), opacity .3s ease;
+  }
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+  .toast .ic{font-size:19px;line-height:1}
+  .toast b{
+    display:block;font-size:12px;font-weight:700;color:var(--gold);
+    letter-spacing:calc(1.5px * var(--ui-track));text-transform:var(--ui-case);
+  }
+  .toast span{display:block;font-size:11px;color:rgba(var(--cream-rgb),.6);margin-top:2px}
+
+  /* ---------- footer ---------- */
+  /* Sits outside .app-shell so the sidebar stretches to the game panel and no
+     further — inside it, the sidebar ran on down beside this caption. */
+  footer{
+    max-width:var(--shell-max,1100px);margin:24px auto 0;padding:0 16px 60px;
+    text-align:center;font-size:11px;line-height:1.7;
+    color:rgba(var(--cream-rgb),.38);
+  }
+  footer b{color:var(--gold-dim)}
+  .version-tag{font-size:10px;letter-spacing:calc(2px * var(--ui-track));color:rgba(var(--cream-rgb),.42)}
+  .stats{
+    display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-bottom:10px;
+    font-size:11px;letter-spacing:calc(1px * var(--ui-track));text-transform:var(--ui-case);color:rgba(var(--cream-rgb),.45);
+  }
+  /* Fixed-width columns: these four counters climb all session, and letting them
+     size to their contents made the whole row shuffle after every hand. */
+  .stats span{
+    display:inline-flex;align-items:baseline;gap:6px;justify-content:center;
+    min-width:158px;
+  }
+  .stats b{color:var(--gold);font-size:13px;font-variant-numeric:tabular-nums}
+
+  /* ---------- horse racing ---------- */
+  /* Each playfield is drawn at a fixed size and painted scaled up, so a wider
+     one is a BIGGER game rather than more empty grass around the same small
+     track. fitGame() picks the width: as wide as the card allows, or narrower
+     if that is what it takes to fit the table on screen. */
+  .track-wrap, #stripCanvas, #plinkoCanvas, #flappyCanvas, #snakeCanvas, #pokCanvas, .fb-action{
+    max-width:var(--play-max,860px);margin-left:auto;margin-right:auto;
+  }
+  .track-wrap{
+    position:relative;border-radius:14px;overflow:hidden;
+    border:1px solid var(--edge);background:#07130d;
+    cursor:grab;user-select:none;
+  }
+  .track-wrap.dragging{cursor:grabbing}
+  /* Track and strip split a fixed budget so the pair is the same height with 3
+     runners as with 12. The strip is sized for the busiest field; a short one
+     just gets taller lanes. */
+  #trackCanvas{display:block;width:100%;height:280px;touch-action:none}
+  #stripCanvas{
+    display:block;width:100%;height:176px;margin-top:10px;
+    border-radius:10px;border:1px solid var(--edge);background:#07130d;
+  }
+  /* fixed cream/gold, not theme vars: this text overlays the race canvas, which
+     always paints its own dark backdrop regardless of the page theme */
+  .track-hint{
+    position:absolute;bottom:8px;right:10px;pointer-events:none;
+    font-size:9.5px;letter-spacing:calc(1.5px * var(--ui-track));text-transform:var(--ui-case);
+    color:rgba(244,234,215,.4);text-shadow:0 1px 4px rgba(0,0,0,.9);
+  }
+  .race-board{
+    position:absolute;top:8px;left:10px;pointer-events:none;
+    font-size:11px;line-height:1.6;font-variant-numeric:tabular-nums;
+    color:rgba(244,234,215,.8);text-shadow:0 1px 4px rgba(0,0,0,.95);
+  }
+  .rb-row{display:flex;align-items:center;gap:6px}
+  .rb-dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;border:1px solid rgba(0,0,0,.5)}
+  .rb-you{color:#e8c264;font-weight:700}
+  .field-inline{
+    display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;margin-top:14px;
+  }
+  .field-inline .lbl{font-size:10px;letter-spacing:calc(2px * var(--ui-track));text-transform:var(--ui-case);color:var(--gold-dim)}
+  /* The stats and the hint sat on one wrapping row whose total width landed
+     within a few px of the container, so gaining a digit (pipes 9 -> 10, or a
+     longer multiplier) flipped it between one line and two and moved everything
+     below it. Giving the hint its own row makes the height constant, and the
+     stat boxes can then grow digits without touching the layout. */
+  #tab-flappy .field-inline > .lbl:last-child{flex:0 0 100%}
+  .horse-pick{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-top:12px}
+  .horse-btn{
+    width:40px;height:40px;border-radius:50%;cursor:pointer;flex:0 0 auto;
+    font:inherit;font-size:14px;font-weight:800;color:#fff;
+    border:2px solid rgba(255,255,255,.3);
+    text-shadow:0 1px 3px rgba(0,0,0,.6);
+    box-shadow:0 4px 10px rgba(0,0,0,.4);transition:.15s;
+  }
+  .horse-btn:hover{transform:translateY(-3px)}
+  .horse-btn.sel{outline:3px solid var(--gold);outline-offset:2px}
+  .horse-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+  /* ---------- plinko ---------- */
+  #plinkoCanvas{
+    display:block;width:100%;height:420px;
+    border-radius:14px;border:1px solid var(--edge);background:#07130d;
+  }
+
+  /* ---------- flappy ---------- */
+  #flappyCanvas{
+    display:block;width:100%;height:420px;touch-action:none;cursor:pointer;
+    border-radius:14px;border:1px solid var(--edge);background:#070d18;
+  }
+
+  /* ---------- snake ---------- */
+  /* The grid is exactly twice as wide as it is tall, so the canvas is too —
+     anything else is empty bands above and below the board. The desktop rule
+     adds a max-height off --play-h so fitGame can still trade the board away on
+     a short window; where that bites, the box goes shallower than 2:1 and the
+     board letterboxes rather than the table needing a scrollbar.
+     touch-action:none because steering is a swipe, and the page must not
+     scroll out from under it. */
+  #snakeCanvas{
+    display:block;width:100%;aspect-ratio:2/1;height:auto;touch-action:none;
+    border-radius:14px;border:1px solid var(--edge);background:#07130d;
+  }
+  /* Sits directly under the canvas and spans it: mid-flight your thumb is on the
+     sky, so the cash-out has to be a big target a finger-width away, not a chip
+     in the bet bar. On phones it sticks to the bottom of the viewport too. */
+  .fb-action{
+    display:block;width:100%;margin-top:10px;
+    padding:18px 20px;font-size:14px;letter-spacing:calc(3px * var(--ui-track));
+  }
+  .fb-action.cash{
+    color:#04120a;background:linear-gradient(135deg,#57e08d,#1c9c55);
+    border-color:#57e08d;box-shadow:0 8px 22px rgba(87,224,141,.28);
+  }
+  .fb-action.cash:hover:not(:disabled){box-shadow:0 12px 28px rgba(87,224,141,.42)}
+  .segmented{display:flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden}
+  .segmented button{
+    padding:8px 16px;background:transparent;border:none;cursor:pointer;
+    font:inherit;font-size:11px;font-weight:700;letter-spacing:calc(1px * var(--ui-track));text-transform:var(--ui-case);
+    color:rgba(var(--cream-rgb),.55);transition:.15s;
+  }
+  .segmented button:hover:not(:disabled){color:var(--cream)}
+  /* The label carries the ball count, so it grows from "Drop" to "Drop 50" and
+     back. Reserving the wider label's width stops that retitling from nudging
+     the bet bar — and, on a narrower window, flipping it onto a second line. */
+  #pkDrop{min-width:124px}
+  .segmented button.on{background:linear-gradient(135deg,var(--gold),var(--pop));color:var(--ink)}
+  .segmented button:disabled{opacity:.4;cursor:not-allowed}
+
+  @media(max-width:760px){
+    .app-shell{flex-direction:column;gap:12px}
+    /* One row that mirrors the chips bar below it — same padding and height.
+       The games scroll sideways instead of wrapping onto extra lines, which is
+       what used to make this bar three times taller than the bar beneath it. */
+    /* flex-basis 220px is a width in the desktop row layout, but the shell is a
+       column here — leave it set and it pins the bar to a 220px *height*. */
+    .sidebar{
+      flex:0 0 auto;position:relative;
+      flex-direction:row;flex-wrap:nowrap;align-items:center;
+      padding:10px 14px;gap:8px;min-height:76px;
+    }
+    /* no scrolling strip to protect any more, so the name keeps its natural
+       width and only ellipsises if the bar genuinely runs out */
+    .sidebar-brand{display:flex;align-items:center;gap:8px;padding:0 12px 0 0;margin-bottom:0;margin-right:0;border-bottom:none;border-right:1px solid rgba(var(--gold-rgb),.15);flex:0 1 auto;min-width:0}
+    .sidebar-brand h1{margin:0;font-size:14px;letter-spacing:calc(1px * var(--ui-track));min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .sidebar-brand small{display:none}
+    /* The sheet is the navigation here, so the inline rail goes entirely —
+       keeping both would put two nav systems in one 76px bar. That also hands
+       the freed width back to the casino name. */
+    .iconbtn.menu-btn{display:flex;flex:0 0 auto}
+    .navsheet-overlay{display:flex}
+    .sidebar-nav{display:none}
+    .sidebar-bottom{margin-left:auto}
+    .sidebar-label{display:none}
+    .sidebar-link{width:auto;padding:8px 10px;font-size:11px;flex:0 0 auto;white-space:nowrap}
+    .sidebar-link .ic{font-size:14px;width:auto}
+
+    /* Fingers, not a cursor. Measured on a 375px screen these came out at 29px
+       (the segmented pickers) and 33px (the small buttons, including Plinko's
+       and Racing's +/- which are only 43px wide as well). min-height with the
+       label centred rather than more padding, so the size does not depend on
+       the font the player picked under Appearance. */
+    .btn.sm,.segmented button{
+      min-height:44px;display:inline-flex;align-items:center;justify-content:center;
+    }
+    .lb-refresh{width:38px;height:38px;font-size:17px}
+    .sidebar-spacer{display:none}
+    /* back into the flow here, centred in the gap the auto-margin opens up
+       between the menu button and the settings pair */
+    /* relative, not static: it lays out the same but gives the ready dot something to hang off */
+    .streak{position:relative;margin:0 auto}
+    .sidebar-bottom{border-top:none;margin-top:0;padding:0;flex:0 0 auto;flex-direction:row;align-items:center;gap:8px}
+    /* out of flow: stacked in flow it would push this bar past 76px and it would
+       stop sitting flush with the chips bar below */
+    .sidebar-bottom .version-tag{
+      position:absolute;right:14px;bottom:3px;
+      margin:0;font-size:9px;line-height:1;pointer-events:none;max-width:40%;
+      overflow:hidden;white-space:nowrap;
+    }
+    .fb-action{position:sticky;bottom:10px;z-index:5;padding:22px 20px;font-size:15px}
+  }
+  @media(max-width:560px){
+    /* the menu button reclaims what the suits cost, and the casino name wins
+       that trade — it is the identity */
+    .sidebar-brand .suits{display:none}
+    /* smaller type needs less reserved room; the desktop widths would push the
+       balance past the bar and spread the four counters over three rows */
+    .chipstack .amt{font-size:22px;min-width:132px}
+    .stats span{min-width:132px}
+    header{padding:8px 10px;gap:8px}
+    .reel{height:88px;font-size:42px}
+    .card{width:60px;height:86px}
+    .card .pip{font-size:26px}
+    .board{grid-template-columns:repeat(6,1fr)}
+    .cell.out{grid-column:span 3}
+    .cell.green{grid-column:span 6}
+    .modal{flex-direction:column;max-height:85vh}
+    /* the tabs share the strip with the absolute close button, so they tighten
+       up rather than scrolling underneath it */
+    .modal-sidebar{flex-direction:row;flex:0 0 auto;overflow-x:auto;border-right:none;border-bottom:1px solid var(--edge);padding:8px 46px 8px 8px}
+    .subtab{border-left:none;border-bottom:3px solid transparent;flex:0 0 auto;white-space:nowrap;padding:11px 9px;letter-spacing:.5px}
+    /* the rail is a row here, where an auto top margin would shove it out of
+       line with its siblings rather than to the end */
+    .subtab-foot{margin-top:0}
+    /* and the account line runs along beside the tabs instead of under them */
+    .subtab-acct{flex-direction:row;align-items:center;gap:8px;padding:0 4px 0 8px;flex:0 0 auto}
+    .subtab-acct .who{max-width:110px}
+    .subtab.on{border-left-color:transparent;border-bottom-color:var(--gold)}
+    .theme-grid{grid-template-columns:1fr}
+    /* fonts stay three across as designed, just tighter — the note is illegible
+       at this width, and the name in its own face is the point of the card */
+    .font-grid{gap:8px}
+    .font-card{min-height:80px;padding:12px 4px}
+    .font-card .face{font-size:14px}
+    .font-card .sample{display:none}
+    /* the bar is the first thing to go at this width — rank, name and amount
+       still need to fit a single row without wrapping */
+    .board-row{grid-template-columns:22px 1fr auto;gap:8px;padding:9px 12px}
+    .board-bar{display:none}
+    .board-game{font-size:12px}
+  }
+
+  /* ---------- light theme ---------- */
+  /* On a pale page the dark-theme depth cues stop working: translucent white
+     panels vanish into the background, heavy black shadows read as grey mud,
+     and the white inset highlights do nothing. Panels become solid white
+     lifted off a faintly tinted page, with shadows tightened and softened. */
+  :root[data-theme="light"] body{
+    background:linear-gradient(180deg,#eef0f3 0%, #e7e9ee 55%, #dfe2e8 100%);
+    background-attachment:fixed;
+  }
+  :root[data-theme="light"] body::before{opacity:0}   /* dot grid only reads on dark */
+
+  :root[data-theme="light"] header,
+  :root[data-theme="light"] .sidebar,
+  :root[data-theme="light"] .navsheet{
+    background:#fff;
+    border-color:rgba(15,23,42,.10);
+    box-shadow:0 1px 2px rgba(15,23,42,.05), 0 6px 16px rgba(15,23,42,.07);
+  }
+  :root[data-theme="light"] .table{
+    background:#fff;
+    border-color:rgba(15,23,42,.10);
+    box-shadow:0 1px 2px rgba(15,23,42,.05), 0 8px 24px rgba(15,23,42,.08);
+  }
+  :root[data-theme="light"] .modal{
+    box-shadow:0 12px 32px rgba(15,23,42,.16), 0 2px 6px rgba(15,23,42,.08);
+  }
+  :root[data-theme="light"] .modal-overlay{background:rgba(15,23,42,.32)}
+
+  /* inputs and wells need a tint that is *darker* than the card, not lighter */
+  :root[data-theme="light"] .chipstack,
+  :root[data-theme="light"] .stake,
+  :root[data-theme="light"] .custom-bet,
+  :root[data-theme="light"] .field input,
+  :root[data-theme="light"] .cell.out,
+  :root[data-theme="light"] .slips span{
+    background:#f4f5f7;
+    border-color:rgba(15,23,42,.14);
+  }
+  :root[data-theme="light"] .paytable{border-color:rgba(15,23,42,.10)}
+  :root[data-theme="light"] .paytable div:nth-child(odd){background:#f6f7f9}
+  :root[data-theme="light"] .betbar{border-top-color:rgba(15,23,42,.10)}
+  :root[data-theme="light"] .segmented{border-color:rgba(15,23,42,.14)}
+  :root[data-theme="light"] .btn.ghost{border-color:rgba(15,23,42,.18)}
+  :root[data-theme="light"] .iconbtn{border-color:rgba(15,23,42,.16)}
+  :root[data-theme="light"] .sidebar-brand{border-bottom-color:rgba(15,23,42,.10)}
+  :root[data-theme="light"] .sidebar-bottom{border-top-color:rgba(15,23,42,.10)}
+  :root[data-theme="light"] .modal-sidebar{
+    background:#f4f5f7;border-right-color:rgba(15,23,42,.10);
+  }
+
+  /* the cabinet was a near-black maroon — far too heavy against a white card */
+  :root[data-theme="light"] .machine{
+    background:linear-gradient(180deg,#5d6470,#3f4550);
+    border-color:rgba(15,23,42,.28);
+    box-shadow:0 8px 22px rgba(15,23,42,.18), inset 0 2px 0 rgba(255,255,255,.14);
+  }
+  :root[data-theme="light"] .reel{
+    border-color:rgba(15,23,42,.28);
+    box-shadow:inset 0 6px 14px rgba(15,23,42,.18);
+  }
+
+  /* low-alpha greys that were readable on dark are far too faint on white */
+  :root[data-theme="light"] p.sub{color:rgba(24,24,24,.62)}
+  :root[data-theme="light"] .sidebar-label{color:rgba(24,24,24,.52)}
+  :root[data-theme="light"] footer{color:rgba(24,24,24,.58)}
+  :root[data-theme="light"] .version-tag{color:rgba(24,24,24,.55)}
+  :root[data-theme="light"] .stats{color:rgba(24,24,24,.6)}
+  :root[data-theme="light"] .custom-bet::placeholder{color:rgba(24,24,24,.45)}
+  :root[data-theme="light"] .modal-note{color:rgba(24,24,24,.62)}
+  :root[data-theme="light"] .toast span{color:rgba(24,24,24,.62)}
+  :root[data-theme="light"] .subtab{color:rgba(24,24,24,.62)}
+  :root[data-theme="light"] .segmented button{color:rgba(24,24,24,.62)}
+
+  /* ---------- desktop: fit the viewport, never scroll the page ---------- */
+  /* The document becomes exactly one screen tall and the playfields absorb
+     whatever height is left over, so every game is fully visible without
+     scrolling. Anything that still cannot fit scrolls inside its own card
+     rather than pushing the page taller. Mobile keeps normal page scrolling. */
+  @media(min-width:761px){
+    html,body{height:100%}
+    body{overflow:hidden;display:flex;flex-direction:column}
+
+    /* A 1100px column left a wide screen with empty gutters either side. The
+       shell spreads into them, which gives the zoom below room to grow before
+       anything has to wrap. */
+    :root{--shell-max:1680px}
+
+    /* On a phone a playfield is as wide as the phone and no wider, so its height
+       is fixed and that is that. With room to spread, the height becomes the
+       dial fitGame() turns — --play-h is whatever leaves the table exactly one
+       screen tall — and each playfield takes its share of it.
+
+       Racing and Flappy then run the full width of the card, which is the point:
+       a wider racecourse is more of the course, and a wider sky is further
+       ahead. Plinko is the exception. Its board is a triangle, so width past
+       what its height can fill is just empty sky, and it stays capped and
+       centred. */
+    :root{--play-h:280px}
+    .track-wrap,#stripCanvas,#flappyCanvas,#pokCanvas,.fb-action{max-width:none}
+    #trackCanvas{height:var(--play-h)}
+    #stripCanvas{height:calc(var(--play-h) * 0.63)}
+    #flappyCanvas{height:calc(var(--play-h) * 1.5)}
+    /* The poker room is a view onto a scene, so it takes the full width it is
+       given and its height rides --play-h with the rest. */
+    /* Height is the dial fitGame turns, so the width is pinned to it at the
+       scene's own ratio rather than to the card. */
+    /* The scene lays itself out down whatever height it is given, so the box
+       just takes the card's width and the height fitGame can spare. */
+    #pokCanvas{aspect-ratio:auto;height:calc(var(--play-h) * 1.15);max-height:600px;max-width:none}
+    /* Plinko and Snake are both boards rather than views onto a bigger world, so
+       past their own shape the extra width is dead space and they stay capped. */
+    #plinkoCanvas{height:calc(var(--play-h) * 1.5);max-width:calc(var(--play-h) * 3.07)}
+    /* Snake keeps a 2:1 board, so its width is capped against its own height
+       rather than the card. Height-driven, like the rest, so fitGame can still
+       trade it away when the window is short. */
+    #snakeCanvas{max-height:calc(var(--play-h) * 1.2)}
+    /* the wheel is roulette's playfield: without a dial of its own the board
+       and the bet slips left nothing that could give, and a short window put a
+       scrollbar on the one table that can least afford one */
+    .wheel{width:calc(var(--play-h) * 0.535);height:calc(var(--play-h) * 0.535)}
+
+    /* Every playfield has a designed size, so on a tall window a game floated
+       in the middle of a lot of empty card. Stretching the pieces would change
+       their proportions and bring back the resizing we just removed, so the
+       whole card is scaled by one factor instead — see fitGame(), which sets
+       --gz to whatever makes the game exactly fill the space it has.
+       `zoom` rather than `transform`: it scales layout instead of pixels, so
+       text and canvases stay crisp, and a zoomed child still resolves
+       height:100% against its parent — the card's own size, and therefore the
+       page's, does not change. */
+    .game.on > .table{zoom:var(--gz,1)}
+
+    /* width:100% is load-bearing. As a flex item of the body, `margin:0 auto`
+       cancels the default cross-axis stretch, so the shell would size to its
+       CONTENT — and the page would visibly resize whenever a game swapped one
+       control row for a narrower one. An explicit width pins it; the auto
+       margins still centre it inside the max-width. */
+    .app-shell{flex:1 1 auto;min-height:0;padding-bottom:0;width:100%}
+    .sidebar{overflow-y:auto}
+    .main{display:flex;flex-direction:column;min-height:0}
+
+    /* The card fills the column but its contents keep their designed sizes —
+       the playfields deliberately do NOT stretch, so a game is the same size on
+       every screen and nothing resizes as you move between tabs or resize the
+       window. If the content is taller than the space, the card scrolls inside
+       itself rather than pushing the page taller. */
+    /* basis 0, not auto: with `auto` the section sizes from its content, but its
+       content is the card at height:100% which sizes from the section — a circular
+       dependency that resolves to zero and collapses the whole game panel. A
+       definite basis makes the section's height come purely from filling the
+       column, which the card's percentage can then resolve against. */
+    .game.on{flex:1 1 0;min-height:0}
+    .game.on > .table{height:100%;overflow-y:auto;padding:16px}
+    /* a little breathing room reclaimed so the tallest tables (racing, flappy)
+       clear the fold at their fixed sizes instead of showing a scrollbar */
+    .game.on > .table > p.sub{margin-bottom:12px}
+    .game.on .betbar{margin-top:14px;padding-top:12px}
+
+    /* the 60px gutter existed to clear the scroll; there is no scroll now.
+       width:100% for the same reason as the shell above. */
+    footer{margin:10px auto 0;padding:0 16px 10px;width:100%}
+  }
