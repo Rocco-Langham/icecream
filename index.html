@@ -36,6 +36,7 @@
   html,body{margin:0;padding:0}
   body{
     min-height:100vh;
+    min-height:100dvh;                               /* the visible height on a phone, chrome excluded */
     font-family:var(--ui-font);
     color:var(--cream);
     background:
@@ -194,7 +195,11 @@
   }
   .navsheet-overlay.on{opacity:1;visibility:visible}
   .navsheet{
-    width:100%;max-width:420px;max-height:calc(100vh - 120px);overflow-y:auto;
+    width:100%;max-width:420px;
+    /* vh counts the space behind a phone's collapsing address bar, so a tall
+       modal ran off the bottom of the screen. dvh measures what is actually
+       visible; the vh line stays first as the fallback. */
+    max-height:calc(100vh - 120px);max-height:calc(100dvh - 120px);overflow-y:auto;
     padding:10px;border-radius:16px;
     border:1px solid var(--edge);
     background:linear-gradient(180deg,var(--modal-a),var(--modal-b));
@@ -933,6 +938,16 @@
     .sidebar-label{display:none}
     .sidebar-link{width:auto;padding:8px 10px;font-size:11px;flex:0 0 auto;white-space:nowrap}
     .sidebar-link .ic{font-size:14px;width:auto}
+
+    /* Fingers, not a cursor. Measured on a 375px screen these came out at 29px
+       (the segmented pickers) and 33px (the small buttons, including Plinko's
+       and Racing's +/- which are only 43px wide as well). min-height with the
+       label centred rather than more padding, so the size does not depend on
+       the font the player picked under Appearance. */
+    .btn.sm,.segmented button{
+      min-height:44px;display:inline-flex;align-items:center;justify-content:center;
+    }
+    .lb-refresh{width:38px;height:38px;font-size:17px}
     .sidebar-spacer{display:none}
     /* back into the flow here, centred in the gap the auto-margin opens up
        between the menu button and the settings pair */
