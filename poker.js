@@ -933,6 +933,22 @@ function pokFrame(){
 }
 requestAnimationFrame(pokFrame);
 
+/* Raises go in fives, with two exceptions that the rules own rather than the
+   interface: the smallest legal raise is whatever the engine says it is, and
+   all-in is exactly your stack. Rounding either of those to a five would either
+   offer an illegal raise or quietly leave chips behind. */
+function pokSnapRaise(v, lg){
+  if(!lg) return v;
+  if(v >= lg.maxRaiseTo) return lg.maxRaiseTo;
+  var snapped = Math.round(v / 5) * 5;
+  if(snapped < lg.minRaiseTo) snapped = lg.minRaiseTo;
+  if(snapped > lg.maxRaiseTo) snapped = lg.maxRaiseTo;
+  return snapped;
+}
+function pokRaiseValue(){
+  var lg = pok.T && pok.T.toAct === 0 ? pokLegal(pok.T) : null;
+  return pokSnapRaise(Number($("pokSlider").value), lg);
+}
 function pokRenderActions(){
   var lg = pok.T && pok.T.toAct === 0 ? pokLegal(pok.T) : null;
   var on = !!lg;
@@ -948,8 +964,9 @@ function pokRenderActions(){
   if(on && lg.raise){
     sl.min = lg.minRaiseTo; sl.max = lg.maxRaiseTo;
     if(Number(sl.value) < lg.minRaiseTo || Number(sl.value) > lg.maxRaiseTo) sl.value = lg.minRaiseTo;
-    $("pokRaiseVal").textContent = fmt(Number(sl.value));
-    $("pokRaise").textContent = Number(sl.value) >= lg.maxRaiseTo ? "All in (R)" : "Raise (R)";
+    var to = pokSnapRaise(Number(sl.value), lg);
+    $("pokRaiseVal").textContent = fmt(to);
+    $("pokRaise").textContent = to >= lg.maxRaiseTo ? "All in (R)" : "Raise (R)";
   }else{
     $("pokRaiseVal").textContent = "—";
     $("pokRaise").textContent = "Raise (R)";
@@ -1148,8 +1165,8 @@ $("pokNext").addEventListener("click", function(){ playClick(); pokDeal(); });
 $("pokFold").addEventListener("click",  function(){ pokHeroAct("fold"); });
 $("pokCheck").addEventListener("click", function(){ pokHeroAct("check"); });
 $("pokCall").addEventListener("click",  function(){ pokHeroAct("call"); });
-$("pokRaise").addEventListener("click", function(){ pokHeroAct("raise", Number($("pokSlider").value)); });
-$("pokSlider").addEventListener("input", function(){ $("pokRaiseVal").textContent = fmt(Number(this.value)); pokRenderActions(); });
+$("pokRaise").addEventListener("click", function(){ pokHeroAct("raise", pokRaiseValue()); });
+$("pokSlider").addEventListener("input", function(){ pokRenderActions(); });
 
 document.addEventListener("keydown", function(e){
   if(!pok.seated || !pok.T) return;
@@ -1164,5 +1181,5 @@ document.addEventListener("keydown", function(e){
   if(!lg) return;
   if(k === "f"){ e.preventDefault(); pokHeroAct("fold"); }
   else if(k === "c"){ e.preventDefault(); pokHeroAct(lg.check ? "check" : "call"); }
-  else if(k === "r" && lg.raise){ e.preventDefault(); pokHeroAct("raise", Number($("pokSlider").value)); }
+  else if(k === "r" && lg.raise){ e.preventDefault(); pokHeroAct("raise", pokRaiseValue()); }
 });

@@ -356,13 +356,23 @@ function chipRow(container, get, set, onChange){
     });
   });
   if(custom){
-    custom.addEventListener("input", function(){
+    /* Stakes go in fives. The typed text is left alone while you are still
+       typing -- rewriting it mid-keystroke fights you -- and corrected to the
+       amount actually staked once you leave the field. */
+    var take = function(){
       var v = Math.floor(Number(custom.value));
-      if(!v || v < 1) return;
+      if(!v || v < 1) return null;
+      v = Math.max(5, Math.round(v / 5) * 5);
       set(v);
       Array.prototype.forEach.call(btns, function(o){ o.classList.remove("sel"); });
       custom.classList.add("sel");
       if(onChange) onChange();
+      return v;
+    };
+    custom.addEventListener("input", take);
+    custom.addEventListener("change", function(){
+      var v = take();
+      if(v !== null) custom.value = v;
     });
   }
   return btns;
