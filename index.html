@@ -371,23 +371,27 @@
 
       <div id="pokTableView" hidden>
         <!-- The stage is what goes fullscreen: the table AND the controls, so
-             you can still play once you are in it. -->
+             you can still play once you are in it. Both button rows share one
+             wrapper so fullscreen can dock them beside the table rather than
+             stack them underneath it. -->
         <div id="pokStage">
           <canvas class="playfield" id="pokCanvas"></canvas>
-          <div class="betbar" id="pokActions">
-            <button class="btn ghost" id="pokFold">Fold (F)</button>
-            <button class="btn" id="pokCheck">Check (C)</button>
-            <button class="btn" id="pokCall">Call (C)</button>
-            <div class="pok-raise">
-              <input type="range" id="pokSlider" min="0" max="100" value="0">
-              <span class="pok-raiseval" id="pokRaiseVal">0</span>
+          <div id="pokControls">
+            <div class="betbar" id="pokActions">
+              <button class="btn ghost" id="pokFold">Fold (F)</button>
+              <button class="btn" id="pokCheck">Check (C)</button>
+              <button class="btn" id="pokCall">Call (C)</button>
+              <div class="pok-raise">
+                <input type="range" id="pokSlider" min="0" max="100" value="0">
+                <span class="pok-raiseval" id="pokRaiseVal">0</span>
+              </div>
+              <button class="btn" id="pokRaise">Raise (R)</button>
             </div>
-            <button class="btn" id="pokRaise">Raise (R)</button>
-          </div>
-          <div class="betbar">
-            <button class="btn ghost sm" id="pokNext">Next hand</button>
-            <button class="btn ghost sm" id="pokFull">&#9974; Fullscreen</button>
-            <button class="btn ghost sm" id="pokLeave">Stand up &amp; cash out</button>
+            <div class="betbar" id="pokSecondary">
+              <button class="btn ghost sm" id="pokNext">Next hand</button>
+              <button class="btn ghost sm" id="pokFull">&#9974; Fullscreen</button>
+              <button class="btn ghost sm" id="pokLeave">Stand up &amp; cash out</button>
+            </div>
           </div>
         </div>
       </div>

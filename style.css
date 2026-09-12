@@ -354,19 +354,54 @@
     aspect-ratio:900/640;
     border-radius:14px;border:1px solid var(--edge);background:#07100c;
   }
-  /* Fullscreen: the stage becomes the whole screen, the table takes whatever is
-     left after the controls, and the scene lays itself out into it -- which is
-     exactly what it already does for every other box it is given. */
-  #pokStage:fullscreen{
-    display:flex;flex-direction:column;gap:10px;
+  /* Fullscreen: a wide screen has width to spare and none to spare in height,
+     so the controls move from underneath the table to a column beside it --
+     the table keeps the whole vertical drop instead of losing two button rows
+     off the bottom of it. Narrow enough (a phone turned into fullscreen) and
+     there is no width to spare either, so below 700px it falls back to the
+     stacked layout instead of squeezing a control rail out of nothing. */
+  #pokStage:fullscreen,
+  #pokStage:-webkit-full-screen{
+    display:flex;flex-direction:row;align-items:stretch;gap:14px;
     padding:14px;background:var(--bg1,#07100c);
   }
-  #pokStage:fullscreen #pokCanvas{
+  #pokStage:fullscreen #pokCanvas,
+  #pokStage:-webkit-full-screen #pokCanvas{
     flex:1 1 auto;height:auto;max-height:none;max-width:none;aspect-ratio:auto;
   }
-  #pokStage:fullscreen .betbar{margin-top:0;padding-top:10px;flex:0 0 auto}
-  #pokStage:-webkit-full-screen{display:flex;flex-direction:column;gap:10px;padding:14px;background:#07100c}
-  #pokStage:-webkit-full-screen #pokCanvas{flex:1 1 auto;height:auto;max-height:none;aspect-ratio:auto}
+  /* min-width:0 at every nested level: a flex item's automatic minimum width
+     is its content's min-content size, which for a range input or a row of
+     buttons is wider than 260px, and that wins over the flex-basis unless it
+     is told it is allowed to shrink below its content. Left off any one of
+     these three, the whole rail quietly grows past 260px again. */
+  #pokStage:fullscreen #pokControls,
+  #pokStage:-webkit-full-screen #pokControls{
+    flex:0 0 260px;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:14px;
+  }
+  #pokStage:fullscreen .betbar,
+  #pokStage:-webkit-full-screen .betbar{
+    flex-direction:column;align-items:stretch;margin-top:0;padding-top:0;border-top:none;gap:8px;
+    min-width:0;
+  }
+  #pokStage:fullscreen .betbar .btn,
+  #pokStage:-webkit-full-screen .betbar .btn{width:100%}
+  #pokStage:fullscreen .pok-raise,
+  #pokStage:-webkit-full-screen .pok-raise{
+    max-width:none;flex-direction:column;align-items:stretch;min-width:0;
+  }
+  #pokStage:fullscreen .pok-raise input[type=range],
+  #pokStage:-webkit-full-screen .pok-raise input[type=range]{width:100%}
+
+  @media(max-width:700px){
+    #pokStage:fullscreen,
+    #pokStage:-webkit-full-screen{flex-direction:column}
+    #pokStage:fullscreen #pokControls,
+    #pokStage:-webkit-full-screen #pokControls{flex:0 0 auto;flex-direction:row;flex-wrap:wrap;justify-content:center}
+    #pokStage:fullscreen .betbar,
+    #pokStage:-webkit-full-screen .betbar{flex-direction:row;flex-wrap:wrap}
+    #pokStage:fullscreen .betbar .btn,
+    #pokStage:-webkit-full-screen .betbar .btn{width:auto}
+  }
 
   .pok-raise{display:flex;align-items:center;gap:8px;flex:1 1 200px;max-width:300px}
   .pok-raise input[type=range]{flex:1;accent-color:var(--gold)}

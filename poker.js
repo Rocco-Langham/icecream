@@ -384,8 +384,10 @@ function pokChipMove(from, to, n, col, delay){
 }
 function pokSeatStackPt(seat){
   if(seat === 0) return {x:TBL.cx+166, y:pokHeroY()-22};
-  var cf = onFelt(POK_SEAT_DEG[seat-1], 0.76);
-  return {x:cf.x+42, y:cf.y+5};
+  var deg = pokCurDeg[seat] !== undefined ? pokCurDeg[seat] : POK_SEAT_DEG[seat-1];
+  var cf = onFelt(deg, 0.76);
+  var side = Math.cos(deg*Math.PI/180) > 0 ? -42 : 42;
+  return {x:cf.x+side, y:cf.y+5};
 }
 /* A fraction of the scene, not a fixed offset from the table centre: at +96 it
    sat below the bottom edge on any scene shorter than ~619, which fullscreen
@@ -393,7 +395,8 @@ function pokSeatStackPt(seat){
 function pokHeroBetY(){ return pokHeroY() - 52; }
 function pokSeatBetPt(seat){
   if(seat === 0) return {x:TBL.cx-150, y:pokHeroBetY()};
-  return onFelt(POK_SEAT_DEG[seat-1], 0.52);
+  var deg = pokCurDeg[seat] !== undefined ? pokCurDeg[seat] : POK_SEAT_DEG[seat-1];
+  return onFelt(deg, 0.52);
 }
 function pokPotPt(){ return {x:TBL.cx-46, y:pokPotY()}; }
 
@@ -460,6 +463,42 @@ var POK_LOOK = [
   {skin:"#d09a68", hair:"#7a6a55", shirt:"#5a4a2c", style:1, glasses:true}
 ];
 var POK_CHIPCOL = ["#1f6fae", "#b3242e", "#2f8f5a", "#8a5cc4"];
+
+/* Seats 1-2 are the left arm, seats 3-4 the right, same as POK_SEAT_DEG. A
+   folded player is not drawn at all, and whoever is left in their arm
+   re-centres across that arm's own span -- two players never sit as if a
+   third invisible one were still propping the gap between them. */
+var POK_ARM_L = [POK_SEAT_DEG[0], POK_SEAT_DEG[1]];
+var POK_ARM_R = [POK_SEAT_DEG[2], POK_SEAT_DEG[3]];
+function pokLiveSeatDegs(T){
+  var left = [], right = [], seat;
+  for(seat = 1; seat <= 4; seat++){
+    if(T.players[seat] && T.players[seat].inHand)
+      (seat <= 2 ? left : right).push(seat);
+  }
+  var degs = {};
+  function place(arr, lo, hi){
+    if(arr.length === 1){ degs[arr[0]] = (lo + hi) / 2; return; }
+    arr.forEach(function(s, i){ degs[s] = lo + (hi - lo) * (i / (arr.length - 1)); });
+  }
+  place(left, POK_ARM_L[0], POK_ARM_L[1]);
+  place(right, POK_ARM_R[0], POK_ARM_R[1]);
+  return degs;
+}
+/* Eased toward the target rather than snapped to it, so a fold reads as the
+   table closing the gap rather than a seat jumping. Cleared at the start of
+   every hand: everyone is back in it then, so there is nothing to glide from. */
+var pokCurDeg = {};
+function pokAnimateSeatDegs(target){
+  var seat;
+  for(seat = 1; seat <= 4; seat++){
+    if(target[seat] === undefined){ delete pokCurDeg[seat]; continue; }
+    pokCurDeg[seat] = pokCurDeg[seat] === undefined
+      ? target[seat]
+      : pokCurDeg[seat] + (target[seat] - pokCurDeg[seat]) * 0.12;
+  }
+  return pokCurDeg;
+}
 
 /* A label sized in scene units disappears once the scene is squeezed onto a
    phone: at 230px wide a scene pixel is a third of a real one. Sizes are set
@@ -809,13 +848,20 @@ function pokScene(t){
 
   if(!T){ pokVignette(c); return; }
 
-  POK_SEAT_DEG.forEach(function(deg,i){
-    var seat = i+1, p = T.players[seat], sp2 = seatPos(deg);
-    var out = !p.inHand, turn = T.toAct === seat;
-    pokPerson(c,sp2.x,sp2.y-10,0.86,POK_LOOK[i],t,i*2.1,out);
+  /* A folded player is not drawn at all -- no ghost at the felt, no empty
+     chair either -- and whoever is left in their arm (left: seats 1-2, right:
+     seats 3-4) closes ranks across that arm's own span. Recomputed every
+     frame off the engine's own T.players[].inHand, so it can never drift out
+     of step with a fold the moment it happens. */
+  var seatDegs = pokAnimateSeatDegs(pokLiveSeatDegs(T));
+  for(var seat = 1; seat <= 4; seat++){
+    var deg = seatDegs[seat];
+    if(deg === undefined) continue;                   /* folded: nothing here */
+    var i = seat - 1, p = T.players[seat], sp2 = seatPos(deg), turn = T.toAct === seat;
+    pokPerson(c,sp2.x,sp2.y-10,0.86,POK_LOOK[i],t,i*2.1,false);
 
     var cf = onFelt(deg,0.76), rot = (deg-270)*Math.PI/180*0.30;
-    if(p.hole.length && p.inHand){
+    if(p.hole.length){
       var show = pok.revealed && T.stage === "done";
       if(pokLanded("hole",seat,0)) pokCard(c,cf.x-10,cf.y,rot,0.64,show?p.hole[0]:null,!show);
       if(pokLanded("hole",seat,1)) pokCard(c,cf.x+10,cf.y,rot,0.64,show?p.hole[1]:null,!show);
@@ -828,7 +874,7 @@ function pokScene(t){
       var bp = onFelt(deg,0.52);
       pokChips(c,bp.x,bp.y,Math.max(1,pokStackH(p.bet)),"#c9a227");
       c.fillStyle="rgba(244,234,215,.8)"; c.textAlign="center";
-      c.font="700 11px system-ui,sans-serif"; c.fillText(fmt(p.bet),bp.x,bp.y+16);
+      c.font="700 "+pokFont(11)+"px system-ui,sans-serif"; c.fillText(fmt(p.bet),bp.x,bp.y+16);
     }
     if(T.dealer === seat){
       var bt = onFelt(deg,0.90);
@@ -844,20 +890,17 @@ function pokScene(t){
     pokRR(c,sp2.x-44,sp2.y+16,88,31,9); c.fill();
     c.strokeStyle = turn ? "rgba(232,194,100,.85)" : "rgba(232,194,100,.25)";
     c.lineWidth = turn ? 2 : 1; c.stroke();
-    c.textAlign="center";
-    c.fillStyle = out ? "rgba(239,226,194,.45)" : "#efe2c2";
+    c.textAlign="center"; c.fillStyle="#efe2c2";
     c.font="700 "+pokFont(11)+"px system-ui,sans-serif"; c.fillText(p.name,sp2.x,sp2.y+29);
     if(won){ c.fillStyle="#5fd39a"; c.font="700 "+pokFont(12)+"px system-ui,sans-serif";
       c.fillText("+"+fmt(won.won),sp2.x,sp2.y+42); }
-    else if(out){ c.fillStyle="rgba(239,226,194,.45)"; c.font=pokFont(11)+"px system-ui,sans-serif";
-      c.fillText("folded",sp2.x,sp2.y+42); }
     else if(p.allIn){ c.fillStyle="#e08a4a"; c.font="700 "+pokFont(11)+"px system-ui,sans-serif";
       c.fillText("ALL IN",sp2.x,sp2.y+42); }
     else { c.fillStyle="#e8c264"; c.font="700 "+pokFont(13)+"px system-ui,sans-serif";
       c.fillText(fmt(p.stack),sp2.x,sp2.y+42); }
     c.restore();
     pokSayFor(c, seat, sp2.x, sp2.y-106);
-  });
+  }
 
   if(T.board.length > pokBoardShown){
     for(var bi=pokBoardShown; bi<T.board.length; bi++)
@@ -1024,6 +1067,7 @@ function pokDeal(){
   }
   pok.revealed = false;
   pok.say = {}; pokChipFly = [];
+  pokCurDeg = {};                                    /* everyone is back in the hand */
   if(!pokStartHand(pok.T)){ pokLeave(); return; }
   pokQueueDeal(pok.T);
   stats.hands++;
