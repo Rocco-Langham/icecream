@@ -427,7 +427,11 @@ function pokBotAction(T, seat, persona){
     /* capped so a routine value bet cannot turn into a stack-off; only a real
        monster puts everything in */
     var ceiling = share > 2.6 ? lg.maxRaiseTo : Math.round(p.bet + p.stack * 0.30);
-    return Math.max(Math.min(want, ceiling, lg.maxRaiseTo), lg.minRaiseTo);
+    /* Through the same snap the player's own raises go through, so a bot never
+       pushes out a figure the table could not otherwise produce. The two legal
+       exceptions still stand: the smallest legal raise, and all-in for exactly
+       what is left. */
+    return pokSnapRaise(Math.max(Math.min(want, ceiling, lg.maxRaiseTo), lg.minRaiseTo), lg);
   }
   if(lg.check){
     if((share > bar || r < style.bluff) && lg.raise) return {action:"raise", raiseTo:sizeTo(0)};
@@ -501,9 +505,13 @@ function pokPotPt(){ return {x:TBL.cx-46, y:pokPotY()}; }
 function pokSetPokerStack(n){ pokerStack = n; save(); }
 
 function pokBlinds(buyin){
-  /* fifty big blinds, so a sitting lasts rather than turning into coin flips */
-  var bb = Math.max(2, Math.round(buyin / 50));
-  return {sb:Math.max(1, Math.round(bb / 2)), bb:bb};
+  /* Aiming at fifty big blinds so a sitting lasts, but rounded so the big
+     blind is a multiple of ten and the small blind therefore a multiple of
+     five. Otherwise the posts themselves are the one thing on the table that
+     is not in fives -- a 3-chip small blind makes every call that answers it
+     land off the mark too. */
+  var bb = Math.max(10, Math.round(buyin / 50 / 10) * 10);
+  return {sb: bb / 2, bb: bb};
 }
 function pokMiniCard(card, hidden){
   var el = cardEl(card, hidden);
