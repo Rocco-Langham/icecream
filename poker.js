@@ -304,7 +304,11 @@ var POK_PERSONAS = {
      here - 45% is a monster four-handed and a fold heads-up. */
   rock:    {name:"Rock",    callShare:1.05, raiseShare:1.95, bluff:0.03, sizing:0.50, tag:"tight, passive"},
   maniac:  {name:"Maniac",  callShare:0.62, raiseShare:1.25, bluff:0.22, sizing:0.85, tag:"loose, aggressive"},
-  grinder: {name:"Grinder", callShare:0.85, raiseShare:1.55, bluff:0.09, sizing:0.65, tag:"balanced"}
+  grinder: {name:"Grinder", callShare:0.85, raiseShare:1.55, bluff:0.09, sizing:0.65, tag:"balanced"},
+  /* The calling station: comes along with almost anything but almost never
+     raises. Loose-passive was the one corner the other three left uncovered,
+     and it is the archetype that punishes bluffing into it. */
+  station: {name:"Station",  callShare:0.55, raiseShare:2.30, bluff:0.02, sizing:0.45, tag:"calls anything"}
 };
 function pokBotAction(T, seat, persona){
   var p = T.players[seat], lg = pokLegal(T);
@@ -346,9 +350,52 @@ function pokBotAction(T, seat, persona){
 /* ==========================================================================
    Table UI
    ========================================================================== */
-var POK_SEATS = ["You", "Rock", "Maniac", "Grinder"];
-var POK_WHO   = [null, "rock", "maniac", "grinder"];
-var pok = {T:null, seated:false, buyin:250, timer:null, endTimer:null, revealed:false};
+var POK_SEATS = ["You", "Rock", "Maniac", "Grinder", "Station"];
+var POK_WHO   = [null, "rock", "maniac", "grinder", "station"];
+var pok = {T:null, seated:false, buyin:250, timer:null, endTimer:null, revealed:false, say:{}};
+
+/* What a move should say, worked out BEFORE it is played. Acting can end the
+   street, which zeroes every bet, so reading the amount afterwards would show
+   nothing at all on exactly the moves worth announcing. */
+function pokMoveText(T, action, raiseTo){
+  var lg = pokLegal(T);
+  if(!lg) return "";
+  if(action === "fold")  return "Fold";
+  if(action === "check") return "Check";
+  if(action === "call")  return lg.callAmount >= T.players[T.toAct].stack
+                              ? "All in" : "Call " + fmt(lg.callAmount);
+  if(action === "raise"){
+    var to = Math.max(lg.minRaiseTo, Math.min(raiseTo, lg.maxRaiseTo));
+    return to >= lg.maxRaiseTo ? "All in " + fmt(to) : "Raise to " + fmt(to);
+  }
+  return "";
+}
+function pokSpeak(seat, text){
+  if(text) pok.say[seat] = {text:text, until:Date.now() + 2100};
+}
+
+/* Chips in motion. Purely decorative: the stacks and the pot are drawn from the
+   engine either way, so a dropped frame costs an animation and never a chip. */
+var pokChipFly = [];
+function pokChipMove(from, to, n, col, delay){
+  pokChipFly.push({x0:from.x, y0:from.y, x1:to.x, y1:to.y,
+                   n:Math.max(1, Math.min(5, n)), col:col,
+                   start:Date.now() + (delay||0), dur:420});
+}
+function pokSeatStackPt(seat){
+  if(seat === 0) return {x:TBL.cx+166, y:pokHeroY()-22};
+  var cf = onFelt(POK_SEAT_DEG[seat-1], 0.76);
+  return {x:cf.x+42, y:cf.y+5};
+}
+/* A fraction of the scene, not a fixed offset from the table centre: at +96 it
+   sat below the bottom edge on any scene shorter than ~619, which fullscreen
+   produces routinely, and the chips flew off the canvas. */
+function pokHeroBetY(){ return pokHeroY() - 52; }
+function pokSeatBetPt(seat){
+  if(seat === 0) return {x:TBL.cx-150, y:pokHeroBetY()};
+  return onFelt(POK_SEAT_DEG[seat-1], 0.52);
+}
+function pokPotPt(){ return {x:TBL.cx-46, y:pokPotY()}; }
 
 function pokSetPokerStack(n){ pokerStack = n; save(); }
 
@@ -399,13 +446,20 @@ function seatPos(deg){
   var a = deg*Math.PI/180;
   return {x:TBL.cx + TBL.rx*0.92*Math.cos(a), y:TBL.cy + TBL.ry*1.16*Math.sin(a)};
 }
-var POK_SEAT_DEG = [196, 232, 308], POK_EMPTY_DEG = 344, POK_DEALER_DEG = 270;
+/* Four seats, paired either side of the dealer at 270 so the table reads as
+   balanced rather than leaning. The spare chair is gone -- every seat is taken
+   now, which is what the gap was standing in for. */
+/* The outer pair sit a little higher than a wider spread would put them: on a
+   short scene their nameplates were landing on the player's own cards, and the
+   cards are the one thing that must stay readable. */
+var POK_SEAT_DEG = [202, 232, 308, 338], POK_DEALER_DEG = 270;
 var POK_LOOK = [
   {skin:"#b97a4e", hair:"#191210", shirt:"#35456b", style:0, glasses:true},
   {skin:"#7b4a2a", hair:"#2b1e16", shirt:"#6e3230", style:1, glasses:false},
-  {skin:"#e8b98a", hair:"#4a3423", shirt:"#2b5547", style:2, glasses:false}
+  {skin:"#e8b98a", hair:"#4a3423", shirt:"#2b5547", style:2, glasses:false},
+  {skin:"#d09a68", hair:"#7a6a55", shirt:"#5a4a2c", style:1, glasses:true}
 ];
-var POK_CHIPCOL = ["#1f6fae", "#b3242e", "#2f8f5a"];
+var POK_CHIPCOL = ["#1f6fae", "#b3242e", "#2f8f5a", "#8a5cc4"];
 
 /* A label sized in scene units disappears once the scene is squeezed onto a
    phone: at 230px wide a scene pixel is a third of a real one. Sizes are set
@@ -603,6 +657,60 @@ function pokStackH(n){ return Math.max(0, Math.min(9, Math.round(n/60))); }
    only painted at rest once its card has landed, so nothing is ever drawn in
    two places at once, and the pile arrives in the order it was dealt. */
 var pokFly = [], pokBoardShown = 0;
+
+/* Queued the moment a street closes rather than noticed later by the renderer.
+   Watching for the change a frame afterwards read the bets as they stood BEFORE
+   the closing action, so the bet that ended the street was swept short or not
+   at all -- and with no frames running (another tab, a hidden window) the whole
+   thing fired once, streets late, out of spots that were long empty. */
+function pokSweepBets(bets){
+  for(var i=0; i<bets.length; i++)
+    if(bets[i] > 0)
+      pokChipMove(pokSeatBetPt(i), pokPotPt(), pokStackH(bets[i])+1, "#c9a227", i*55);
+}
+/* The bets as they stand at this instant, with the chips this action is about
+   to add already counted in. */
+function pokBetSnapshot(T, seat, spend){
+  var snap = T.players.map(function(p){ return p.bet; });
+  snap[seat] += spend || 0;
+  return snap;
+}
+
+function pokDrawSay(c, cx, y, text){
+  var fs = pokFont(11);
+  c.save();
+  c.font = "700 " + fs + "px system-ui,sans-serif";
+  var w = c.measureText(text).width + 18, h = fs + 14, x = cx - w/2;
+  c.fillStyle = "rgba(16,12,9,.9)";
+  pokRR(c, x, y-h, w, h, 8); c.fill();
+  c.strokeStyle = "rgba(232,194,100,.5)"; c.lineWidth = 1; c.stroke();
+  c.beginPath(); c.moveTo(cx-5, y-1); c.lineTo(cx+5, y-1); c.lineTo(cx, y+7); c.closePath();
+  c.fillStyle = "rgba(16,12,9,.9)"; c.fill();
+  c.fillStyle = "#f2e6c8"; c.textAlign = "center";
+  c.fillText(text, cx, y - h/2 + fs*0.36);
+  c.restore();
+}
+/* Fades out over its last third of a second so a move does not simply vanish. */
+function pokSayFor(c, seat, x, y){
+  var said = pok.say[seat];
+  if(!said) return;
+  var left = said.until - Date.now();
+  if(left <= 0){ delete pok.say[seat]; return; }
+  c.save(); c.globalAlpha = Math.min(1, left/350);
+  pokDrawSay(c, x, y, said.text);
+  c.restore();
+}
+function pokDrawChipFly(c){
+  var now = Date.now();
+  for(var i=pokChipFly.length-1; i>=0; i--){
+    var f = pokChipFly[i], p = (now - f.start)/f.dur;
+    if(p >= 1){ pokChipFly.splice(i,1); continue; }
+    if(p <= 0) continue;
+    var e = 1 - Math.pow(1-p, 2);
+    pokChips(c, f.x0 + (f.x1-f.x0)*e,
+                f.y0 + (f.y1-f.y0)*e - Math.sin(p*Math.PI)*16, f.n, f.col);
+  }
+}
 /* The player's own cards used to sit 18px off the bottom of the scene, which
    hung them over the edge and cut them in half on a short screen. Everything on
    the felt is now placed as a fraction of the scene height, so the layout
@@ -699,11 +807,6 @@ function pokScene(t){
   });
   c.restore();
 
-  var ec = seatPos(POK_EMPTY_DEG);
-  c.save(); c.globalAlpha=.6; c.fillStyle="#1c1310";
-  pokRR(c,ec.x-27,ec.y-36,54,48,14); c.fill();
-  c.fillStyle="#291d16"; pokRR(c,ec.x-22,ec.y-30,44,17,8); c.fill(); c.restore();
-
   if(!T){ pokVignette(c); return; }
 
   POK_SEAT_DEG.forEach(function(deg,i){
@@ -717,7 +820,10 @@ function pokScene(t){
       if(pokLanded("hole",seat,0)) pokCard(c,cf.x-10,cf.y,rot,0.64,show?p.hole[0]:null,!show);
       if(pokLanded("hole",seat,1)) pokCard(c,cf.x+10,cf.y,rot,0.64,show?p.hole[1]:null,!show);
     }
-    pokChips(c,cf.x+42,cf.y+5,pokStackH(p.stack),POK_CHIPCOL[i]);
+    /* Stacks sit inboard, toward the middle of the table. Pushed outward they
+       land under the seat's own nameplate on the shallow right-hand chairs. */
+    var chipSide = Math.cos(deg*Math.PI/180) > 0 ? -42 : 42;
+    pokChips(c,cf.x+chipSide,cf.y+5,pokStackH(p.stack),POK_CHIPCOL[i]);
     if(p.bet > 0){                                    /* chips pushed out in front */
       var bp = onFelt(deg,0.52);
       pokChips(c,bp.x,bp.y,Math.max(1,pokStackH(p.bet)),"#c9a227");
@@ -750,6 +856,7 @@ function pokScene(t){
     else { c.fillStyle="#e8c264"; c.font="700 "+pokFont(13)+"px system-ui,sans-serif";
       c.fillText(fmt(p.stack),sp2.x,sp2.y+42); }
     c.restore();
+    pokSayFor(c, seat, sp2.x, sp2.y-106);
   });
 
   if(T.board.length > pokBoardShown){
@@ -784,9 +891,9 @@ function pokScene(t){
     c.fillText("D",TBL.cx-110,pokHeroY()-28.5);
   }
   if(me.bet > 0){
-    pokChips(c,TBL.cx-150,TBL.cy+96,Math.max(1,pokStackH(me.bet)),"#c9a227");
+    pokChips(c,TBL.cx-150,pokHeroBetY(),Math.max(1,pokStackH(me.bet)),"#c9a227");
     c.fillStyle="rgba(244,234,215,.8)"; c.textAlign="center";
-    c.font="700 11px system-ui,sans-serif"; c.fillText(fmt(me.bet),TBL.cx-150,TBL.cy+112);
+    c.font="700 "+pokFont(11)+"px system-ui,sans-serif"; c.fillText(fmt(me.bet),TBL.cx-150,pokHeroBetY()+16);
   }
   c.save();
   c.fillStyle = T.toAct === 0 ? "rgba(232,194,100,.2)" : "rgba(0,0,0,.55)";
@@ -799,6 +906,11 @@ function pokScene(t){
   c.fillText(fmt(me.stack),TBL.cx+166,pokHeroY());
   c.restore();
 
+  /* Beside your stack rather than over your cards: centred, it landed on the
+     community cards, and on a short scene there is no gap between the board and
+     your own hand to put it in. */
+  pokSayFor(c, 0, TBL.cx+190, pokHeroY()-36);
+  pokDrawChipFly(c);
   pokDrawFlights(c);
   pokVignette(c);
 }
@@ -894,6 +1006,7 @@ function pokDeal(){
     return;
   }
   pok.revealed = false;
+  pok.say = {}; pokChipFly = [];
   if(!pokStartHand(pok.T)){ pokLeave(); return; }
   pokQueueDeal(pok.T);
   stats.hands++;
@@ -905,6 +1018,18 @@ function pokDeal(){
 }
 /* Drives whoever is next: the player gets the buttons enabled, a bot gets a
    pause so the table does not resolve itself faster than it can be read. */
+/* Long enough to read as somebody deciding rather than a script firing. A bet
+   to answer, a later street and a deliberate player all add to it; the maniac
+   takes it off again, because snapping it in is the tell that fits him. */
+function pokThinkMs(T, seat){
+  var lg = pokLegal(T), ms = 950 + rnd(850);
+  if(lg && lg.callAmount > 0) ms += 320;
+  if(T.stage !== "preflop") ms += 220;
+  if(POK_WHO[seat] === "rock") ms += 260;
+  if(POK_WHO[seat] === "station") ms += 120;
+  if(POK_WHO[seat] === "maniac") ms -= 230;
+  return Math.max(620, ms);
+}
 function pokStep(){
   clearTimeout(pok.timer);
   if(!pok.T) return;
@@ -916,20 +1041,41 @@ function pokStep(){
     if(!pok.T || pok.T.toAct !== seat) return;
     var mv = pokBotAction(pok.T, seat, POK_WHO[seat]);
     if(!mv){ pokStep(); return; }
+    pokSpeak(seat, pokMoveText(pok.T, mv.action, mv.raiseTo));
+    var putIn = pokLegal(pok.T);
+    var spend = mv.action === "call" ? putIn.callAmount
+              : mv.action === "raise" ? Math.max(putIn.minRaiseTo, Math.min(mv.raiseTo, putIn.maxRaiseTo)) - pok.T.players[seat].bet
+              : 0;
+    var wasStage = pok.T.stage, snap = pokBetSnapshot(pok.T, seat, spend);
     pokAct(pok.T, mv.action, mv.raiseTo);
-    if(mv.action === "raise" || mv.action === "call") playChip();
+    if(spend > 0){
+      pokChipMove(pokSeatStackPt(seat), pokSeatBetPt(seat), pokStackH(spend)+1, POK_CHIPCOL[seat-1]);
+      playChip();
+    }
+    if(pok.T.stage !== wasStage && pok.T.stage !== "done") pokSweepBets(snap);
     pokStep();
-  }, 620 + rnd(520));
+  }, pokThinkMs(pok.T, seat));
 }
 function pokHeroAct(action, amount){
   if(!pok.T || pok.T.toAct !== 0) return;
+  var say = pokMoveText(pok.T, action, amount), lg = pokLegal(pok.T);
+  var spend = action === "call" ? lg.callAmount
+            : action === "raise" ? Math.max(lg.minRaiseTo, Math.min(amount, lg.maxRaiseTo)) - pok.T.players[0].bet
+            : 0;
+  var wasStage = pok.T.stage, snap = pokBetSnapshot(pok.T, 0, spend);
   if(!pokAct(pok.T, action, amount)) return;
+  pokSpeak(0, say);
+  if(spend > 0) pokChipMove(pokSeatStackPt(0), pokSeatBetPt(0), pokStackH(spend)+1, "#c9a227");
+  if(pok.T.stage !== wasStage && pok.T.stage !== "done") pokSweepBets(snap);
   if(action === "raise" || action === "call") playChip(); else playClick();
   pokSetPokerStack(pok.T.players[0].stack + pok.T.players[0].committed);
   pokStep();
 }
 function pokShowdown(){
   pok.revealed = pokLive(pok.T).length > 1;
+  pok.T.lastWinners.forEach(function(w, i){
+    pokChipMove(pokPotPt(), pokSeatStackPt(w.id), pokStackH(w.won)+2, "#c9a227", 240 + i*130);
+  });
   pokRender();
   pokSetPokerStack(pok.T.players[0].stack);
   var mine = null;
@@ -964,6 +1110,40 @@ var pokBuyBtns = chipRow($("pokBuyBar"), null, function(v){
 pokBuyBtns[1].classList.add("sel");
 $("pokSit").addEventListener("click", function(){ playClick(); pokSit(); });
 $("pokLeave").addEventListener("click", function(){ playClick(); pokLeave(); });
+
+/* ---- fullscreen ----
+   Prefixed names are still what Safari answers to, so both are tried. If the
+   browser offers neither, the button is removed rather than left there doing
+   nothing. */
+var pokStage = $("pokStage"), pokFullBtn = $("pokFull");
+function pokFsEl(){ return document.fullscreenElement || document.webkitFullscreenElement || null; }
+function pokFsGo(el){
+  var fn = el.requestFullscreen || el.webkitRequestFullscreen;
+  if(fn) try{ fn.call(el); }catch(e){}
+}
+function pokFsExit(){
+  var fn = document.exitFullscreen || document.webkitExitFullscreen;
+  if(fn) try{ fn.call(document); }catch(e){}
+}
+if(!(pokStage.requestFullscreen || pokStage.webkitRequestFullscreen)){
+  pokFullBtn.hidden = true;
+}else{
+  pokFullBtn.addEventListener("click", function(){
+    playClick();
+    if(pokFsEl()) pokFsExit(); else pokFsGo(pokStage);
+  });
+}
+function pokFsChanged(){
+  var on = pokFsEl() === pokStage;
+  pokFullBtn.innerHTML = on ? "&#9974; Exit fullscreen" : "&#9974; Fullscreen";
+  /* The canvas has just been handed a completely different box, and the scene
+     is laid out from the box it is given, so it has to be measured again. */
+  pokCssW = 0;
+  pokResize();
+  if(!on && typeof fitGame === "function") fitGame();
+}
+document.addEventListener("fullscreenchange", pokFsChanged);
+document.addEventListener("webkitfullscreenchange", pokFsChanged);
 $("pokNext").addEventListener("click", function(){ playClick(); pokDeal(); });
 $("pokFold").addEventListener("click",  function(){ pokHeroAct("fold"); });
 $("pokCheck").addEventListener("click", function(){ pokHeroAct("check"); });

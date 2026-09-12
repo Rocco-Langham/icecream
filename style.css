@@ -354,6 +354,20 @@
     aspect-ratio:900/640;
     border-radius:14px;border:1px solid var(--edge);background:#07100c;
   }
+  /* Fullscreen: the stage becomes the whole screen, the table takes whatever is
+     left after the controls, and the scene lays itself out into it -- which is
+     exactly what it already does for every other box it is given. */
+  #pokStage:fullscreen{
+    display:flex;flex-direction:column;gap:10px;
+    padding:14px;background:var(--bg1,#07100c);
+  }
+  #pokStage:fullscreen #pokCanvas{
+    flex:1 1 auto;height:auto;max-height:none;max-width:none;aspect-ratio:auto;
+  }
+  #pokStage:fullscreen .betbar{margin-top:0;padding-top:10px;flex:0 0 auto}
+  #pokStage:-webkit-full-screen{display:flex;flex-direction:column;gap:10px;padding:14px;background:#07100c}
+  #pokStage:-webkit-full-screen #pokCanvas{flex:1 1 auto;height:auto;max-height:none;aspect-ratio:auto}
+
   .pok-raise{display:flex;align-items:center;gap:8px;flex:1 1 200px;max-width:300px}
   .pok-raise input[type=range]{flex:1;accent-color:var(--gold)}
   .pok-raiseval{min-width:54px;text-align:right;font-weight:700;color:var(--gold)}

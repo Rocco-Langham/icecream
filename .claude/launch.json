@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "icecream-static",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd /Users/roccolangham/Documents/Dev/icecreammac && exec python3 -m http.server 8731"],
+      "port": 8731
+    }
+  ]
+}
