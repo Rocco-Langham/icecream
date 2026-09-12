@@ -1070,6 +1070,23 @@ var pokLayer = null;
    the buy-in screen; once you are seated the felt carries it instead, drawn
    big across the top where you are actually looking -- and, unlike the DOM
    one, it is still there in fullscreen. */
+/* Greedy wrap at word boundaries, capped at maxLines; the last line keeps
+   whatever is left rather than dropping it. */
+function pokWrapText(c, text, maxW, maxLines){
+  var words = String(text).split(/\s+/), lines = [], cur = "";
+  for(var i = 0; i < words.length; i++){
+    var next = cur ? cur + " " + words[i] : words[i];
+    if(!cur || c.measureText(next).width <= maxW){ cur = next; continue; }
+    lines.push(cur);
+    cur = words[i];
+    if(lines.length === maxLines - 1){                /* last line takes the rest */
+      cur = words.slice(i).join(" ");
+      break;
+    }
+  }
+  if(cur) lines.push(cur);
+  return lines.slice(0, maxLines);
+}
 function pokDrawMessage(c){
   var el = document.getElementById("pokMsg");
   if(!el) return;
@@ -1085,14 +1102,21 @@ function pokDrawMessage(c){
   c.textAlign = "center";
   /* Capped well short of the full width: the hand readout sits over the
      top-left corner outside fullscreen, and a long message stretched across
-     the whole table ran underneath it. */
-  var w = Math.min(460, c.measureText(text).width + 34), h = fs + 18;
+     the whole table ran underneath it. Anything that does not fit wraps, the
+     way the DOM message it replaced used to -- squeezing it onto one line
+     instead turns a chopped four-way pot into unreadably condensed type. */
+  var avail = 460 - 34;
+  var lines = pokWrapText(c, text, avail, 3), widest = 0, i;
+  for(i = 0; i < lines.length; i++) widest = Math.max(widest, c.measureText(lines[i]).width);
+  var lh = fs + 4;
+  var w = Math.min(460, widest + 34), h = lines.length * lh + 14;
   var x = POK_W / 2, y = 12;
   c.fillStyle = "rgba(8,6,5,.78)";
   pokRR(c, x - w/2, y, w, h, 10); c.fill();
   c.strokeStyle = "rgba(232,194,100,.3)"; c.lineWidth = 1; c.stroke();
   c.fillStyle = col;
-  c.fillText(text, x, y + h/2 + fs*0.35, w - 24);   /* fits the text to the pill */
+  for(i = 0; i < lines.length; i++)
+    c.fillText(lines[i], x, y + 10 + i*lh + fs*0.78, w - 24);   /* backstop for one very long word */
   c.restore();
 }
 function pokVignette(c){

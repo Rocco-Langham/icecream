@@ -373,7 +373,7 @@
   .pok-handinfo .pok-hi-list li{display:flex;justify-content:space-between;gap:8px}
   .pok-handinfo .pok-hi-list li span{color:rgba(239,226,194,.65);font-variant-numeric:tabular-nums}
   @media(max-width:560px){
-    .pok-handinfo{max-width:150px;font-size:10.5px;padding:7px 9px}
+    .pok-handinfo{font-size:10.5px;padding:7px 9px}
     .pok-handinfo .pok-hi-current{font-size:12px}
   }
 
@@ -400,6 +400,17 @@
      the id, not a class: msg() rewrites className wholesale on every message,
      so a class here is wiped by the first thing the table ever says. */
   #pokMsg{font-size:17px;margin:0 0 14px}
+
+  /* Below 761px fitGame does not run at all -- the page simply scrolls -- so
+     the readout costs nothing by sitting in the flow, and in the flow it
+     cannot end up underneath the message across the top of the felt. The
+     overlay is only worth it on a desktop card, where height is the thing
+     being fought over. */
+  @media(max-width:760px){
+    .pok-handinfo{
+      position:static;max-width:none;pointer-events:auto;margin-top:10px;
+    }
+  }
 
   /* The table itself is a canvas; only the controls are DOM. */
   #pokCanvas{
