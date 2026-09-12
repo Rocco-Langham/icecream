@@ -358,6 +358,12 @@
       <h2 class="title">Texas Hold'em</h2>
       <p class="sub">Four opponents &middot; buy in, play as long as you like, keep whatever you stand up with</p>
 
+      <!-- At the top, where you are actually looking, rather than tucked under
+           the controls. Once you sit down the felt itself carries it instead,
+           drawn across the top of the table, so this only speaks while you are
+           still choosing a buy-in. -->
+      <div class="msg info" id="pokMsg">Choose a buy-in and take a seat.</div>
+
       <div class="betbar" id="pokBuyBar">
         <span class="lbl">Buy-in</span>
         <button class="chipbtn" data-v="100">100</button>
@@ -376,31 +382,42 @@
              stack them underneath it. -->
         <div id="pokStage">
           <canvas class="playfield" id="pokCanvas"></canvas>
-          <!-- Only ever describes the hero's own hole cards, never a bot's --
-               kept updated from pokScene() and hidden whenever the hero has
-               no cards in play. -->
-          <div class="pok-handinfo" id="pokHandInfo" hidden></div>
           <div id="pokControls">
+            <!-- Top to bottom: fold, the one call/check that applies, chips to
+                 build a raise with, a box to type one instead, then raise. -->
             <div class="betbar" id="pokActions">
               <button class="btn ghost" id="pokFold">Fold (F)</button>
               <button class="btn" id="pokCheck">Check (C)</button>
               <button class="btn" id="pokCall">Call (C)</button>
-              <div class="pok-raise">
-                <input type="range" id="pokSlider" min="0" max="100" value="0">
-                <span class="pok-raiseval" id="pokRaiseVal">0</span>
+              <div class="pok-chips" id="pokRaiseChips">
+                <button class="chipbtn pok-chip" data-r="5">5</button>
+                <button class="chipbtn pok-chip" data-r="10">10</button>
+                <button class="chipbtn pok-chip" data-r="20">20</button>
+                <button class="chipbtn pok-chip" data-r="50">50</button>
+                <button class="chipbtn pok-chip" data-r="100">100</button>
+              </div>
+              <div class="pok-raiserow">
+                <input type="number" class="custom-bet pok-rcustom" id="pokRaiseCustom"
+                       min="5" step="5" placeholder="Raise to">
+                <button class="btn ghost sm" id="pokRaiseClear">Reset</button>
               </div>
               <button class="btn" id="pokRaise">Raise (R)</button>
             </div>
+
+            <!-- Only ever describes the hero's own hole cards, never a bot's --
+                 kept updated from pokScene() and hidden whenever the hero has
+                 no cards in play. -->
+            <div class="pok-handinfo" id="pokHandInfo" hidden></div>
+
             <div class="betbar" id="pokSecondary">
               <button class="btn ghost sm" id="pokNext">Next hand</button>
-              <button class="btn ghost sm" id="pokFull">&#9974; Fullscreen</button>
               <button class="btn ghost sm" id="pokLeave">Stand up &amp; cash out</button>
+              <button class="btn ghost sm" id="pokFull">&#9974; Fullscreen</button>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="msg info" id="pokMsg">Choose a buy-in and take a seat.</div>
     </div>
   </section>
 

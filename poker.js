@@ -446,7 +446,8 @@ function pokBotAction(T, seat, persona){
    ========================================================================== */
 var POK_SEATS = ["You", "Rock", "Maniac", "Grinder", "Station"];
 var POK_WHO   = [null, "rock", "maniac", "grinder", "station"];
-var pok = {T:null, seated:false, buyin:250, timer:null, endTimer:null, revealed:false, say:{}};
+var pok = {T:null, seated:false, buyin:250, timer:null, endTimer:null, revealed:false, say:{},
+           raiseTo:null, raiseKey:null};
 
 /* What a move should say, worked out BEFORE it is played. Acting can end the
    street, which zeroes every bet, so reading the amount afterwards would show
@@ -494,6 +495,9 @@ function pokSeatBetPt(seat){
 }
 function pokPotPt(){ return {x:TBL.cx-46, y:pokPotY()}; }
 
+/* What a refresh would hand back: only what is still in front of you. Chips
+   already pushed into the pot are at risk, exactly as they are when you stand
+   up -- counting them here made reloading the page a way to take a bet back. */
 function pokSetPokerStack(n){ pokerStack = n; save(); }
 
 function pokBlinds(buyin){
@@ -522,14 +526,22 @@ function pokResize(){
   var rect = pokCanvas.getBoundingClientRect();
   if(!rect.width) return;
   var dpr = window.devicePixelRatio || 1, z = rect.width / POK_W;
+  /* Fit, never crop. The scene normally takes its scale from the width and its
+     height from the box. When the box is shorter than the layout can sensibly
+     go, the scale comes down instead so the whole scene still fits -- a sliver
+     of empty either side costs nothing, where cropping would take the headline
+     off the top and the player's own cards off the bottom. */
+  var POK_FLOOR = 240;
+  var h = rect.height / z;
+  if(h < POK_FLOOR){ h = POK_FLOOR; z = rect.height / POK_FLOOR; }
   pokZ = z;
-  POK_H = Math.max(330, Math.min(1000, rect.height / z));
+  POK_H = Math.min(1000, h);
   POK_ROOM = Math.round(POK_H * 0.577);
   TBL = {cx:POK_W/2, cy:POK_H*0.845, rx:400, ry:POK_H*0.338};
   pokCssW = rect.width; pokCssH = rect.height;
   pokCanvas.width  = Math.round(rect.width * dpr);
   pokCanvas.height = Math.round(rect.height * dpr);
-  pokCtx.setTransform(dpr*z, 0, 0, dpr*z, 0, (rect.height - POK_H*z)*dpr/2);
+  pokCtx.setTransform(dpr*z, 0, 0, dpr*z, (rect.width - POK_W*z)*dpr/2, (rect.height - POK_H*z)*dpr/2);
   pokBuildRoom(POK_ROOM);
 }
 function onFelt(deg, k){
@@ -1050,9 +1062,39 @@ function pokScene(t){
   pokSayFor(c, 0, TBL.cx+190, pokHeroY()-36);
   pokDrawChipFly(c);
   pokDrawFlights(c);
+  pokDrawMessage(c);
   pokVignette(c);
 }
 var pokLayer = null;
+/* The table's own headline. The DOM message sits at the top of the card for
+   the buy-in screen; once you are seated the felt carries it instead, drawn
+   big across the top where you are actually looking -- and, unlike the DOM
+   one, it is still there in fullscreen. */
+function pokDrawMessage(c){
+  var el = document.getElementById("pokMsg");
+  if(!el) return;
+  var text = (el.textContent || "").trim();
+  if(!text) return;
+  var cls = el.className || "";
+  var col = /\bwin\b/.test(cls)  ? "#5fd39a"
+          : /\blose\b/.test(cls) ? "#e2645f"
+          : "#f2e6c8";
+  var fs = pokFont(18);
+  c.save();
+  c.font = "700 " + fs + "px system-ui,sans-serif";
+  c.textAlign = "center";
+  /* Capped well short of the full width: the hand readout sits over the
+     top-left corner outside fullscreen, and a long message stretched across
+     the whole table ran underneath it. */
+  var w = Math.min(460, c.measureText(text).width + 34), h = fs + 18;
+  var x = POK_W / 2, y = 12;
+  c.fillStyle = "rgba(8,6,5,.78)";
+  pokRR(c, x - w/2, y, w, h, 10); c.fill();
+  c.strokeStyle = "rgba(232,194,100,.3)"; c.lineWidth = 1; c.stroke();
+  c.fillStyle = col;
+  c.fillText(text, x, y + h/2 + fs*0.35, w - 24);   /* fits the text to the pill */
+  c.restore();
+}
 function pokVignette(c){
   var vg=c.createRadialGradient(POK_W/2,POK_H*0.5,POK_H*0.38,POK_W/2,POK_H*0.46,POK_H*1.05);
   vg.addColorStop(0,"rgba(0,0,0,0)"); vg.addColorStop(1,"rgba(0,0,0,.6)");
@@ -1083,9 +1125,42 @@ function pokSnapRaise(v, lg){
   if(snapped > lg.maxRaiseTo) snapped = lg.maxRaiseTo;
   return snapped;
 }
+/* The raise amount is built up by clicking chips rather than dragged on a
+   slider: it starts at the smallest legal raise and each chip adds its own
+   value, so the number on the Raise button is always what you would be
+   raising TO. Reset puts it back to the minimum. */
 function pokRaiseValue(){
   var lg = pok.T && pok.T.toAct === 0 ? pokLegal(pok.T) : null;
-  return pokSnapRaise(Number($("pokSlider").value), lg);
+  if(!lg) return 0;
+  return pokSnapRaise(pok.raiseTo === null ? lg.minRaiseTo : pok.raiseTo, lg);
+}
+function pokRaiseLegal(){
+  var lg = pok.T && pok.T.toAct === 0 ? pokLegal(pok.T) : null;
+  return lg && lg.raise ? lg : null;
+}
+function pokRaiseAdd(n){
+  var lg = pokRaiseLegal();
+  if(!lg) return;
+  var from = pok.raiseTo === null ? lg.minRaiseTo : pok.raiseTo;
+  pok.raiseTo = pokSnapRaise(from + n, lg);
+  $("pokRaiseCustom").value = "";                    /* the typed figure no longer applies */
+  playChip();
+  pokRenderActions();
+}
+function pokRaiseSet(n){
+  var lg = pokRaiseLegal();
+  if(!lg) return null;
+  pok.raiseTo = pokSnapRaise(n, lg);
+  pokRenderActions();
+  return pok.raiseTo;
+}
+function pokRaiseReset(){
+  var lg = pokRaiseLegal();
+  if(!lg) return;
+  pok.raiseTo = lg.minRaiseTo;
+  $("pokRaiseCustom").value = "";
+  playClick();
+  pokRenderActions();
 }
 function pokRenderActions(){
   var lg = pok.T && pok.T.toAct === 0 ? pokLegal(pok.T) : null;
@@ -1097,19 +1172,45 @@ function pokRenderActions(){
   $("pokCheck").style.display = on && !lg.check ? "none" : "";
   $("pokCall").style.display  = on && lg.call ? "" : "none";
   if(on && lg.call) $("pokCall").textContent = "Call " + fmt(lg.callAmount) + " (C)";
-  var sl = $("pokSlider");
-  sl.disabled = !on || !lg.raise;
-  if(on && lg.raise){
-    sl.min = lg.minRaiseTo; sl.max = lg.maxRaiseTo;
-    if(Number(sl.value) < lg.minRaiseTo || Number(sl.value) > lg.maxRaiseTo) sl.value = lg.minRaiseTo;
-    var to = pokSnapRaise(Number(sl.value), lg);
-    $("pokRaiseVal").textContent = fmt(to);
-    $("pokRaise").textContent = to >= lg.maxRaiseTo ? "All in (R)" : "Raise (R)";
+
+  var canRaise = on && lg.raise;
+  if(canRaise){
+    /* A new decision -- a new street, or somebody re-raised -- starts the
+       amount over at the minimum rather than carrying the last one forward
+       into a range where it no longer means the same thing. */
+    var key = pok.T.stage + ":" + lg.minRaiseTo + ":" + lg.maxRaiseTo;
+    if(pok.raiseKey !== key){
+      pok.raiseKey = key;
+      pok.raiseTo = lg.minRaiseTo;
+      $("pokRaiseCustom").value = "";
+    }
+    pok.raiseTo = pokSnapRaise(pok.raiseTo === null ? lg.minRaiseTo : pok.raiseTo, lg);
+    $("pokRaise").textContent = pok.raiseTo >= lg.maxRaiseTo
+      ? "All in " + fmt(pok.raiseTo) + " (R)"
+      : "Raise to " + fmt(pok.raiseTo) + " (R)";
   }else{
-    $("pokRaiseVal").textContent = "—";
+    pok.raiseKey = null;
+    pok.raiseTo = null;
     $("pokRaise").textContent = "Raise (R)";
   }
-  $("pokNext").style.display = pok.T && pok.T.stage === "done" ? "" : "none";
+  Array.prototype.forEach.call(document.querySelectorAll("#pokRaiseChips .pok-chip"), function(b){
+    /* a chip that could not be added without going past all-in is spent */
+    b.disabled = !canRaise || (pok.raiseTo >= lg.maxRaiseTo);
+  });
+  $("pokRaiseCustom").disabled = !canRaise;
+  $("pokRaiseClear").disabled  = !canRaise;
+
+  /* Nothing may leave the table mid-hand: chips already in the pot are not
+     yours to take back. Standing up waits for the hand to finish, or for you
+     to be out of it. */
+  /* Once seated the felt carries the commentary, so the one at the top of the
+     card stands down rather than saying it twice. */
+  $("pokMsg").hidden = !!pok.seated;
+
+  var handOver = !!(pok.T && pok.T.stage === "done");
+  var foldedOut = !!(pok.T && !pok.T.players[0].inHand);
+  $("pokNext").style.display = handOver ? "" : "none";
+  $("pokLeave").disabled = !(handOver || foldedOut);
 }
 /* The scene repaints itself every frame; only the buttons need telling. */
 function pokRender(){ pokRenderActions(); }
@@ -1139,7 +1240,10 @@ function pokLeave(){
   if(!pok.seated) return;
   clearTimeout(pok.timer);
   clearTimeout(pok.endTimer);
-  var stack = pok.T.players[0].stack + pok.T.players[0].committed;
+  /* Only what is still in front of you. Chips already pushed into the pot are
+     not yours to take back -- counting them here refunded the bet of anyone
+     who folded and stood up, which cancelled the loss entirely. */
+  var stack = pok.T.players[0].stack;
   var net = stack - pok.buyin;
   if(stack > 0) payout(stack, "poker");
   pok.seated = false; pok.T = null;
@@ -1167,7 +1271,7 @@ function pokDeal(){
   if(!pokStartHand(pok.T)){ pokLeave(); return; }
   pokQueueDeal(pok.T);
   stats.hands++;
-  pokSetPokerStack(pok.T.players[0].stack + pok.T.players[0].committed);
+  pokSetPokerStack(pok.T.players[0].stack);
   playDeal();
   pokSay("Your move.", "info");
   pokRender();
@@ -1225,7 +1329,7 @@ function pokHeroAct(action, amount){
   if(spend > 0) pokChipMove(pokSeatStackPt(0), pokSeatBetPt(0), pokStackH(spend)+1, "#c9a227");
   if(pok.T.stage !== wasStage && pok.T.stage !== "done") pokSweepBets(snap);
   if(action === "raise" || action === "call") playChip(); else playClick();
-  pokSetPokerStack(pok.T.players[0].stack + pok.T.players[0].committed);
+  pokSetPokerStack(pok.T.players[0].stack);
   pokStep();
 }
 function pokShowdown(){
@@ -1306,7 +1410,27 @@ $("pokFold").addEventListener("click",  function(){ pokHeroAct("fold"); });
 $("pokCheck").addEventListener("click", function(){ pokHeroAct("check"); });
 $("pokCall").addEventListener("click",  function(){ pokHeroAct("call"); });
 $("pokRaise").addEventListener("click", function(){ pokHeroAct("raise", pokRaiseValue()); });
-$("pokSlider").addEventListener("input", function(){ pokRenderActions(); });
+Array.prototype.forEach.call(document.querySelectorAll("#pokRaiseChips .pok-chip"), function(b){
+  b.addEventListener("click", function(){ pokRaiseAdd(Number(b.dataset.r)); });
+});
+$("pokRaiseClear").addEventListener("click", pokRaiseReset);
+/* Typed amounts go in fives like every other stake in the game. The text is
+   left alone while it is being typed and corrected on the way out, so what is
+   written and what would actually be raised agree. */
+(function(){
+  var box = $("pokRaiseCustom");
+  box.addEventListener("input", function(){
+    var v = Math.floor(Number(box.value));
+    if(!v || v < 1) return;
+    pokRaiseSet(Math.max(5, Math.round(v / 5) * 5));
+  });
+  box.addEventListener("change", function(){
+    var v = Math.floor(Number(box.value));
+    if(!v || v < 1){ box.value = ""; return; }
+    var set = pokRaiseSet(Math.max(5, Math.round(v / 5) * 5));
+    if(set !== null) box.value = set;
+  });
+})();
 
 document.addEventListener("keydown", function(e){
   if(!pok.seated || !pok.T) return;

@@ -348,9 +348,15 @@
      the stage regardless of whether the stage is a column (normal) or a row
      (fullscreen). */
   #pokStage{position:relative}
+  /* It lives in the control column in the markup so fullscreen stacks it in the
+     right place, but outside fullscreen it is painted over the felt instead of
+     sitting in the flow. That is deliberate: its height changes with the hand
+     (a "could improve to" list appears on the flop and grows), and in the flow
+     that would change the card's height mid-hand, forcing a re-fit and jumping
+     the table about while you are playing. Out of the flow it costs nothing. */
   .pok-handinfo{
-    position:absolute;top:10px;left:10px;z-index:5;max-width:200px;
-    padding:9px 12px;border-radius:10px;pointer-events:none;
+    position:absolute;top:10px;left:10px;z-index:5;max-width:200px;pointer-events:none;
+    padding:9px 12px;border-radius:10px;
     background:rgba(10,8,6,.72);border:1px solid rgba(232,194,100,.28);
     color:#efe2c2;font-size:11.5px;line-height:1.5;
   }
@@ -370,6 +376,30 @@
     .pok-handinfo{max-width:150px;font-size:10.5px;padding:7px 9px}
     .pok-handinfo .pok-hi-current{font-size:12px}
   }
+
+  /* Chips to build a raise with: click until the number on the Raise button
+     is what you want. Smaller than the buy-in chips because five of them have
+     to sit in a 260px sidebar. */
+  .pok-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}
+  .pok-chip{
+    width:44px;height:44px;font-size:12px;border-width:2px;
+    background:radial-gradient(circle at 35% 30%,#3c6ea8,#1d3f68);
+  }
+  .pok-chip[data-r="5"]{background:radial-gradient(circle at 35% 30%,#e05a5f,#a3242a)}
+  .pok-chip[data-r="10"]{background:radial-gradient(circle at 35% 30%,#4c9d6b,#1c6640)}
+  .pok-chip[data-r="20"]{background:radial-gradient(circle at 35% 30%,#3c6ea8,#1d3f68)}
+  .pok-chip[data-r="50"]{background:radial-gradient(circle at 35% 30%,#7f5ad6,#42227e)}
+  .pok-chip[data-r="100"]{background:radial-gradient(circle at 35% 30%,#3a3a3a,#111)}
+  .pok-chip:disabled{opacity:.35;cursor:default;transform:none}
+  .pok-chip:disabled:hover{transform:none}
+  .pok-raiserow{display:flex;gap:6px;align-items:center;justify-content:center}
+  .pok-rcustom{width:86px}
+
+  /* Bigger than a normal table message, because this one is the headline at
+     the top of the card rather than a footnote under the controls. Keyed off
+     the id, not a class: msg() rewrites className wholesale on every message,
+     so a class here is wiped by the first thing the table ever says. */
+  #pokMsg{font-size:17px;margin:0 0 14px}
 
   /* The table itself is a canvas; only the controls are DOM. */
   #pokCanvas{
@@ -395,7 +425,11 @@
   }
   #pokStage:fullscreen #pokCanvas,
   #pokStage:-webkit-full-screen #pokCanvas{
-    flex:1 1 auto;height:auto;max-height:none;max-width:none;aspect-ratio:auto;
+    /* min-width:0 or it refuses to shrink: a canvas is a replaced element, so
+       its automatic minimum width comes from its own intrinsic size, and it
+       takes the whole row and shoves the control column off the right edge
+       instead of giving way to it. */
+    flex:1 1 auto;min-width:0;height:auto;max-height:none;max-width:none;aspect-ratio:auto;
   }
   /* min-width:0 at every nested level: a flex item's automatic minimum width
      is its content's min-content size, which for a range input or a row of
@@ -413,12 +447,23 @@
   }
   #pokStage:fullscreen .betbar .btn,
   #pokStage:-webkit-full-screen .betbar .btn{width:100%}
-  #pokStage:fullscreen .pok-raise,
-  #pokStage:-webkit-full-screen .pok-raise{
-    max-width:none;flex-direction:column;align-items:stretch;min-width:0;
+  /* The chip row and the typed-amount row keep their own shape inside the
+     column -- they are the one place buttons should sit side by side rather
+     than stacked full width. */
+  #pokStage:fullscreen .pok-chips,
+  #pokStage:-webkit-full-screen .pok-chips,
+  #pokStage:fullscreen .pok-raiserow,
+  #pokStage:-webkit-full-screen .pok-raiserow{flex-direction:row;min-width:0}
+  #pokStage:fullscreen .pok-chip,
+  #pokStage:-webkit-full-screen .pok-chip{width:44px;flex:0 0 auto}
+  #pokStage:fullscreen .pok-raiserow .btn,
+  #pokStage:-webkit-full-screen .pok-raiserow .btn{width:auto;flex:0 0 auto}
+  /* In fullscreen there is a real sidebar to sit in, and the column has its own
+     height, so it goes back into the flow between Raise and the buttons below. */
+  #pokStage:fullscreen .pok-handinfo,
+  #pokStage:-webkit-full-screen .pok-handinfo{
+    position:static;max-width:none;min-width:0;pointer-events:auto;
   }
-  #pokStage:fullscreen .pok-raise input[type=range],
-  #pokStage:-webkit-full-screen .pok-raise input[type=range]{width:100%}
 
   @media(max-width:700px){
     #pokStage:fullscreen,
@@ -431,9 +476,6 @@
     #pokStage:-webkit-full-screen .betbar .btn{width:auto}
   }
 
-  .pok-raise{display:flex;align-items:center;gap:8px;flex:1 1 200px;max-width:300px}
-  .pok-raise input[type=range]{flex:1;accent-color:var(--gold)}
-  .pok-raiseval{min-width:54px;text-align:right;font-weight:700;color:var(--gold)}
 
   /* ---------- settings modal ---------- */
   .modal-overlay{
