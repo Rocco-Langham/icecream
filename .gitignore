@@ -6,3 +6,6 @@
 
 # build artefacts / local archives
 *.zip
+
+# Claude Code local preview config (machine-specific paths)
+.claude/
