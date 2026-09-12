@@ -10,6 +10,100 @@ var POK_RV = {"2":2,"3":3,"4":4,"5":5,"6":6,"7":7,"8":8,"9":9,"10":10,"J":11,"Q"
 var POK_CATS = ["High card","Pair","Two pair","Three of a kind","Straight",
                "Flush","Full house","Four of a kind","Straight flush"];
 
+/* ==========================================================================
+   Hand-strength readout: what the hero has right now, and what it could
+   still turn into. Runs from the hero's own two cards, never from anything
+   about the bots -- exactly what a player at the table actually knows.
+   ========================================================================== */
+var POK_RANK_NAME    = {2:"Two",3:"Three",4:"Four",5:"Five",6:"Six",7:"Seven",8:"Eight",
+                         9:"Nine",10:"Ten",11:"Jack",12:"Queen",13:"King",14:"Ace"};
+var POK_RANK_NAME_PL = {2:"Twos",3:"Threes",4:"Fours",5:"Fives",6:"Sixes",7:"Sevens",8:"Eights",
+                         9:"Nines",10:"Tens",11:"Jacks",12:"Queens",13:"Kings",14:"Aces"};
+
+function pokDescribeHole(hole){
+  var rA = POK_RV[hole[0].r], rB = POK_RV[hole[1].r];
+  if(rA === rB) return "Pocket " + POK_RANK_NAME_PL[rA];
+  var hi = Math.max(rA,rB), lo = Math.min(rA,rB);
+  return POK_RANK_NAME[hi] + "-" + POK_RANK_NAME[lo] + (hole[0].su === hole[1].su ? " suited" : " offsuit");
+}
+function pokDescribeHand(score){
+  var tb = score.tb;
+  switch(score.cat){
+    case 8: return "Straight flush, " + POK_RANK_NAME[tb[0]] + "-high";
+    case 7: return "Four of a kind, " + POK_RANK_NAME_PL[tb[0]];
+    case 6: return POK_RANK_NAME_PL[tb[0]] + " full of " + POK_RANK_NAME_PL[tb[1]];
+    case 5: return "Flush, " + POK_RANK_NAME[tb[0]] + "-high";
+    case 4: return "Straight, " + POK_RANK_NAME[tb[0]] + "-high";
+    case 3: return "Three of a kind, " + POK_RANK_NAME_PL[tb[0]];
+    case 2: return "Two pair, " + POK_RANK_NAME_PL[tb[0]] + " and " + POK_RANK_NAME_PL[tb[1]];
+    case 1: return "Pair of " + POK_RANK_NAME_PL[tb[0]];
+    default: return POK_RANK_NAME[tb[0]] + "-high";
+  }
+}
+/* Every card still in the deck (from the hero's own point of view -- the
+   bots' hidden hole cards are not excluded, because the hero cannot see them
+   either) is tried as the very next card. Whichever ones beat the current
+   hand are tallied by the category they would complete: the classic meaning
+   of "outs", not a full multi-street run-out. On the river there is no next
+   card, so there is nothing left to draw to. */
+function pokOuts(hole, board){
+  if(board.length < 3 || board.length > 5) return null;
+  var current = pokBest(hole.concat(board));
+  if(board.length === 5) return {current:current, outs:[]};
+
+  var known = {};
+  hole.concat(board).forEach(function(c){ known[c.r + c.su.s] = 1; });
+  var remaining = pokDeck().filter(function(c){ return !known[c.r + c.su.s]; });
+
+  var tally = {};
+  remaining.forEach(function(c){
+    var next = pokBest(hole.concat(board).concat([c]));
+    /* Strictly a better-NAMED hand, not a better kicker within the one the
+       hero already has -- otherwise a card that only improves the kicker on
+       an already-made two pair would show up as an "out" toward two pair,
+       which is a hand the player already holds. */
+    if(next.cat > current.cat) tally[next.cat] = (tally[next.cat] || 0) + 1;
+  });
+  var outs = Object.keys(tally).map(Number).sort(function(a,b){ return b - a; })
+    .map(function(cat){ return {cat:cat, name:POK_CATS[cat], outs:tally[cat]}; });
+  return {current:current, outs:outs};
+}
+/* Recomputed only when the hero's cards actually changed since the last
+   paint -- cheap either way (a few hundred 5-card evaluations at most), but
+   there is no reason to redo it 60 times a second when nothing has moved. */
+var pokHandInfoKey = null;
+function pokRenderHandInfo(T){
+  var el = document.getElementById("pokHandInfo");
+  if(!el) return;
+  var me = T.players[0];
+  if(!me.hole.length || !me.inHand){ el.hidden = true; pokHandInfoKey = null; return; }
+
+  var key = me.hole.map(function(c){ return c.r + c.su.s; }).join(",") + "|" +
+            T.board.map(function(c){ return c.r + c.su.s; }).join(",");
+  if(key === pokHandInfoKey) return;
+  pokHandInfoKey = key;
+  el.hidden = false;
+
+  if(T.board.length === 0){
+    el.innerHTML = '<div class="pok-hi-title">Your hand</div>' +
+      '<div class="pok-hi-current">' + pokDescribeHole(me.hole) + "</div>";
+    return;
+  }
+  var info = pokOuts(me.hole, T.board);
+  var html = '<div class="pok-hi-title">Your hand</div>' +
+             '<div class="pok-hi-current">' + pokDescribeHand(info.current) + "</div>";
+  if(info.outs.length){
+    html += '<div class="pok-hi-sub">Could improve to</div><ul class="pok-hi-list">' +
+      info.outs.map(function(o){
+        return "<li>" + o.name + ' <span>' + o.outs + " card" + (o.outs === 1 ? "" : "s") + "</span></li>";
+      }).join("") + "</ul>";
+  }else if(T.board.length < 5){
+    html += '<div class="pok-hi-sub">Nothing left improves this</div>';
+  }
+  el.innerHTML = html;
+}
+
+
 function pokDeck(){
   var d = [];
   SUITS.forEach(function(su){ RANKS.forEach(function(r){ d.push({r:r, su:su}); }); });
@@ -847,6 +941,7 @@ function pokScene(t){
   c.restore();
 
   if(!T){ pokVignette(c); return; }
+  pokRenderHandInfo(T);
 
   /* A folded player is not drawn at all -- no ghost at the felt, no empty
      chair either -- and whoever is left in their arm (left: seats 1-2, right:
@@ -1068,6 +1163,7 @@ function pokDeal(){
   pok.revealed = false;
   pok.say = {}; pokChipFly = [];
   pokCurDeg = {};                                    /* everyone is back in the hand */
+  pokHandInfoKey = null;
   if(!pokStartHand(pok.T)){ pokLeave(); return; }
   pokQueueDeal(pok.T);
   stats.hands++;

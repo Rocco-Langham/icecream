@@ -376,6 +376,10 @@
              stack them underneath it. -->
         <div id="pokStage">
           <canvas class="playfield" id="pokCanvas"></canvas>
+          <!-- Only ever describes the hero's own hole cards, never a bot's --
+               kept updated from pokScene() and hidden whenever the hero has
+               no cards in play. -->
+          <div class="pok-handinfo" id="pokHandInfo" hidden></div>
           <div id="pokControls">
             <div class="betbar" id="pokActions">
               <button class="btn ghost" id="pokFold">Fold (F)</button>
