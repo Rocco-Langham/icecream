@@ -813,7 +813,11 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="app.js"></script>
 <script src="games.js"></script>
-<script src="poker.js"></script>
+<!-- Poker in three parts, loaded in dependency order: the rules, then the
+     opponents that consult them, then the table that shows it all. -->
+<script src="Poker/engine.js"></script>
+<script src="Poker/bots.js"></script>
+<script src="Poker/table.js"></script>
 <script>
 "use strict";
 /* Everything above only declares things. This is the part that runs, so it
