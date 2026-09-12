@@ -6,7 +6,7 @@ var SYMBOLS = [
   {s:"🍇", name:"Grapes",   weight:16, pay:12},
   {s:"🔔", name:"Bell",     weight:12, pay:20},
   {s:"💎", name:"Diamond",  weight:7,  pay:50},
-  {s:"7️⃣", name:"Seven",   weight:4,  pay:150}
+  {s:"7️⃣", name:"Seven",   weight:50,  pay:250}
 ];
 var WHEEL_POOL = [];
 SYMBOLS.forEach(function(sym){
