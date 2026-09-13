@@ -564,13 +564,21 @@ function pokStackH(n){ return Math.max(0, Math.min(9, Math.round(n/60))); }
    gives the fewest chips, and anything under a five has no chip to sit in.
    The colours are the ones on the raise buttons, so a chip means the same
    thing wherever it turns up and is learned once. */
+/* `from` is the buy-in at which a chip comes into play, the same figures the
+   raise buttons tier on, so the chips in your stack and the chips on the
+   buttons are always the same chips. The bottom six are always in play.
+   The thousand is written 1K: it is the only four-figure chip, and spelled
+   out it is wide enough to run into its neighbour once a stack is deep
+   enough to have eight piles standing side by side. */
 var POK_RACK = [
-  {v:250, col:"#dd6d95"},
-  {v:100, col:"#3a3a3a"},
-  {v:50,  col:"#7f5ad6"},
-  {v:20,  col:"#3c6ea8"},
-  {v:10,  col:"#4c9d6b"},
-  {v:5,   col:"#e05a5f"}
+  {v:1000, col:"#c87a22", from:30000, label:"1K"},
+  {v:500,  col:"#23897d", from:5000},
+  {v:250,  col:"#dd6d95", from:0},
+  {v:100,  col:"#3a3a3a", from:0},
+  {v:50,   col:"#7f5ad6", from:0},
+  {v:20,   col:"#3c6ea8", from:0},
+  {v:10,   col:"#4c9d6b", from:0},
+  {v:5,    col:"#e05a5f", from:0}
 ];
 /* A pile is 25 chips and then you start another one beside it, the way they
    actually come off a table -- a rack is five piles of twenty, and nobody
@@ -578,10 +586,11 @@ var POK_RACK = [
 var POK_PILE = 25;
 var POK_PILES_MAX = 8;                                /* piles the pill holds before the rest is a number */
 function pokRack(n){
-  var left = Math.max(0, Math.floor(n)), out = [];
+  var left = Math.max(0, Math.floor(n)), out = [], buyin = pokBuyinNow();
   POK_RACK.forEach(function(d){
+    if(buyin < d.from) return;                       /* not a chip this table plays with */
     var many = Math.floor(left / d.v);
-    if(many){ out.push({v:d.v, col:d.col, count:many}); left -= many * d.v; }
+    if(many){ out.push({v:d.v, col:d.col, label:d.label || String(d.v), count:many}); left -= many * d.v; }
   });
   return out;
 }
@@ -602,7 +611,7 @@ function pokPiles(n){
          than a number. */
       var capped = (k === draw - 1) && draw < want;
       out.push({
-        v: st.v, col: st.col,
+        v: st.v, col: st.col, label: st.label,
         count: capped ? POK_PILE : Math.min(POK_PILE, st.count - k * POK_PILE),
         more:  capped ? st.count : 0
       });
@@ -654,7 +663,7 @@ function pokTuneRaiseChips(){
    and the figure underneath never moves. */
 function pokHeroStackBox(c, me){
   var piles = pokPiles(me.stack), n = piles.length;
-  var pitch = n > 1 ? Math.min(28, 162 / (n - 1)) : 0;
+  var pitch = n > 1 ? Math.min(28, 178 / (n - 1)) : 0;
   var tall = 1, capped = false;
   piles.forEach(function(p){ if(p.count > tall) tall = p.count; if(p.more) capped = true; });
   /* Chips sit four apart while a pile can afford it and close up after that,
@@ -665,12 +674,21 @@ function pokHeroStackBox(c, me){
   c.save();
   c.font = "800 " + pokFont(10) + "px system-ui,sans-serif";
   var figure = c.measureText(fmt(me.stack)).width;
+  /* The face values have to fit the gap between the piles, and on a phone the
+     type is scaled up against a small canvas until three figures are wider
+     than the gap is. The widest label decides the size for all of them, so
+     they stay a set -- and at any ordinary stack it decides on the full size
+     and nothing changes. */
+  var labelPx = pokFont(8), widest = 0;
+  c.font = "800 " + labelPx + "px system-ui,sans-serif";
+  piles.forEach(function(p){ var w = c.measureText(p.label).width; if(w > widest) widest = w; });
+  if(pitch && widest > pitch - 2) labelPx = Math.max(7, Math.floor(labelPx * (pitch - 2) / widest));
   c.restore();
   var w = Math.min(210, Math.max((n ? (n - 1) * pitch + 24 : 0) + 28, figure + 26, 92));
   var h = chipsH + 38;
   var bottom = pokHeroY() + 34;
   return {cx: TBL.cx + 176, w: w, h: h, top: bottom - h,
-          piles: piles, pitch: pitch, step: step, base: bottom - 26};
+          piles: piles, pitch: pitch, step: step, base: bottom - 26, labelPx: labelPx};
 }
 /* Your own bubble hangs off the top of the pill, wherever the pill has got to. */
 function pokHeroSayY(){
@@ -703,12 +721,12 @@ function pokDrawHeroStack(c, T, me){
     var topY = b.base - (p.count - 1) * b.step;
     if(i === 0 || b.piles[i-1].v !== p.v){
       c.fillStyle = "#fff"; c.textAlign = "center"; c.textBaseline = "middle";
-      c.font = "800 " + pokFont(8) + "px system-ui,sans-serif";
-      c.fillText(String(p.v), x, topY - .2);
+      c.font = "800 " + b.labelPx + "px system-ui,sans-serif";
+      c.fillText(p.label, x, topY - .2);
     }
     if(p.more){
       c.textAlign = "center"; c.textBaseline = "middle";
-      c.fillStyle = "rgba(244,234,215,.85)"; c.font = "700 " + pokFont(8) + "px system-ui,sans-serif";
+      c.fillStyle = "rgba(244,234,215,.85)"; c.font = "700 " + b.labelPx + "px system-ui,sans-serif";
       c.fillText("\u00d7" + p.more, x, topY - 11);
     }
   });
