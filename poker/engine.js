@@ -68,7 +68,20 @@ function pokOuts(hole, board){
        hero already has -- otherwise a card that only improves the kicker on
        an already-made two pair would show up as an "out" toward two pair,
        which is a hand the player already holds. */
-    if(next.cat > current.cat) tally[next.cat] = (tally[next.cat] || 0) + 1;
+    if(next.cat <= current.cat) return;
+
+    /* On the river card, the five community cards are a hand of their own --
+       one every player at the table is dealt for free. A card that only
+       completes THAT hand is not an out: it does not distinguish the hero
+       from anyone else at the table, whatever it does to the hero's own
+       category. This only arises turning the river, since a four-card board
+       cannot make a five-card hand by itself -- pokBest returns null and the
+       comparison below is skipped everywhere else. */
+    if(board.length === 4){
+      var boardOnly = pokBest(board.concat([c]));
+      if(boardOnly && pokCmp(boardOnly, next) >= 0) return;
+    }
+    tally[next.cat] = (tally[next.cat] || 0) + 1;
   });
   var outs = Object.keys(tally).map(Number).sort(function(a,b){ return b - a; })
     .map(function(cat){ return {cat:cat, name:POK_CATS[cat], outs:tally[cat]}; });

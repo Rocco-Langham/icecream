@@ -436,6 +436,18 @@ function showTab(name){
   Array.prototype.forEach.call(document.querySelectorAll(".game"), function(o){
     o.classList.toggle("on", o.id === "tab-" + name);
   });
+  /* Poker Check's suit popup is a fixed full-screen overlay above every modal
+     in the app, opened from a click inside that tab -- it never survives a
+     normal switch away, because the overlay itself blocks the click that
+     would switch tabs. But the dev console is its own window and can flip
+     the tab out from under it without the overlay being touched, which
+     stranded the popup over whatever tab it redirected to. Closing it here,
+     unconditionally, covers that path and any future one that reaches
+     showTab without going through the popup's own controls. Its equity
+     estimate runs on a background timer with no tab awareness of its own
+     either, so it is cancelled the same way. */
+  if(typeof pcCloseSuitPopup === "function") pcCloseSuitPopup();
+  if(typeof pcEquityCancel === "function") pcEquityCancel();
   fitGame();                                         /* each game fills its space by a different amount */
 }
 

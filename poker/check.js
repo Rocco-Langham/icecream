@@ -149,7 +149,11 @@ var pcEqRun = 0, pcEqTimer = null;
 function pcEquityStart(hole, board, opponents, onUpdate){
   clearTimeout(pcEqTimer);
   var run = ++pcEqRun;
-  var TOTAL = 6000, SLICE = 300, done = 0, sum = 0;
+  /* No more cards are coming after the river, so it is the one board where a
+     player is likely to sit looking at the figure rather than glance and move
+     on -- worth the extra time to settle tighter. Everywhere else the sample
+     stays as it was. */
+  var TOTAL = board.length === 5 ? 30000 : 6000, SLICE = 300, done = 0, sum = 0;
   (function step(){
     if(run !== pcEqRun) return;                      /* the cards moved on */
     var n = Math.min(SLICE, TOTAL - done);
@@ -158,6 +162,13 @@ function pcEquityStart(hole, board, opponents, onUpdate){
     onUpdate(sum / done, done / TOTAL);
     if(done < TOTAL) pcEqTimer = setTimeout(step, 0);
   })();
+}
+/* Called from outside this file whenever the tab changes -- leaving Poker
+   Check must not leave a background run still chewing through slices behind
+   whatever screen the player switched to. */
+function pcEquityCancel(){
+  pcEqRun++;
+  clearTimeout(pcEqTimer);
 }
 
 /* ---- the readout ---- */
@@ -181,12 +192,26 @@ function pcRender(){
 
   if(hole.length < PC_MAX_HOLE){
     pcEqRun++;                                       /* stop anything still running */
-    el.innerHTML = '<div class="pc-hint">Tap your two cards to begin. Add the flop, turn and river as they come.</div>';
+    /* The board can already be entered when a hole card is taken back to fix
+       a mis-tap. Telling the player to "begin" over a live board reads as
+       though it was cleared -- it was not, and it is still there underneath. */
+    el.innerHTML = board.length > 0
+      ? '<div class="pc-hint">Add your other hole card to read this hand.</div>'
+      : '<div class="pc-hint">Tap your two cards to begin. Add the flop, turn and river as they come.</div>';
+    /* This branch returns early, so the fitGame call at the bottom of the
+       function never runs for it -- and Clear is the one action that shrinks
+       the card back to its smallest content, which needs the same re-fit as
+       every path that grows it. */
+    if(typeof fitGame === "function") fitGame();
     return;
   }
 
   var html = '<div class="pc-line"><span>Your hand</span><b>' + pokDescribeHole(hole) + "</b></div>";
 
+  /* A real board is never one or two cards -- the flop lands as three at
+     once. Those counts only exist here because the cards are entered one tap
+     at a time, so they get a plain "still waiting" line and nothing else:
+     no hand to describe yet, and no win rate for a board that cannot occur. */
   if(board.length >= 3){
     var info = pokOuts(hole, board);
     html += '<div class="pc-line"><span>Best right now</span><b>' + pokDescribeHand(info.current) + "</b></div>";
@@ -196,21 +221,41 @@ function pcRender(){
           return "<li><span>" + o.name + "</span><b>" + o.outs + " card" + (o.outs === 1 ? "" : "s") + "</b></li>";
         }).join("") + "</ul>";
     }else if(board.length < 5){
-      html += '<div class="pc-sub">Nothing left in the deck improves this</div>';
+      /* Not "nothing improves this" -- pokOuts only counts a jump to a better
+         NAMED hand (see its own comment), so a made flush with a low kicker
+         genuinely has no listed outs here even though a higher kicker is
+         still live. The category is what is settled; the kicker is not. */
+      html += '<div class="pc-sub">No stronger type of hand is left in the deck</div>';
     }
   }else if(board.length > 0){
-    html += '<div class="pc-sub">Two more board cards needed before this is a hand</div>';
+    var need = 3 - board.length;
+    html += '<div class="pc-sub">' + need + ' more board card' + (need === 1 ? "" : "s") +
+            ' needed before this is a hand</div>';
   }
 
-  html += '<div class="pc-line pc-eq"><span>Wins about</span><b id="pcEq">…</b></div>';
+  if(board.length === 0 || board.length >= 3){
+    html += '<div class="pc-line pc-eq"><span>Wins about</span><b id="pcEq">…</b></div>';
+  }else{
+    pcEqRun++;                                       /* a 1- or 2-card board is not a real state -- no figure for it */
+  }
   el.innerHTML = html;
 
-  pcEquityStart(hole, board, pcOpps, function(share, progress){
-    var out = document.getElementById("pcEq");
-    if(!out) return;
-    out.textContent = Math.round(share * 100) + "%";
-    out.classList.toggle("settling", progress < 1);
-  });
+  if(board.length === 0 || board.length >= 3){
+    pcEquityStart(hole, board, pcOpps, function(share, progress){
+      var out = document.getElementById("pcEq");
+      if(!out) return;
+      var pct = Math.round(share * 100);
+      /* Never claim certainty a 6000-trial sample cannot back up. A hand that
+         loses one time in two hundred still rounds to 100 at these odds, and
+         "wins about 100%" reads as "cannot lose" -- the one thing this figure
+         must never say when it is not quite true. */
+      var label = pct <= 0 ? "&lt;1%" : pct >= 100 ? "&gt;99%" : pct + "%";
+      out.innerHTML = (progress < 1 ? "~" : "") + label;
+      out.classList.toggle("settling", progress < 1);
+    });
+  }
+
+  if(typeof fitGame === "function") fitGame();       /* this card is the one screen whose height changes on every tap */
 }
 
 /* ---- how many people you are up against ---- */
