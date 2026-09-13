@@ -506,6 +506,32 @@ function pokShades(c){
   });
   c.restore();
 }
+/* A fedora for him too, sat on the hair rather than instead of it, so what
+   the hat does not cover still shows under the brim. The head is 40 across
+   and its crown is at -109; the brim is wider than that on purpose, which is
+   most of what makes a hat read as a hat at this size. */
+function pokHat(c){
+  c.save();
+  var bg = c.createLinearGradient(0, -111, 0, -96);
+  bg.addColorStop(0, "#3d342d"); bg.addColorStop(.55, "#241e1a"); bg.addColorStop(1, "#120f0d");
+  c.fillStyle = bg;
+  c.beginPath(); c.ellipse(0, -103.5, 29, 7.6, 0, 0, 7); c.fill();
+  c.strokeStyle = "rgba(0,0,0,.5)"; c.lineWidth = 1;
+  c.beginPath(); c.ellipse(0, -103.5, 29, 7.6, 0, 0, 7); c.stroke();
+
+  var cg = c.createLinearGradient(-14, -122, 14, -102);
+  cg.addColorStop(0, "#4c4239"); cg.addColorStop(.5, "#2a2420"); cg.addColorStop(1, "#141110");
+  c.fillStyle = cg; pokRR(c, -14, -122, 28, 20, 9); c.fill();
+  /* the crease, and a pinch either side of it */
+  c.fillStyle = "rgba(0,0,0,.32)"; pokRR(c, -2.8, -122, 5.6, 11, 2.8); c.fill();
+  c.fillStyle = "rgba(255,255,255,.06)";
+  pokRR(c, -11.5, -121, 4, 9, 2); c.fill();
+  pokRR(c,   7.5, -121, 4, 9, 2); c.fill();
+  /* the band, and the light along the top of it */
+  c.fillStyle = "#0d0a08"; c.fillRect(-14, -110, 28, 6);
+  c.fillStyle = "rgba(255,255,255,.08)"; c.fillRect(-14, -110, 28, 1.5);
+  c.restore();
+}
 function pokPerson(c,x,y,s,o,t,seed,dim,cigar){
   var br=pokBob(t,seed);
   c.save(); c.translate(x,y+br); c.scale(s,s);
@@ -550,7 +576,7 @@ function pokPerson(c,x,y,s,o,t,seed,dim,cigar){
     c.beginPath(); c.arc( 7,-86,7,0,7); c.stroke();
     c.beginPath(); c.moveTo(-1,-86); c.lineTo(1,-86); c.stroke();
   }
-  if(cigar) pokCigar(c, t, seed);
+  if(cigar){ pokHat(c); pokCigar(c, t, seed); }
   c.restore();
 }
 
@@ -982,7 +1008,7 @@ function pokScene(t){
     else { c.fillStyle="#e8c264"; c.font="700 "+pokFont(13)+"px system-ui,sans-serif";
       c.fillText(fmt(p.stack),sp2.x,sp2.y+42); }
     c.restore();
-    pokSayFor(c, seat, sp2.x, sp2.y-106);
+    pokSayFor(c, seat, sp2.x, sp2.y - (seat === pok.cigar ? 122 : 106));
   }
   if(smokeAt) pokSmoke(c, smokeAt.x, smokeAt.y, 0.86, t, smokeAt.seed);
 
