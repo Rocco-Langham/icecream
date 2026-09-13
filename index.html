@@ -34,6 +34,7 @@
         <button class="sidebar-link" data-tab="flappy"><span class="ic">&#128038;</span>Flappy</button>
         <button class="sidebar-link" data-tab="snake"><span class="ic">&#128013;</span>Snake</button>
         <button class="sidebar-link" data-tab="poker"><span class="ic">&#9824;&#65039;</span>Poker</button>
+        <button class="sidebar-link" data-tab="online"><span class="ic">&#128101;</span>Poker Online</button>
       </div>
 
       <div class="sidebar-section">
@@ -330,6 +331,87 @@
         <input type="number" class="custom-bet" id="snCustom" min="5" step="5" placeholder="Custom">
         <div class="stake" id="snStake">25</div>
         <button class="btn ghost sm" id="snClear">Clear</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= POKER ONLINE ================= -->
+  <section class="game" id="tab-online">
+    <div class="table">
+      <h2 class="title">Poker Online</h2>
+      <p class="sub">A table you and your friends sit at from wherever you are.</p>
+
+      <!-- You need an account, because a table has to know who is who. -->
+      <div class="mp-view" id="mpSignedOut">
+        <div class="people-empty">Sign in to play at a table with friends.</div>
+      </div>
+
+      <!-- The database has not been set up yet. Shown instead of a raw
+           Postgres error, which tells a player nothing they can act on. -->
+      <div class="mp-view" id="mpNoTables" hidden>
+        <div class="people-empty">
+          Online play is not switched on for this casino yet.<br>
+          <small>The multiplayer tables need setting up in Supabase first (script 13).</small>
+        </div>
+      </div>
+
+      <div class="mp-view" id="mpLobby" hidden>
+        <div class="mp-panel">
+          <span class="pc-slot-label">Start a table</span>
+          <div class="betbar" id="mpBuyRow">
+            <button class="chipbtn" data-v="100">100</button>
+            <button class="chipbtn sel" data-v="250">250</button>
+            <button class="chipbtn" data-v="500">500</button>
+            <button class="chipbtn" data-v="1000">1,000</button>
+            <input type="number" class="custom-bet" id="mpBuyCustom" min="20" step="5" placeholder="Custom">
+          </div>
+          <button class="btn" id="mpCreate">Open a table for <span id="mpBuyin">250</span></button>
+        </div>
+
+        <div class="mp-panel">
+          <span class="pc-slot-label">Join with a code</span>
+          <div class="mp-joinrow">
+            <input type="text" id="mpCodeIn" class="custom-bet mp-code-in" maxlength="6"
+                   placeholder="ABC123" autocomplete="off" autocapitalize="characters" spellcheck="false">
+            <button class="btn ghost" id="mpJoin">Join</button>
+          </div>
+        </div>
+
+        <div class="mp-panel">
+          <span class="pc-slot-label">Your friends' open tables</span>
+          <div class="people-list" id="mpOpenList"></div>
+          <button class="btn ghost sm" id="mpRefresh">Refresh</button>
+        </div>
+
+        <div class="mp-note" id="mpLobbyNote"></div>
+      </div>
+
+      <div class="mp-view" id="mpRoom" hidden>
+        <div class="mp-panel">
+          <span class="pc-slot-label">Table code &mdash; share it to invite people</span>
+          <div class="mp-code" id="mpRoomCode">------</div>
+          <div class="mp-note" id="mpRoomStakes"></div>
+        </div>
+
+        <div class="mp-panel">
+          <span class="pc-slot-label">Sat down</span>
+          <div class="people-list" id="mpSeatList"></div>
+        </div>
+
+        <!-- Said once, here, rather than left to be discovered: without a
+             server somebody has to hold the deck, and that somebody can look
+             at it. -->
+        <div class="mp-warn" id="mpHostWarn" hidden>
+          You are dealing. Your browser holds the deck, so play with people who
+          are happy for you to be the one holding it &mdash; and take turns hosting.
+        </div>
+
+        <div class="mp-actions">
+          <button class="btn" id="mpStart" hidden>Start the game</button>
+          <button class="btn ghost sm" id="mpLeave">Leave table</button>
+        </div>
+
+        <div class="mp-note" id="mpRoomNote"></div>
       </div>
     </div>
   </section>
@@ -880,6 +962,7 @@
 <script src="poker/bots.js"></script>
 <script src="poker/table.js"></script>
 <script src="poker/check.js"></script>
+<script src="poker/online.js"></script>
 <script>
 "use strict";
 /* Everything above only declares things. This is the part that runs, so it

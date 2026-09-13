@@ -1238,6 +1238,10 @@ function renderAccount(){
   if(!CLOUD_OK) return;
   $("railWho").textContent  = sbUser ? (sbName || sbUser.email) : "Playing as guest";
   $("railAuth").textContent = sbUser ? "Sign out" : "Log in";
+  /* The online lobby only exists for a signed-in player, and signing out has
+     to take it away again -- including dropping the live subscription to
+     whatever table was being watched. */
+  if(typeof mpAuthChanged === "function") mpAuthChanged();
 }
 function applyCloudRow(row){
   applyingCloudRow = true;
