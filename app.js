@@ -1890,9 +1890,13 @@ function submitDevCode(){
     var opened = openDevPopup();
     devNote.textContent = opened
       ? "Code accepted — casino renamed. Check the pop-up window."
-      : "Code accepted — casino renamed. (Your browser blocked the pop-up.)";
+      : "Code accepted — casino renamed. No pop-up, so type dev commands here.";
     devNote.style.color = "var(--good)";
-    setTimeout(function(){ settingsOverlay.classList.remove("on"); }, 900);
+    /* Only step aside when the console actually opened. A phone blocks the
+       pop-up every time, and closing this was then closing the only way left
+       to type a command -- you were told the code worked and then shown the
+       door, which reads exactly like it did not. */
+    if(opened) setTimeout(function(){ settingsOverlay.classList.remove("on"); }, 900);
   }else if(raw.toLowerCase() === "irlpoker" && CASINO_NAME === "xyz"){
     /* The same switch as the dev console's, reachable from a phone. The
        console lives in a pop-up window that talks back through window.opener,
