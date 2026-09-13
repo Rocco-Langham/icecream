@@ -45,30 +45,63 @@ function pcAdd(card){
   return true;
 }
 
-/* ---- the deck of buttons ---- */
-function pcBuildDeck(){
-  var deck = document.getElementById("pcDeck");
-  if(!deck) return;
+/* ---- rank buttons, one row of thirteen ---- */
+function pcBuildRanks(){
+  var wrap = document.getElementById("pcRanks");
+  if(!wrap) return;
+  var html = "";
+  RANKS.forEach(function(r, ri){
+    html += '<button class="pc-rank" data-r="' + ri + '">' + r +
+            '<span class="pc-rank-badge" hidden></span></button>';
+  });
+  wrap.innerHTML = html;
+  Array.prototype.forEach.call(wrap.querySelectorAll(".pc-rank"), function(b){
+    b.addEventListener("click", function(){
+      if(typeof playClick === "function") playClick();
+      pcOpenSuitPopup(+b.dataset.r);
+    });
+  });
+}
+/* How many of a rank are already down -- a rank can appear more than once in
+   one hand (a paired board, trips on the flop), so this is a count, not a
+   yes/no, and shows on the rank button as a small badge. */
+function pcRankCount(ri){
+  var r = RANKS[ri];
+  return pcHoleCards.concat(pcBoardCards).filter(function(c){ return c.r === r; }).length;
+}
+
+/* ---- the suit popup ----
+   A rank alone does not say which card was dealt, so tapping one opens this
+   for the suit. Picking a suit places the card immediately and closes the
+   popup; tapping a suit already down takes that card back instead, straight
+   from here, without needing to find it in the slots above. */
+var pcOpenRank = null;
+function pcOpenSuitPopup(ri){
+  pcOpenRank = ri;
+  document.getElementById("pcSuitTitle").textContent = RANKS[ri];
   var html = "";
   SUITS.forEach(function(su, si){
-    html += '<div class="pc-suitrow' + (su.red ? " red" : "") + '">';
-    RANKS.forEach(function(r, ri){
-      html += '<button class="pc-card" data-s="' + si + '" data-r="' + ri + '">' +
-              '<span class="pc-r">' + r + '</span>' +
-              '<span class="pc-s">' + su.s + '</span></button>';
-    });
-    html += "</div>";
+    var card = pcCard(RANKS[ri], su), used = pcTaken(card);
+    var disabled = !used && pcCount() >= PC_MAX_HOLE + PC_MAX_BOARD;
+    html += '<button class="pc-suitbtn' + (su.red ? " red" : "") + (used ? " used" : "") + '"' +
+            (disabled ? " disabled" : "") + ' data-s="' + si + '">' + su.s + "</button>";
   });
-  deck.innerHTML = html;
-  Array.prototype.forEach.call(deck.querySelectorAll(".pc-card"), function(b){
+  document.getElementById("pcSuitButtons").innerHTML = html;
+  Array.prototype.forEach.call(document.querySelectorAll("#pcSuitButtons .pc-suitbtn"), function(b){
     b.addEventListener("click", function(){
-      var c = pcCard(RANKS[+b.dataset.r], SUITS[+b.dataset.s]);
+      var c = pcCard(RANKS[pcOpenRank], SUITS[+b.dataset.s]);
       if(pcTaken(c)) pcRemove(c);
       else if(!pcAdd(c)) return;
       if(typeof playClick === "function") playClick();
+      pcCloseSuitPopup();
       pcRender();
     });
   });
+  document.getElementById("pcSuitOverlay").hidden = false;
+}
+function pcCloseSuitPopup(){
+  pcOpenRank = null;
+  document.getElementById("pcSuitOverlay").hidden = true;
 }
 function pcRemove(card){
   var gone = function(list){ return list.filter(function(p){ return pcKey(p) !== pcKey(card); }); };
@@ -131,12 +164,17 @@ function pcEquityStart(hole, board, opponents, onUpdate){
 function pcRender(){
   pcRenderSlots();
   pcRenderOpps();
-  Array.prototype.forEach.call(document.querySelectorAll("#pcDeck .pc-card"), function(b){
-    var c = pcCard(RANKS[+b.dataset.r], SUITS[+b.dataset.s]);
-    var used = pcTaken(c);
-    b.classList.toggle("used", used);
-    b.disabled = !used && pcCount() >= PC_MAX_HOLE + PC_MAX_BOARD;
+  Array.prototype.forEach.call(document.querySelectorAll("#pcRanks .pc-rank"), function(b){
+    var n = pcRankCount(+b.dataset.r);
+    var badge = b.querySelector(".pc-rank-badge");
+    b.classList.toggle("has", n > 0);
+    badge.hidden = n === 0;
+    if(n > 0) badge.textContent = n;
   });
+  /* The popup can be open while a card lands from elsewhere -- it never is
+     in this build, since selecting a suit closes it, but a stale count here
+     would be a silent trap for whoever adds a second way to place a card. */
+  if(pcOpenRank !== null) pcOpenSuitPopup(pcOpenRank);
 
   var el = document.getElementById("pcResult");
   var hole = pcHole(), board = pcBoard();
@@ -208,5 +246,15 @@ document.getElementById("pcUndo").addEventListener("click", function(){
   if(typeof playClick === "function") playClick();
   pcRender();
 });
-pcBuildDeck();
+document.getElementById("pcSuitClose").addEventListener("click", function(){
+  if(typeof playClick === "function") playClick();
+  pcCloseSuitPopup();
+});
+/* Tapping the dimmed backdrop closes it too, same as every other overlay in
+   the app -- but only the backdrop itself, so a tap that lands on the suits
+   or the title never gets mistaken for one that missed. */
+document.getElementById("pcSuitOverlay").addEventListener("click", function(e){
+  if(e.target === e.currentTarget) pcCloseSuitPopup();
+});
+pcBuildRanks();
 pcRender();

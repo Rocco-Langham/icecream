@@ -574,29 +574,66 @@
 
   .pc-actions{display:flex;gap:8px;justify-content:center;margin-bottom:14px}
 
-  .pc-deck{display:flex;flex-direction:column;gap:4px;align-items:center}
-  .pc-suitrow{display:flex;gap:3px;justify-content:center;flex-wrap:nowrap}
-  .pc-card{
-    flex:1 1 0;min-width:0;max-width:44px;height:42px;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;
-    border-radius:6px;border:1px solid rgba(var(--gold-rgb),.26);
+  /* Thirteen ranks, one row, thin enough that they compress to fit a phone
+     rather than wrap -- wrapping would put the row you want on a second
+     screen's worth of scrolling. */
+  .pc-ranks{display:flex;gap:4px;justify-content:center}
+  .pc-rank{
+    position:relative;flex:1 1 0;min-width:0;max-width:42px;height:44px;
+    border-radius:8px;border:1px solid rgba(var(--gold-rgb),.26);
     background:rgba(var(--panel-tint-rgb),.30);color:var(--cream);
-    font:inherit;font-size:12px;font-weight:800;line-height:1.05;cursor:pointer;padding:0;
+    font:inherit;font-size:14px;font-weight:800;cursor:pointer;padding:0;
   }
-  .pc-suitrow.red .pc-card{color:#e2707a}
-  .pc-card .pc-s{font-size:10px;opacity:.75}
-  .pc-card:hover:not(:disabled){border-color:rgba(var(--gold-rgb),.6);background:rgba(var(--panel-tint-rgb),.5)}
-  /* Used cards stay in place greyed out rather than disappearing: the grid
-     keeps its shape, so the card you want next never moves under your thumb. */
-  .pc-card.used{background:var(--gold);border-color:var(--gold);color:#14100a}
-  .pc-suitrow.red .pc-card.used{color:#8d1b22}
-  .pc-card:disabled{opacity:.3;cursor:default}
+  .pc-rank:hover{border-color:rgba(var(--gold-rgb),.6);background:rgba(var(--panel-tint-rgb),.5)}
+  /* A rank with a card down is highlighted rather than greyed: unlike a single
+     card, a rank is not spent by being used -- a second and even third card of
+     it can still come. */
+  .pc-rank.has{border-color:var(--gold);background:rgba(var(--gold-rgb),.18);color:var(--gold)}
+  .pc-rank-badge{
+    position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;padding:0 3px;
+    border-radius:8px;background:var(--gold);color:#14100a;
+    font-size:10px;font-weight:800;line-height:16px;text-align:center;
+  }
+
+  /* ---- the suit popup ---- */
+  .pc-suitpop-overlay{
+    display:none;position:fixed;inset:0;z-index:60;
+    background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:16px;
+  }
+  .pc-suitpop-overlay:not([hidden]){display:flex}
+  .pc-suitpop{
+    position:relative;padding:26px 24px 22px;border-radius:14px;
+    background:linear-gradient(180deg,var(--modal-a),var(--modal-b));
+    border:1px solid var(--edge);box-shadow:0 20px 50px rgba(0,0,0,.5);
+    display:flex;flex-direction:column;align-items:center;gap:16px;
+  }
+  .pc-suitpop-close{
+    position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:50%;
+    border:1px solid var(--edge);background:rgba(var(--panel-tint-rgb),.25);color:var(--cream);
+    cursor:pointer;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;
+  }
+  .pc-suitpop-close:hover{background:rgba(var(--gold-rgb),.15);border-color:var(--gold);color:var(--gold)}
+  .pc-suitpop-title{font-size:20px;font-weight:800;color:var(--gold)}
+  .pc-suitpop-suits{display:flex;gap:10px}
+  .pc-suitbtn{
+    width:58px;height:66px;border-radius:10px;
+    border:1px solid rgba(var(--gold-rgb),.3);background:rgba(var(--panel-tint-rgb),.32);
+    color:var(--cream);font-size:28px;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;padding:0;
+  }
+  .pc-suitbtn.red{color:#e2707a}
+  .pc-suitbtn:hover:not(:disabled){border-color:rgba(var(--gold-rgb),.65);background:rgba(var(--panel-tint-rgb),.55)}
+  /* Selected, not spent: tapping it again is how you take that exact card
+     back, so it stays enabled and simply reads as chosen. */
+  .pc-suitbtn.used{background:var(--gold);border-color:var(--gold);color:#14100a}
+  .pc-suitbtn.used.red{color:#8d1b22}
+  .pc-suitbtn:disabled{opacity:.3;cursor:default}
 
   @media(max-width:560px){
-    .pc-card{height:36px;font-size:11px;max-width:none}
-    .pc-card .pc-s{font-size:9px}
     .pc-slot{width:36px;height:50px;font-size:14px}
     .pc-slots{gap:12px}
+    .pc-rank{height:40px;font-size:13px}
+    .pc-suitbtn{width:50px;height:58px;font-size:24px}
   }
 
   /* ---------- settings modal ---------- */

@@ -370,11 +370,23 @@
         <button class="btn ghost sm" id="pcClear">Clear</button>
       </div>
 
-      <!-- Suits down, ranks across: the whole deck stays on one phone screen,
-           and a card you have already used greys out rather than vanishing. -->
-      <div class="pc-deck" id="pcDeck"></div>
+      <!-- Thirteen ranks, one screen wide even on a phone. Tapping one opens
+           a popup for the suit that was actually dealt -- the same rank can
+           come up twice in one hand (a paired board, trip on the flop), so
+           the popup shows every suit rather than picking blind. -->
+      <div class="pc-ranks" id="pcRanks"></div>
     </div>
   </section>
+
+  <!-- The suit popup lives outside .table so it sits over the whole card,
+       not clipped to whatever box the ranks happen to be in. -->
+  <div class="pc-suitpop-overlay" id="pcSuitOverlay" hidden>
+    <div class="pc-suitpop">
+      <button class="pc-suitpop-close" id="pcSuitClose" aria-label="Close">&times;</button>
+      <div class="pc-suitpop-title" id="pcSuitTitle"></div>
+      <div class="pc-suitpop-suits" id="pcSuitButtons"></div>
+    </div>
+  </div>
 
 
   <!-- ================= LEADERBOARD ================= -->
