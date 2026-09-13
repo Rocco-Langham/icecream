@@ -295,6 +295,12 @@
     border:3px dashed rgba(255,255,255,.65);
     box-shadow:0 4px 10px rgba(0,0,0,.45);
     transition:.15s;
+    /* A colour of its own before anything below overrides it. Without this a
+       chip whose value has no rule falls through to the browser's own button
+       face -- near-white, under white text, which is not a faint chip but an
+       invisible one. That is exactly what 250 and 1000 were, and what every
+       counter chip was, since they carry a count rather than a value. */
+    background:radial-gradient(circle at 35% 30%,#5b6880,#242b38);
   }
   .chipbtn:hover{transform:translateY(-3px)}
   .chipbtn.sel{outline:3px solid var(--gold);outline-offset:2px}
@@ -302,6 +308,10 @@
   .chipbtn[data-v="25"]{background:radial-gradient(circle at 35% 30%,#4c9d6b,#1c6640)}
   .chipbtn[data-v="100"]{background:radial-gradient(circle at 35% 30%,#3a3a3a,#111)}
   .chipbtn[data-v="500"]{background:radial-gradient(circle at 35% 30%,#7f5ad6,#42227e)}
+  /* Pink and amber, following the colours these two are at a real table --
+     and both dark enough at the rim that white sits on them properly. */
+  .chipbtn[data-v="250"]{background:radial-gradient(circle at 35% 30%,#dd6d95,#8b2b52)}
+  .chipbtn[data-v="1000"]{background:radial-gradient(circle at 35% 30%,#c87a22,#7a3d0c)}
   /* width:0 against the min-width pins every readout to exactly its min-width,
      so its size comes from the rule and never from what is inside it. With only
      a min-width, a big typed stake ("100,000,000,000") stretched the box from
