@@ -460,6 +460,68 @@ function pokChips(c,x,y,n,col){
    the table, so the count is capped and the number beside it stays exact. */
 function pokStackH(n){ return Math.max(0, Math.min(9, Math.round(n/60))); }
 
+/* ---- your own stack, as the chips it would be ----
+   Everyone else's pile is one colour and a rough height, which is all you can
+   tell of a stack across a table. Yours is in front of you, so it is racked
+   the way you would rack it: hundreds, fifties, twenties, tens and fives,
+   largest first, and the exact figure written small underneath -- the figure
+   is still the only thing that is precise. Greedy on purpose, which gives
+   the fewest chips, and anything under a five has no chip to sit in. */
+var POK_RACK = [
+  {v:100, col:"#2e2e2e"},
+  {v:50,  col:"#c87a22"},
+  {v:20,  col:"#3f8f5f"},
+  {v:10,  col:"#3d78c4"},
+  {v:5,   col:"#c9383f"}
+];
+var POK_RACK_MAX = 6;                                 /* discs drawn before the count takes over */
+function pokRack(n){
+  var left = Math.max(0, Math.floor(n)), out = [];
+  POK_RACK.forEach(function(d){
+    var many = Math.floor(left / d.v);
+    if(many){ out.push({v:d.v, col:d.col, count:many}); left -= many * d.v; }
+  });
+  return out;
+}
+function pokDrawHeroStack(c, T, me){
+  var cx = TBL.cx + 166, w = 140, h = 60, top = pokHeroY() - 30;
+  var turn = T.toAct === 0;
+  c.save();
+  c.fillStyle = turn ? "rgba(232,194,100,.2)" : "rgba(0,0,0,.55)";
+  pokRR(c, cx - w/2, top, w, h, 9); c.fill();
+  c.strokeStyle = turn ? "rgba(232,194,100,.85)" : "rgba(232,194,100,.25)";
+  c.lineWidth = turn ? 2 : 1; c.stroke();
+
+  var rack = pokRack(me.stack);
+  var gap = 25, x0 = cx - (rack.length - 1) * gap / 2, base = top + 36;
+  rack.forEach(function(st, i){
+    var x = x0 + i * gap, drawn = Math.min(st.count, POK_RACK_MAX);
+    for(var k = 0; k < drawn; k++){
+      var yy = base - k * 3.2;
+      c.fillStyle = "rgba(0,0,0,.45)"; c.beginPath(); c.ellipse(x, yy + 1.6, 9.5, 3.8, 0, 0, 7); c.fill();
+      c.fillStyle = st.col;            c.beginPath(); c.ellipse(x, yy, 9.5, 3.8, 0, 0, 7); c.fill();
+      c.strokeStyle = "rgba(255,255,255,.42)"; c.lineWidth = .7;
+      c.beginPath(); c.ellipse(x, yy, 9.5, 3.8, 0, 0, 7); c.stroke();
+    }
+    /* The top disc says what the stack is worth; the colour says it too,
+       the same colours as the chips on every bet bar, so it is learned once. */
+    var topY = base - (drawn - 1) * 3.2;
+    c.fillStyle = "#fff"; c.textAlign = "center"; c.textBaseline = "middle";
+    c.font = "800 " + pokFont(6.5) + "px system-ui,sans-serif";
+    c.fillText(String(st.v), x, topY - .2);
+    /* Past six the height has stopped meaning anything, so the count does. */
+    if(st.count > drawn){
+      c.fillStyle = "rgba(244,234,215,.85)"; c.font = "700 " + pokFont(7.5) + "px system-ui,sans-serif";
+      c.fillText("\u00d7" + st.count, x, topY - 9);
+    }
+  });
+  c.textBaseline = "alphabetic";
+  c.textAlign = "center"; c.fillStyle = "#efe2c2";
+  c.font = "700 " + pokFont(8.5) + "px system-ui,sans-serif";
+  c.fillText("YOUR STACK  " + fmt(me.stack), cx, top + h - 7);
+  c.restore();
+}
+
 /* ---- dealing ----
    Cards are thrown from the dealer's hands to where they will sit. A slot is
    only painted at rest once its card has landed, so nothing is ever drawn in
@@ -708,16 +770,7 @@ function pokScene(t){
     c.fillStyle="rgba(244,234,215,.8)"; c.textAlign="center";
     c.font="700 "+pokFont(11)+"px system-ui,sans-serif"; c.fillText(fmt(me.bet),TBL.cx-150,pokHeroBetY()+16);
   }
-  c.save();
-  c.fillStyle = T.toAct === 0 ? "rgba(232,194,100,.2)" : "rgba(0,0,0,.55)";
-  pokRR(c,TBL.cx+96,pokHeroY()-30,140,34,9); c.fill();
-  c.strokeStyle = T.toAct === 0 ? "rgba(232,194,100,.85)" : "rgba(232,194,100,.25)";
-  c.lineWidth = T.toAct === 0 ? 2 : 1; c.stroke();
-  c.textAlign="center"; c.fillStyle="#efe2c2"; c.font="700 "+pokFont(10)+"px system-ui,sans-serif";
-  c.fillText("YOUR STACK",TBL.cx+166,pokHeroY()-14);
-  c.fillStyle="#e8c264"; c.font="700 "+pokFont(15)+"px system-ui,sans-serif";
-  c.fillText(fmt(me.stack),TBL.cx+166,pokHeroY());
-  c.restore();
+  pokDrawHeroStack(c, T, me);
 
   /* Beside your stack rather than over your cards: centred, it landed on the
      community cards, and on a short scene there is no gap between the board and

@@ -10,7 +10,7 @@
      app.js for a long time afterwards, so without this a deploy can sit
      there fixed on the server and broken in the only browser that
      matters -- which looks exactly like the fix never worked. -->
-<link rel="stylesheet" href="style.css?v=11">
+<link rel="stylesheet" href="style.css?v=12">
 </head>
 <body>
 <div class="app-shell">
@@ -68,10 +68,7 @@
   <header>
     <div class="chipstack">
       <span class="lbl">Chips</span>
-      <div class="bankwrap">
-        <div class="tray" id="bankTray"></div>
-        <span class="amt" id="bank">1000</span>
-      </div>
+      <span class="amt" id="bank">1000</span>
     </div>
   </header>
 
@@ -1025,16 +1022,16 @@
 <!-- The one external dependency in the file. Only reachable over http(s), which
      is why the offline file:// copy keeps working with cloud saves switched off. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=11"></script>
-<script src="games.js?v=11"></script>
+<script src="app.js?v=12"></script>
+<script src="games.js?v=12"></script>
 <!-- Poker in three parts, loaded in dependency order: the rules, then the
      opponents that consult them, then the table that shows it all. -->
-<script src="poker/engine.js?v=11"></script>
-<script src="poker/bots.js?v=11"></script>
-<script src="poker/table.js?v=11"></script>
-<script src="poker/check.js?v=11"></script>
-<script src="poker/online.js?v=11"></script>
-<script src="poker/online-game.js?v=11"></script>
+<script src="poker/engine.js?v=12"></script>
+<script src="poker/bots.js?v=12"></script>
+<script src="poker/table.js?v=12"></script>
+<script src="poker/check.js?v=12"></script>
+<script src="poker/online.js?v=12"></script>
+<script src="poker/online-game.js?v=12"></script>
 <script>
 "use strict";
 /* Everything above only declares things. This is the part that runs, so it

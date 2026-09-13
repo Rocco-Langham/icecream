@@ -247,67 +247,9 @@
      the number is content-sized, so every win or loss that changes its digit
      count slid the label sideways — the most constantly visible movement in
      the app, since the balance updates on literally every bet. */
-  .bankwrap{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:176px}
-  /* The number is no longer the headline -- the chips are -- but it is still
-     the only exact figure, so it keeps the tabular digits and the flash. */
   .chipstack .amt{
-    font-size:13px;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums;line-height:1;
-    text-align:center;
-  }
-
-  /* ---- the tray ---- */
-  /* Reserving the height stops the header lifting and dropping as stacks come
-     and go, which would be the most constant movement in the app -- the
-     balance changes on every single bet. */
-  /* Fixed, not a minimum. A six-high stack measures 56px and a single chip a
-     fraction of that, so a minimum let the header rise and fall with the
-     balance -- which changes on every bet, making it the most constant
-     movement on the page. Held at the tallest a stack can be, everything
-     sits on the same line and nothing moves. */
-  .tray{display:flex;align-items:flex-end;justify-content:center;gap:9px;height:58px}
-  .tray-empty{font-size:12px;color:var(--gold-dim);align-self:center}
-  .stack{display:flex;flex-direction:column;align-items:center;gap:2px}
-  .discs{display:flex;flex-direction:column-reverse;align-items:center}
-  /* Each disc laps over the one below so it reads as a stack seen from the
-     side rather than a column of separate counters. */
-  .disc{
-    width:26px;height:10px;border-radius:50%/50%;
-    margin-top:-4px;position:relative;
-    /* A lit top edge on every one of them. Without it a tall stack of the same
-       colour closes up into a single dark shape and stops reading as chips at
-       all -- the light line is what separates one from the next. */
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.28),
-               inset 0 -2px 2px rgba(0,0,0,.4),
-               0 1px 1px rgba(0,0,0,.3);
-  }
-  .disc:first-child{margin-top:0}
-  /* Only the top one is a full face, and it is the one that says what the
-     stack is worth. */
-  .disc[data-face]{
-    height:18px;border-radius:50%;
-    display:flex;align-items:center;justify-content:center;
-    border:1px dashed rgba(255,255,255,.4);          /* the notched rim of a real chip */
-  }
-  .disc[data-face]::after{
-    content:attr(data-face);
-    font-size:8px;font-weight:800;color:#fff;line-height:1;
-    text-shadow:0 1px 1px rgba(0,0,0,.6);
-  }
-  .tally{font-size:9px;font-weight:700;color:var(--gold-dim);line-height:1;font-variant-numeric:tabular-nums}
-
-  /* Denominations, in the colours they are at a table -- and each dark enough
-     at the rim to carry the white number on its face. */
-  .stack.v5   .disc{background:linear-gradient(#e05a5f,#a3242a)}
-  .stack.v10  .disc{background:linear-gradient(#4f86d6,#1d4585)}
-  .stack.v20  .disc{background:linear-gradient(#4c9d6b,#1c6640)}
-  .stack.v50  .disc{background:linear-gradient(#c87a22,#7a3d0c)}
-  .stack.v100 .disc{background:linear-gradient(#454545,#111)}
-
-  @media(max-width:760px){
-    .tray{gap:6px;height:50px}
-    .disc{width:22px}
-    .disc[data-face]{height:15px}
-    .disc[data-face]::after{font-size:7px}
+    font-size:28px;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums;line-height:1;
+    min-width:176px;text-align:center;
   }
   .chipstack .amt.flash-up{animation:flashUp .6s ease}
   .chipstack .amt.flash-dn{animation:flashDn .6s ease}
@@ -1353,7 +1295,7 @@
     .sidebar-brand .suits{display:none}
     /* smaller type needs less reserved room; the desktop widths would push the
        balance past the bar and spread the four counters over three rows */
-    .bankwrap{min-width:132px}
+    .chipstack .amt{font-size:22px;min-width:132px}
     .stats span{min-width:132px}
     header{padding:8px 10px;gap:8px}
     .reel{height:88px;font-size:42px}
