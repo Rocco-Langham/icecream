@@ -162,7 +162,7 @@ function pokLend(mount, msgId, remote){
   /* The online felt rebuilds its table on every state that arrives, so the
      smoker cannot be chosen there without changing every few seconds. Taking
      the felt is the moment that happens once. */
-  pok.cigar = 1 + rnd(4);
+  pok.cigar = pokPickSmoker();
   pokCssW = 0;                                       /* a different box: measure it again */
   return true;
 }
@@ -229,12 +229,18 @@ function seatPos(deg){
    short scene their nameplates were landing on the player's own cards, and the
    cards are the one thing that must stay readable. */
 var POK_SEAT_DEG = [202, 232, 308, 338], POK_DEALER_DEG = 270;
+/* Hair style 1 is the one that frames the whole face -- long hair, or a bob --
+   and those two read as women. The two with short hair are the men, and the
+   cigar only ever goes to one of them. */
 var POK_LOOK = [
-  {skin:"#b97a4e", hair:"#191210", shirt:"#35456b", style:0, glasses:true},
-  {skin:"#7b4a2a", hair:"#2b1e16", shirt:"#6e3230", style:1, glasses:false},
-  {skin:"#e8b98a", hair:"#4a3423", shirt:"#2b5547", style:2, glasses:false},
-  {skin:"#d09a68", hair:"#7a6a55", shirt:"#5a4a2c", style:1, glasses:true}
+  {skin:"#b97a4e", hair:"#191210", shirt:"#35456b", style:0, glasses:true,  male:true},
+  {skin:"#7b4a2a", hair:"#2b1e16", shirt:"#6e3230", style:1, glasses:false, male:false},
+  {skin:"#e8b98a", hair:"#4a3423", shirt:"#2b5547", style:2, glasses:false, male:true},
+  {skin:"#d09a68", hair:"#7a6a55", shirt:"#5a4a2c", style:1, glasses:true,  male:false}
 ];
+/* Seat numbers (1-4) of the men, so the pick below cannot land on anyone else. */
+var POK_MEN = POK_LOOK.map(function(o, i){ return o.male ? i + 1 : 0; }).filter(Boolean);
+function pokPickSmoker(){ return POK_MEN[rnd(POK_MEN.length)]; }
 var POK_CHIPCOL = ["#1f6fae", "#b3242e", "#2f8f5a", "#8a5cc4"];
 
 /* Seats 1-2 are the left arm, seats 3-4 the right, same as POK_SEAT_DEG. A
@@ -393,16 +399,22 @@ function pokDrawTable(c){
    of the mouth wherever the seats shuffle to. Purely decorative: it is painted
    from the clock, never from the game, so a dropped frame costs a puff of
    smoke and nothing else. */
-var POK_PUFFS = 7;
+function pokBob(t, seed){ return Math.sin(t*1.05 + seed) * 1.1; }
+/* A draw every few seconds rather than a steady glow: the ember brightens,
+   and the smoke thickens a moment later, which is the half of it that reads
+   from across a table. */
+function pokPull(t, seed){ return Math.pow(Math.max(0, Math.sin(t*0.55 + seed*1.7)), 10); }
+var POK_CIGAR_LEN = 22, POK_CIGAR_TILT = 0.17;
+/* Where the lit end is, in the person's own coordinates. */
+function pokCigarTip(){
+  return {x: 4 + POK_CIGAR_LEN*Math.cos(POK_CIGAR_TILT), y: -74 + POK_CIGAR_LEN*Math.sin(POK_CIGAR_TILT)};
+}
 function pokCigar(c, t, seed){
-  /* A draw every few seconds rather than a steady glow -- the ember brightens,
-     and the smoke thickens a moment later, which is the half of it that reads
-     from across a table. */
-  var pull = Math.pow(Math.max(0, Math.sin(t*0.55 + seed*1.7)), 10);
+  var pull = pokPull(t, seed);
   c.save();
-  c.translate(4, -74); c.rotate(0.17);
+  c.translate(4, -74); c.rotate(POK_CIGAR_TILT);
 
-  var ex = 22;                                       /* the lit end, before rotating */
+  var ex = POK_CIGAR_LEN;                            /* the lit end, before rotating */
   c.fillStyle = "#4a2f1c"; pokRR(c, 0, -2.1, ex, 4.2, 2); c.fill();
   var wrap = c.createLinearGradient(0, -2.1, 0, 2.1);
   wrap.addColorStop(0, "rgba(255,226,182,.30)");
@@ -421,26 +433,52 @@ function pokCigar(c, t, seed){
   c.fillStyle = "rgba(255," + Math.round(120 + 90*glow) + "," + Math.round(40 + 40*glow) + ",1)";
   c.beginPath(); c.ellipse(ex, 0, 2.1, 2.1, 0, 0, 7); c.fill();
   c.restore();
+}
 
-  /* Smoke leaves the ember in the scene's own upright, not the cigar's, so it
-     rises rather than leaning the way the cigar is pointed. */
-  var ox = 4 + ex*Math.cos(0.17), oy = -74 + ex*Math.sin(0.17);
-  for(var k = 0; k < POK_PUFFS; k++){
-    var ph = ((t*0.34 + k/POK_PUFFS + seed*0.13) % 1 + 1) % 1;
-    var rise = ph * 58;
-    var px = ox + 2 + Math.sin(ph*3.6 + k*1.9 + seed) * (3 + ph*8) + ph*6;
-    var py = oy - 5 - rise;
-    var r  = 2.2 + ph * 9.5;
-    /* in fast, out slow: a puff arrives all at once and then thins away */
-    var a  = Math.min(1, ph*6) * (1 - ph) * 0.40 * (0.7 + 0.5*pull);
-    var pg = c.createRadialGradient(px, py, 0, px, py, r);
+/* ---- the smoke ----
+   Drawn in the scene, not in the person, and after every seat has been
+   painted: it has to float away across the table and over whoever is
+   sitting next to him, which it could not do from inside his own frame.
+   Nothing about it is stored. Every puff's whole life is a function of the
+   clock, so it costs nothing to keep and cannot get out of step with the
+   game.
+
+   Each puff rises, is caught by a slow drift that carries it off in the
+   direction the cigar points, and swells and thins as it goes -- in fast,
+   out slow, the way a puff arrives all at once and then hangs about.
+   The lazier wide ones underneath are the haze that a room fills with. */
+var POK_PUFFS = 28, POK_HAZE = 8;
+function pokSmoke(c, x, y, s, t, seed){
+  var pull = pokPull(t, seed), k, ph, rise, px, py, r, a, pg;
+  for(k = 0; k < POK_PUFFS; k++){
+    ph   = ((t*0.15 + k/POK_PUFFS + seed*0.13) % 1 + 1) % 1;
+    rise = ph * 150 * s;
+    px   = x + (2 + ph*ph*70 + Math.sin(ph*4.2 + k*1.9 + seed) * (3 + ph*20)) * s;
+    py   = y - 5*s - rise + Math.cos(ph*3.1 + k*0.7) * 3 * s;
+    r    = (2.6 + ph * 19) * s;
+    a    = Math.min(1, ph*7) * Math.pow(1 - ph, 1.25) * 0.36 * (0.75 + 0.5*pull);
+    pg   = c.createRadialGradient(px, py, 0, px, py, r);
+    pg.addColorStop(0,  "rgba(232,229,222," + a.toFixed(3) + ")");
+    pg.addColorStop(.6, "rgba(232,229,222," + (a*0.45).toFixed(3) + ")");
+    pg.addColorStop(1,  "rgba(232,229,222,0)");
+    c.fillStyle = pg; c.beginPath(); c.arc(px, py, r, 0, 7); c.fill();
+  }
+  /* the haze: slower, wider, barely there, and it never quite clears */
+  for(k = 0; k < POK_HAZE; k++){
+    ph   = ((t*0.06 + k/POK_HAZE + seed*0.29) % 1 + 1) % 1;
+    px   = x + (10 + ph*95 + Math.sin(ph*2.6 + k*2.3) * 14) * s;
+    py   = y - (40 + ph*130) * s;
+    r    = (14 + ph * 26) * s;
+    a    = Math.min(1, ph*4) * (1 - ph) * 0.12;
+    pg   = c.createRadialGradient(px, py, 0, px, py, r);
     pg.addColorStop(0, "rgba(232,229,222," + a.toFixed(3) + ")");
     pg.addColorStop(1, "rgba(232,229,222,0)");
     c.fillStyle = pg; c.beginPath(); c.arc(px, py, r, 0, 7); c.fill();
   }
 }
+
 function pokPerson(c,x,y,s,o,t,seed,dim,cigar){
-  var br=Math.sin(t*1.05+seed)*1.1;
+  var br=pokBob(t,seed);
   c.save(); c.translate(x,y+br); c.scale(s,s);
   if(dim) c.globalAlpha=0.42;
   c.fillStyle=o.shirt;
@@ -826,12 +864,16 @@ function pokScene(t){
      seats 3-4) closes ranks across that arm's own span. Recomputed every
      frame off the engine's own T.players[].inHand, so it can never drift out
      of step with a fold the moment it happens. */
-  var seatDegs = pokAnimateSeatDegs(pokLiveSeatDegs(T));
+  var seatDegs = pokAnimateSeatDegs(pokLiveSeatDegs(T)), smokeAt = null;
   for(var seat = 1; seat <= 4; seat++){
     var deg = seatDegs[seat];
     if(deg === undefined) continue;                   /* folded: nothing here */
     var i = seat - 1, p = T.players[seat], sp2 = seatPos(deg), turn = T.toAct === seat;
     pokPerson(c,sp2.x,sp2.y-10,0.86,POK_LOOK[i],t,i*2.1,false,seat === pok.cigar);
+    if(seat === pok.cigar){                           /* the plume waits until everyone is painted */
+      var tip = pokCigarTip();
+      smokeAt = {x: sp2.x + tip.x*0.86, y: sp2.y - 10 + pokBob(t,i*2.1) + tip.y*0.86, seed: i*2.1};
+    }
 
     var cf = onFelt(deg,0.76), rot = (deg-270)*Math.PI/180*0.30;
     if(p.hole.length){
@@ -874,6 +916,7 @@ function pokScene(t){
     c.restore();
     pokSayFor(c, seat, sp2.x, sp2.y-106);
   }
+  if(smokeAt) pokSmoke(c, smokeAt.x, smokeAt.y, 0.86, t, smokeAt.seed);
 
   if(T.board.length > pokBoardShown){
     for(var bi=pokBoardShown; bi<T.board.length; bi++)
@@ -1133,7 +1176,7 @@ function pokSit(){
   /* One player at every table smokes. Chosen as the table opens and kept for
      as long as it runs, so it reads as something about them rather than
      something that keeps happening to different people. */
-  pok.cigar = 1 + rnd(4);
+  pok.cigar = pokPickSmoker();
   pok.T = pokTable(cast.names, pok.buyin, bl.sb, bl.bb);
   pok.seated = true;
   pokSetPokerStack(pok.buyin);
