@@ -94,7 +94,7 @@ function pokChipMove(from, to, n, col, delay){
                    start:Date.now() + pokMs(delay||0), dur:pokMs(420)});
 }
 function pokSeatStackPt(seat){
-  if(seat === 0) return {x:TBL.cx+166, y:pokHeroY()-22};
+  if(seat === 0) return {x:TBL.cx+176, y:pokHeroY()+2};
   var deg = pokCurDeg[seat] !== undefined ? pokCurDeg[seat] : POK_SEAT_DEG[seat-1];
   var cf = onFelt(deg, 0.76);
   var side = Math.cos(deg*Math.PI/180) > 0 ? -42 : 42;
@@ -477,12 +477,41 @@ var POK_RACK = [
   {v:10,  col:"#4c9d6b"},
   {v:5,   col:"#e05a5f"}
 ];
-var POK_RACK_MAX = 6;                                 /* discs drawn before the count takes over */
+/* A pile is 25 chips and then you start another one beside it, the way they
+   actually come off a table -- a rack is five piles of twenty, and nobody
+   stacks higher than about this before it topples. */
+var POK_PILE = 25;
+var POK_PILES_MAX = 8;                                /* piles the pill holds before the rest is a number */
 function pokRack(n){
   var left = Math.max(0, Math.floor(n)), out = [];
   POK_RACK.forEach(function(d){
     var many = Math.floor(left / d.v);
     if(many){ out.push({v:d.v, col:d.col, count:many}); left -= many * d.v; }
+  });
+  return out;
+}
+/* Greedy leaves at most two of anything below the top denomination, so in
+   practice only the 250s ever run past one pile. The budget still keeps a
+   pile back for every denomination yet to come, so a mountain of 250s can
+   never crowd your fives off the end. */
+function pokPiles(n){
+  var rack = pokRack(n), out = [];
+  rack.forEach(function(st, i){
+    var behind = rack.length - i - 1;
+    var room   = Math.max(1, POK_PILES_MAX - out.length - behind);
+    var want   = Math.ceil(st.count / POK_PILE);
+    var draw   = Math.min(want, room);
+    for(var k = 0; k < draw; k++){
+      /* The last pile drawn carries the whole count when there was not room
+         for the rest: a short pile that lied about the total would be worse
+         than a number. */
+      var capped = (k === draw - 1) && draw < want;
+      out.push({
+        v: st.v, col: st.col,
+        count: capped ? POK_PILE : Math.min(POK_PILE, st.count - k * POK_PILE),
+        more:  capped ? st.count : 0
+      });
+    }
   });
   return out;
 }
@@ -511,41 +540,69 @@ function pokTuneRaiseChips(){
   });
 }
 
-function pokDrawHeroStack(c, T, me){
-  var cx = TBL.cx + 166, w = 174, h = 66, top = pokHeroY() - 34;
-  var turn = T.toAct === 0;
+/* The pill is cut to fit what is in it. A fixed box big enough for a
+   twenty-five pile would sit there mostly empty for the whole of a normal
+   game, and one sized for a normal game would have chips standing out of the
+   top of it. It is pinned by its bottom edge, so it grows upwards as you win
+   and the figure underneath never moves. */
+function pokHeroStackBox(c, me){
+  var piles = pokPiles(me.stack), n = piles.length;
+  var pitch = n > 1 ? Math.min(28, 162 / (n - 1)) : 0;
+  var tall = 1, capped = false;
+  piles.forEach(function(p){ if(p.count > tall) tall = p.count; if(p.more) capped = true; });
+  /* Chips sit four apart while a pile can afford it and close up after that,
+     so no pile is ever taller than about sixty -- which is roughly what
+     twenty-five real chips look like beside a chip's width anyway. */
+  var step = tall > 14 ? Math.max(1.8, 56 / (tall - 1)) : 4;
+  var chipsH = 9.6 + (tall - 1) * step + (capped ? 11 : 0);
   c.save();
+  c.font = "800 " + pokFont(10) + "px system-ui,sans-serif";
+  var figure = c.measureText(fmt(me.stack)).width;
+  c.restore();
+  var w = Math.min(210, Math.max((n ? (n - 1) * pitch + 24 : 0) + 28, figure + 26, 92));
+  var h = chipsH + 38;
+  var bottom = pokHeroY() + 34;
+  return {cx: TBL.cx + 176, w: w, h: h, top: bottom - h,
+          piles: piles, pitch: pitch, step: step, base: bottom - 26};
+}
+/* Your own bubble hangs off the top of the pill, wherever the pill has got to. */
+function pokHeroSayY(){
+  var me = pok.T && pok.T.players[0];
+  return me ? pokHeroStackBox(pokCtx, me).top - 6 : pokHeroY() - 56;
+}
+function pokDrawHeroStack(c, T, me){
+  c.save();
+  var b = pokHeroStackBox(c, me), turn = T.toAct === 0;
   c.fillStyle = turn ? "rgba(232,194,100,.2)" : "rgba(0,0,0,.55)";
-  pokRR(c, cx - w/2, top, w, h, 9); c.fill();
+  pokRR(c, b.cx - b.w/2, b.top, b.w, b.h, 9); c.fill();
   c.strokeStyle = turn ? "rgba(232,194,100,.85)" : "rgba(232,194,100,.25)";
   c.lineWidth = turn ? 2 : 1; c.stroke();
 
-  var rack = pokRack(me.stack);
-  var gap = 28, x0 = cx - (rack.length - 1) * gap / 2, base = top + 40;
-  rack.forEach(function(st, i){
-    var x = x0 + i * gap, drawn = Math.min(st.count, POK_RACK_MAX);
-    for(var k = 0; k < drawn; k++){
-      var yy = base - k * 4;
-      c.fillStyle = "rgba(0,0,0,.45)"; c.beginPath(); c.ellipse(x, yy + 1.8, 12, 4.8, 0, 0, 7); c.fill();
-      c.fillStyle = st.col;            c.beginPath(); c.ellipse(x, yy, 12, 4.8, 0, 0, 7); c.fill();
+  var x0 = b.cx - (b.piles.length - 1) * b.pitch / 2;
+  var drop = Math.min(1.8, b.step * 0.45);            /* the shadow closes up with them */
+  b.piles.forEach(function(p, i){
+    var x = x0 + i * b.pitch;
+    for(var k = 0; k < p.count; k++){
+      var yy = b.base - k * b.step;
+      c.fillStyle = "rgba(0,0,0,.45)"; c.beginPath(); c.ellipse(x, yy + drop, 12, 4.8, 0, 0, 7); c.fill();
+      c.fillStyle = p.col;             c.beginPath(); c.ellipse(x, yy, 12, 4.8, 0, 0, 7); c.fill();
       c.strokeStyle = "rgba(255,255,255,.42)"; c.lineWidth = .8;
       c.beginPath(); c.ellipse(x, yy, 12, 4.8, 0, 0, 7); c.stroke();
     }
-    /* The top disc says what the stack is worth; the colour says it too. */
-    var topY = base - (drawn - 1) * 4;
+    /* The top chip of every pile says what the pile is made of. */
+    var topY = b.base - (p.count - 1) * b.step;
     c.fillStyle = "#fff"; c.textAlign = "center"; c.textBaseline = "middle";
     c.font = "800 " + pokFont(8) + "px system-ui,sans-serif";
-    c.fillText(String(st.v), x, topY - .2);
-    /* Past six the height has stopped meaning anything, so the count does. */
-    if(st.count > drawn){
+    c.fillText(String(p.v), x, topY - .2);
+    if(p.more){
       c.fillStyle = "rgba(244,234,215,.85)"; c.font = "700 " + pokFont(8) + "px system-ui,sans-serif";
-      c.fillText("\u00d7" + st.count, x, topY - 11);
+      c.fillText("\u00d7" + p.more, x, topY - 11);
     }
   });
   c.textBaseline = "alphabetic";
   c.textAlign = "center"; c.fillStyle = "#efe2c2";
   c.font = "800 " + pokFont(10) + "px system-ui,sans-serif";
-  c.fillText(fmt(me.stack), cx, top + h - 7);
+  c.fillText(fmt(me.stack), b.cx, b.top + b.h - 8);
   c.restore();
 }
 
@@ -802,7 +859,7 @@ function pokScene(t){
   /* Beside your stack rather than over your cards: centred, it landed on the
      community cards, and on a short scene there is no gap between the board and
      your own hand to put it in. */
-  pokSayFor(c, 0, TBL.cx+190, pokHeroY()-36);
+  pokSayFor(c, 0, TBL.cx+176, pokHeroSayY());
   pokDrawChipFly(c);
   pokDrawFlights(c);
   pokDrawMessage(c);
