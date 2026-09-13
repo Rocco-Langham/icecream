@@ -418,6 +418,19 @@ function chipRow(container, get, set, onChange){
 /* ============ tabs ============ */
 /* One switcher for both navs — the sidebar rail on desktop and the mobile
    sheet — so neither can drift out of sync with the other. */
+/* ?irlpoker on the end of the address turns it on, ?irlpoker=off turns it
+   off again. This exists because every other way in is hostile on the device
+   this tool is for: the dev console is a pop-up window a phone blocks, and
+   the Settings box behind it needs two codes typed in sequence. A URL you can
+   paste or bookmark needs none of that, survives a browser that has cached
+   everything else, and is exactly as obscure -- nobody happens upon it. */
+function irlPokerFromUrl(){
+  var m = /[?&]irlpoker(?:=([^&]*))?/i.exec(location.search || "");
+  if(!m) return;
+  var off = /^(0|off|false|no)$/i.test(m[1] || "");
+  irlPoker = !off;
+  save();
+}
 function renderIrlPoker(){
   var link = $("navPokerCheck");
   if(!link) return;
