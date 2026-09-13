@@ -342,7 +342,39 @@
 
        sections by id and an absent one would leave the last tab showing. -->
 
-  <section class="game" id="tab-pokercheck"></section>
+  <section class="game" id="tab-pokercheck">
+    <div class="table">
+      <h2 class="title">Poker Check</h2>
+      <p class="sub">For a real table. Tap the cards as they are dealt &mdash; nothing here touches your chips.</p>
+
+      <div class="pc-slots">
+        <div class="pc-slot-group">
+          <span class="pc-slot-label">Your cards</span>
+          <div class="pc-row" id="pcHole"></div>
+        </div>
+        <div class="pc-slot-group">
+          <span class="pc-slot-label">Board</span>
+          <div class="pc-row" id="pcBoard"></div>
+        </div>
+      </div>
+
+      <div class="pc-opps">
+        <span class="pc-slot-label">Players against you</span>
+        <div class="pc-oppbtns" id="pcOpps"></div>
+      </div>
+
+      <div class="pc-result" id="pcResult"></div>
+
+      <div class="pc-actions">
+        <button class="btn ghost sm" id="pcUndo">Undo</button>
+        <button class="btn ghost sm" id="pcClear">Clear</button>
+      </div>
+
+      <!-- Suits down, ranks across: the whole deck stays on one phone screen,
+           and a card you have already used greys out rather than vanishing. -->
+      <div class="pc-deck" id="pcDeck"></div>
+    </div>
+  </section>
 
 
   <!-- ================= LEADERBOARD ================= -->
@@ -835,6 +867,7 @@
 <script src="poker/engine.js"></script>
 <script src="poker/bots.js"></script>
 <script src="poker/table.js"></script>
+<script src="poker/check.js"></script>
 <script>
 "use strict";
 /* Everything above only declares things. This is the part that runs, so it

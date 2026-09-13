@@ -525,6 +525,80 @@
   }
 
 
+  /* ---------- poker check ---------- */
+  .pc-slots{display:flex;flex-wrap:wrap;gap:18px;justify-content:center;margin:4px 0 14px}
+  .pc-slot-group{display:flex;flex-direction:column;align-items:center;gap:7px}
+  .pc-slot-label{
+    font-size:10px;font-weight:700;letter-spacing:calc(1.6px * var(--ui-track));
+    text-transform:var(--ui-case);color:var(--gold-dim);
+  }
+  .pc-row{display:flex;gap:6px}
+  .pc-slot{
+    width:42px;height:58px;border-radius:8px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:1px;
+    font-size:16px;font-weight:800;font-family:inherit;line-height:1;
+  }
+  .pc-slot.empty{border:2px dashed rgba(var(--gold-rgb),.30);background:transparent}
+  .pc-slot.filled{
+    border:1px solid rgba(var(--gold-rgb),.5);background:var(--cream,#efe2c2);
+    color:#14100a;cursor:pointer;box-shadow:0 3px 8px rgba(0,0,0,.28);
+  }
+  .pc-slot.filled.red{color:#b5232b}
+  .pc-slot .pc-s{font-size:13px}
+
+  .pc-opps{display:flex;flex-direction:column;align-items:center;gap:7px;margin-bottom:14px}
+  .pc-oppbtns{display:flex;flex-wrap:wrap;gap:5px;justify-content:center}
+  .pc-opp{width:34px;height:34px;font-size:12px;border-width:2px}
+
+  .pc-result{
+    max-width:420px;margin:0 auto 14px;padding:12px 14px;border-radius:12px;
+    background:rgba(var(--panel-tint-rgb),.28);border:1px solid rgba(var(--gold-rgb),.22);
+    text-align:left;
+  }
+  .pc-hint{font-size:12px;color:var(--gold-dim);text-align:center;line-height:1.6}
+  .pc-line{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:12px;margin-bottom:5px}
+  .pc-line span{color:var(--gold-dim)}
+  .pc-line b{color:var(--cream);font-size:13px;text-align:right}
+  .pc-eq{margin:9px 0 0;padding-top:9px;border-top:1px solid rgba(var(--gold-rgb),.18)}
+  .pc-eq b{font-size:19px;color:var(--gold)}
+  /* Still counting: the number is live but not yet settled, so it is dimmed
+     rather than hidden -- a figure that moves is more use than a spinner. */
+  .pc-eq b.settling{opacity:.55}
+  .pc-sub{
+    font-size:10px;font-weight:700;letter-spacing:calc(1.4px * var(--ui-track));
+    text-transform:var(--ui-case);color:var(--gold-dim);margin:9px 0 4px;
+  }
+  .pc-outs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px}
+  .pc-outs li{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--cream)}
+  .pc-outs li b{color:var(--gold);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+  .pc-actions{display:flex;gap:8px;justify-content:center;margin-bottom:14px}
+
+  .pc-deck{display:flex;flex-direction:column;gap:4px;align-items:center}
+  .pc-suitrow{display:flex;gap:3px;justify-content:center;flex-wrap:nowrap}
+  .pc-card{
+    flex:1 1 0;min-width:0;max-width:44px;height:42px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;
+    border-radius:6px;border:1px solid rgba(var(--gold-rgb),.26);
+    background:rgba(var(--panel-tint-rgb),.30);color:var(--cream);
+    font:inherit;font-size:12px;font-weight:800;line-height:1.05;cursor:pointer;padding:0;
+  }
+  .pc-suitrow.red .pc-card{color:#e2707a}
+  .pc-card .pc-s{font-size:10px;opacity:.75}
+  .pc-card:hover:not(:disabled){border-color:rgba(var(--gold-rgb),.6);background:rgba(var(--panel-tint-rgb),.5)}
+  /* Used cards stay in place greyed out rather than disappearing: the grid
+     keeps its shape, so the card you want next never moves under your thumb. */
+  .pc-card.used{background:var(--gold);border-color:var(--gold);color:#14100a}
+  .pc-suitrow.red .pc-card.used{color:#8d1b22}
+  .pc-card:disabled{opacity:.3;cursor:default}
+
+  @media(max-width:560px){
+    .pc-card{height:36px;font-size:11px;max-width:none}
+    .pc-card .pc-s{font-size:9px}
+    .pc-slot{width:36px;height:50px;font-size:14px}
+    .pc-slots{gap:12px}
+  }
+
   /* ---------- settings modal ---------- */
   .modal-overlay{
     display:none;position:fixed;inset:0;z-index:50;

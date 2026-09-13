@@ -1,0 +1,192 @@
+"use strict";
+/* ==========================================================================
+   Poker Check — the same engine, pointed at a real table.
+
+   You tap the cards as the dealer turns them over and it tells you what you
+   have, what it could still become, and how often a hand like this wins. It
+   reads the engine and nothing else: no chips move, no stats change, and no
+   game state is touched, so it can be used while sitting somewhere else
+   entirely with a real deck on the table.
+
+   Reached from Other -> Poker Check in the menu, which only appears once
+   irlpoker has been typed into the dev console.
+   ========================================================================== */
+
+var PC_MAX_HOLE = 2, PC_MAX_BOARD = 5;
+var pcPicked = [];                                   /* first two are yours, the rest is the board */
+var pcOpps = 1;
+
+/* The engine compares suits by identity, not by their symbol, so every card
+   built here has to carry one of the four shared SUITS objects. Minting a
+   look-alike breaks flush detection in a way that is invisible until a flush
+   quietly fails to be a flush. */
+function pcCard(rank, suit){ return {r:rank, su:suit}; }
+function pcKey(c){ return c.r + c.su.s; }
+function pcTaken(c){
+  return pcPicked.some(function(p){ return pcKey(p) === pcKey(c); });
+}
+function pcHole(){ return pcPicked.slice(0, PC_MAX_HOLE); }
+function pcBoard(){ return pcPicked.slice(PC_MAX_HOLE); }
+
+/* ---- the deck of buttons ---- */
+function pcBuildDeck(){
+  var deck = document.getElementById("pcDeck");
+  if(!deck) return;
+  var html = "";
+  SUITS.forEach(function(su, si){
+    html += '<div class="pc-suitrow' + (su.red ? " red" : "") + '">';
+    RANKS.forEach(function(r, ri){
+      html += '<button class="pc-card" data-s="' + si + '" data-r="' + ri + '">' +
+              '<span class="pc-r">' + r + '</span>' +
+              '<span class="pc-s">' + su.s + '</span></button>';
+    });
+    html += "</div>";
+  });
+  deck.innerHTML = html;
+  Array.prototype.forEach.call(deck.querySelectorAll(".pc-card"), function(b){
+    b.addEventListener("click", function(){
+      var c = pcCard(RANKS[+b.dataset.r], SUITS[+b.dataset.s]);
+      if(pcTaken(c)){ pcRemove(c); }
+      else if(pcPicked.length < PC_MAX_HOLE + PC_MAX_BOARD){ pcPicked.push(c); }
+      else return;
+      if(typeof playClick === "function") playClick();
+      pcRender();
+    });
+  });
+}
+function pcRemove(card){
+  pcPicked = pcPicked.filter(function(p){ return pcKey(p) !== pcKey(card); });
+}
+
+/* ---- the slots along the top ---- */
+function pcSlotHtml(card, i, kind){
+  if(!card) return '<span class="pc-slot empty"></span>';
+  return '<button class="pc-slot filled' + (card.su.red ? " red" : "") +
+         '" data-drop="' + kind + i + '">' + card.r +
+         '<span class="pc-s">' + card.su.s + "</span></button>";
+}
+function pcRenderSlots(){
+  var hole = pcHole(), board = pcBoard(), i, html = "";
+  for(i = 0; i < PC_MAX_HOLE; i++) html += pcSlotHtml(hole[i], i, "h");
+  document.getElementById("pcHole").innerHTML = html;
+  html = "";
+  for(i = 0; i < PC_MAX_BOARD; i++) html += pcSlotHtml(board[i], i, "b");
+  document.getElementById("pcBoard").innerHTML = html;
+
+  /* Tapping a card that is already down takes it back, which is what you reach
+     for after a mis-tap mid-hand. */
+  Array.prototype.forEach.call(document.querySelectorAll("#pcHole .pc-slot.filled, #pcBoard .pc-slot.filled"),
+    function(b){
+      b.addEventListener("click", function(){
+        var which = b.dataset.drop, idx = +which.slice(1);
+        var card = which.charAt(0) === "h" ? pcHole()[idx] : pcBoard()[idx];
+        if(!card) return;
+        pcRemove(card);
+        if(typeof playClick === "function") playClick();
+        pcRender();
+      });
+    });
+}
+
+/* ---- how often a hand like this wins ----
+   Run in slices off the main thread's back, because a full count against eight
+   opponents is tens of thousands of seven-card evaluations and doing it in one
+   go locks the page up mid-tap. The figure sharpens as the slices land, and a
+   run is abandoned the moment the cards change under it. */
+var pcEqRun = 0, pcEqTimer = null;
+function pcEquityStart(hole, board, opponents, onUpdate){
+  clearTimeout(pcEqTimer);
+  var run = ++pcEqRun;
+  var TOTAL = 6000, SLICE = 300, done = 0, sum = 0;
+  (function step(){
+    if(run !== pcEqRun) return;                      /* the cards moved on */
+    var n = Math.min(SLICE, TOTAL - done);
+    sum += pokEquity(hole, board, opponents, n) * n;
+    done += n;
+    onUpdate(sum / done, done / TOTAL);
+    if(done < TOTAL) pcEqTimer = setTimeout(step, 0);
+  })();
+}
+
+/* ---- the readout ---- */
+function pcRender(){
+  pcRenderSlots();
+  pcRenderOpps();
+  Array.prototype.forEach.call(document.querySelectorAll("#pcDeck .pc-card"), function(b){
+    var c = pcCard(RANKS[+b.dataset.r], SUITS[+b.dataset.s]);
+    var used = pcTaken(c);
+    b.classList.toggle("used", used);
+    b.disabled = !used && pcPicked.length >= PC_MAX_HOLE + PC_MAX_BOARD;
+  });
+
+  var el = document.getElementById("pcResult");
+  var hole = pcHole(), board = pcBoard();
+
+  if(hole.length < PC_MAX_HOLE){
+    pcEqRun++;                                       /* stop anything still running */
+    el.innerHTML = '<div class="pc-hint">Tap your two cards to begin. Add the flop, turn and river as they come.</div>';
+    return;
+  }
+
+  var html = '<div class="pc-line"><span>Your hand</span><b>' + pokDescribeHole(hole) + "</b></div>";
+
+  if(board.length >= 3){
+    var info = pokOuts(hole, board);
+    html += '<div class="pc-line"><span>Best right now</span><b>' + pokDescribeHand(info.current) + "</b></div>";
+    if(info.outs.length){
+      html += '<div class="pc-sub">Still could become</div><ul class="pc-outs">' +
+        info.outs.map(function(o){
+          return "<li><span>" + o.name + "</span><b>" + o.outs + " card" + (o.outs === 1 ? "" : "s") + "</b></li>";
+        }).join("") + "</ul>";
+    }else if(board.length < 5){
+      html += '<div class="pc-sub">Nothing left in the deck improves this</div>';
+    }
+  }else if(board.length > 0){
+    html += '<div class="pc-sub">Two more board cards needed before this is a hand</div>';
+  }
+
+  html += '<div class="pc-line pc-eq"><span>Wins about</span><b id="pcEq">…</b></div>';
+  el.innerHTML = html;
+
+  pcEquityStart(hole, board, pcOpps, function(share, progress){
+    var out = document.getElementById("pcEq");
+    if(!out) return;
+    out.textContent = Math.round(share * 100) + "%";
+    out.classList.toggle("settling", progress < 1);
+  });
+}
+
+/* ---- how many people you are up against ---- */
+function pcRenderOpps(){
+  var wrap = document.getElementById("pcOpps");
+  if(!wrap) return;
+  if(!wrap.children.length){
+    var html = "";
+    for(var n = 1; n <= 8; n++) html += '<button class="chipbtn pc-opp" data-n="' + n + '">' + n + "</button>";
+    wrap.innerHTML = html;
+    Array.prototype.forEach.call(wrap.querySelectorAll(".pc-opp"), function(b){
+      b.addEventListener("click", function(){
+        pcOpps = +b.dataset.n;
+        if(typeof playClick === "function") playClick();
+        pcRender();
+      });
+    });
+  }
+  Array.prototype.forEach.call(wrap.querySelectorAll(".pc-opp"), function(b){
+    b.classList.toggle("sel", +b.dataset.n === pcOpps);
+  });
+}
+
+/* ---- wiring ---- */
+document.getElementById("pcClear").addEventListener("click", function(){
+  pcPicked = [];
+  if(typeof playClick === "function") playClick();
+  pcRender();
+});
+document.getElementById("pcUndo").addEventListener("click", function(){
+  pcPicked.pop();
+  if(typeof playClick === "function") playClick();
+  pcRender();
+});
+pcBuildDeck();
+pcRender();
