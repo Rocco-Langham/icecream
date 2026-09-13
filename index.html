@@ -10,7 +10,7 @@
      app.js for a long time afterwards, so without this a deploy can sit
      there fixed on the server and broken in the only browser that
      matters -- which looks exactly like the fix never worked. -->
-<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
 <div class="app-shell">
@@ -456,6 +456,14 @@
         <div class="mp-panel">
           <span class="pc-slot-label">Sat down</span>
           <div class="people-list" id="mpSeatList"></div>
+        </div>
+
+        <!-- Host only: seats nobody has taken can be played by the same
+             opponents the single-player table uses. -->
+        <div class="mp-panel" id="mpBotPanel" hidden>
+          <span class="pc-slot-label">Fill empty seats</span>
+          <div class="pc-oppbtns" id="mpBotBtns"></div>
+          <div class="mp-note" id="mpBotNote"></div>
         </div>
 
         <!-- Said once, here, rather than left to be discovered: without a
@@ -1014,16 +1022,16 @@
 <!-- The one external dependency in the file. Only reachable over http(s), which
      is why the offline file:// copy keeps working with cloud saves switched off. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=4"></script>
-<script src="games.js?v=4"></script>
+<script src="app.js?v=5"></script>
+<script src="games.js?v=5"></script>
 <!-- Poker in three parts, loaded in dependency order: the rules, then the
      opponents that consult them, then the table that shows it all. -->
-<script src="poker/engine.js?v=4"></script>
-<script src="poker/bots.js?v=4"></script>
-<script src="poker/table.js?v=4"></script>
-<script src="poker/check.js?v=4"></script>
-<script src="poker/online.js?v=4"></script>
-<script src="poker/online-game.js?v=4"></script>
+<script src="poker/engine.js?v=5"></script>
+<script src="poker/bots.js?v=5"></script>
+<script src="poker/table.js?v=5"></script>
+<script src="poker/check.js?v=5"></script>
+<script src="poker/online.js?v=5"></script>
+<script src="poker/online-game.js?v=5"></script>
 <script>
 "use strict";
 /* Everything above only declares things. This is the part that runs, so it

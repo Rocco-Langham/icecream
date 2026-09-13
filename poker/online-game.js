@@ -26,6 +26,8 @@ var mpNextTimer = null;
 var mpState = null;                                  /* EVERYONE: the published state */
 var mpMyCards = null;                                /* EVERYONE: your own two cards */
 var mpGameChan = null;
+var mpWho = [];                                      /* HOST: seat -> persona, null for a person */
+var mpBotTimer = null;
 
 /* ---- the gate ----
    Built up, never copied down. Each player gets the figures the table can see
@@ -44,6 +46,11 @@ function mpPublic(T, msg, reveal){
     toAct: T.stage === "done" ? -1 : T.toAct,
     deadline: T.stage === "done" ? 0 : Date.now() + MP_ACT_MS,
     sb: T.sb, bb: T.bb,
+    /* Carried through rather than left behind in the lobby's version of this
+       row, which this replaces wholesale. It costs one number and keeps the
+       state able to describe itself -- a host who reloads mid-game finds the
+       table as they set it up. */
+    bots: mpOrder.filter(function(u){ return !u; }).length,
     msg: msg || "",
     winners: (T.lastWinners || []).map(function(w){
       return {seat:w.id, won:w.won, how:w.how || ""};
@@ -85,15 +92,32 @@ function mpIsHost(){ return !!(mpRoom && sbUser && mpRoom.host === sbUser.id); }
 /* Called once, when the host closes the table and starts the game. */
 function mpHostBegin(){
   if(!mpIsHost()) return;
-  mpOrder = mpSeats.slice().sort(function(a,b){ return a.seat_no - b.seat_no; })
-                   .map(function(s){ return s.user_id; });
-  var names = mpSeats.slice().sort(function(a,b){ return a.seat_no - b.seat_no; })
-                     .map(function(s){ return s.name || "player"; });
+  var sorted = mpSeats.slice().sort(function(a,b){ return a.seat_no - b.seat_no; });
+  mpOrder = sorted.map(function(s){ return s.user_id; });
+  var names = sorted.map(function(s){ return s.name || "player"; });
+  mpWho = sorted.map(function(){ return null; });     /* a person plays these */
+
+  /* Seats nobody took can be played by the house. They are the same opponents
+     the single-player table uses -- the same personalities, drawn the same
+     way, no two alike -- and they are marked by having no user id, which is
+     what tells the loop below to act for them. */
+  var free = Math.max(0, MP_MAX_SEATS - sorted.length);
+  var want = Math.min(typeof mpBots === "number" ? mpBots : 0, free);
+  if(want > 0){
+    var cast = pokDrawCast();                         /* distinct names and personas */
+    for(var i = 0; i < want; i++){
+      mpOrder.push(null);
+      names.push(cast.names[i + 1] || ("player " + (i + 1)));
+      mpWho.push(cast.who[i + 1] || "grinder");
+    }
+  }
+
   var bl = pokBlinds(mpRoom.buyin);
   mpT = pokTable(names, mpRoom.buyin, bl.sb, bl.bb);
   mpLastSeen = 0;
   mpHostDeal();
 }
+function mpIsBot(seat){ return !mpOrder[seat]; }
 
 function mpHostDeal(){
   if(!mpIsHost() || !mpT) return;
@@ -123,6 +147,7 @@ function mpPush(state){
   if(!mpIsHost()) return;
   mpState = state;
   mpArmClock(state);
+  mpBotStep();                                       /* a house seat plays itself */
   mpRenderGame();
   sb.from("poker_rooms").update({state: state}).eq("code", mpRoom.code).then(function(res){
     if(res.error) mpSay("mpGameNote", res.error.message, "bad");
@@ -167,6 +192,30 @@ function mpHostApply(row){
   return pokAct(mpT, a, amt);
 }
 
+/* The house seats act on the host's clock, since the host is the only one
+   running an engine. Same pause as the single-player table, so a bot reads as
+   somebody deciding rather than a script firing, and the same personality
+   decides what it does with the hand. */
+function mpBotStep(){
+  clearTimeout(mpBotTimer);
+  if(!mpIsHost() || !mpT || mpT.stage === "done") return;
+  var seat = mpT.toAct;
+  if(seat < 0 || !mpIsBot(seat)) return;
+  var hand = mpRoom.hand_no;
+  mpBotTimer = setTimeout(function(){
+    /* The table may have moved on while this was waiting. */
+    if(!mpT || mpT.stage === "done" || mpT.toAct !== seat) return;
+    if(mpRoom.hand_no !== hand) return;
+    var lg = pokLegal(mpT);
+    if(!lg) return;
+    var mv = pokBotAction(mpT, seat, mpWho[seat]);
+    if(!mv) return;
+    var amt = mv.action === "raise" ? pokSnapRaise(mv.raiseTo, lg) : 0;
+    if(!pokAct(mpT, mv.action, amt)) return;
+    mpAfterAction();
+  }, pokThinkMs(mpT, seat));
+}
+
 function mpAfterAction(){
   if(mpT.stage === "done"){
     mpPush(mpPublic(mpT, mpWinnerLine(mpT), true));
@@ -192,6 +241,7 @@ function mpWinnerLine(T){
 function mpArmClock(state){
   clearTimeout(mpClock);
   if(!mpIsHost() || !mpT || mpT.stage === "done" || state.toAct < 0) return;
+  if(mpIsBot(state.toAct)) return;                   /* it has its own, shorter clock */
   var seat = state.toAct, hand = state.hand;
   mpClock = setTimeout(function(){
     if(!mpT || mpT.stage === "done" || mpT.toAct !== seat) return;
@@ -261,8 +311,8 @@ function mpWatchGame(code){
 function mpUnwatchGame(){
   mpFeltStop();
   if(mpGameChan){ sb.removeChannel(mpGameChan); mpGameChan = null; }
-  clearTimeout(mpClock); clearTimeout(mpNextTimer);
-  mpT = null; mpState = null; mpMyCards = null; mpLastSeen = 0;
+  clearTimeout(mpClock); clearTimeout(mpNextTimer); clearTimeout(mpBotTimer);
+  mpT = null; mpState = null; mpMyCards = null; mpLastSeen = 0; mpWho = [];
 }
 
 /* ==========================================================================

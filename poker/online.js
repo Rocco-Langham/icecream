@@ -33,6 +33,10 @@ var mpSeats = [];                                    /* everyone sat at it */
 var mpChan = null;                                   /* realtime subscription */
 var mpBuyin = 250;
 var mpBusy = false;
+/* How many empty seats the host wants played by the house. Kept in the room's
+   own state rather than a column of its own, so it needs no migration and
+   everyone at the table sees the same number before anybody sits down. */
+var mpBots = 0;
 
 function mpOn(){ return typeof CLOUD_OK !== "undefined" && CLOUD_OK && sb && sbUser; }
 function mpSay(id, text, kind){
@@ -115,12 +119,65 @@ function mpRenderRoom(){
     : '<div class="people-empty">Nobody sat down yet.</div>';
 
   var iHost = sbUser.id === host;
+  mpRenderBots(iHost);
   document.getElementById("mpHostWarn").hidden = !iHost;
   var start = document.getElementById("mpStart");
   start.hidden = !iHost || !mpRoom.is_open;
-  start.disabled = mpSeats.length < 2;
-  start.textContent = mpSeats.length < 2 ? "Waiting for another player…" : "Start the game";
+  var atTable = mpSeats.length + Math.min(mpBots, mpFreeSeats());
+  start.disabled = atTable < 2;
+  start.textContent = atTable < 2
+    ? (mpFreeSeats() ? "Add a player, or a house seat…" : "Waiting for another player…")
+    : "Start the game";
   document.getElementById("mpLeave").textContent = iHost ? "Close the table" : "Leave table";
+}
+/* Only as many as there are seats going spare, recomputed as people arrive --
+   a table that fills up has nowhere left to put them, and the choice quietly
+   shrinks rather than promising seats that no longer exist. */
+function mpFreeSeats(){ return Math.max(0, MP_MAX_SEATS - mpSeats.length); }
+function mpRenderBots(iHost){
+  var panel = document.getElementById("mpBotPanel");
+  var note  = document.getElementById("mpBotNote");
+  var free  = mpFreeSeats();
+  var chosen = Math.min(mpBots, free);
+
+  if(!iHost){
+    /* A guest does not choose, but should know what they are sitting down to. */
+    panel.hidden = true;
+    var said = (mpRoom.state && mpRoom.state.bots) || 0;
+    mpSay("mpRoomNote", said ? said + (said === 1 ? " seat is" : " seats are") + " played by the house." : "");
+    return;
+  }
+  panel.hidden = false;
+  var wrap = document.getElementById("mpBotBtns");
+  var html = "";
+  for(var n = 0; n <= free; n++)
+    html += '<button class="chipbtn pc-opp mp-bot" data-n="' + n + '">' + n + "</button>";
+  wrap.innerHTML = html;
+  Array.prototype.forEach.call(wrap.querySelectorAll(".mp-bot"), function(b){
+    b.classList.toggle("sel", +b.dataset.n === chosen);
+    b.addEventListener("click", function(){
+      playClick();
+      mpBots = +b.dataset.n;
+      mpPublishBots();
+      mpRenderRoom();
+    });
+  });
+  note.textContent = free === 0
+    ? "The table is full."
+    : chosen === 0
+      ? "Nobody. Only the people who join will play."
+      : chosen + (chosen === 1 ? " seat" : " seats") + " played by the house.";
+}
+/* Written into the room so every screen agrees before the game starts. Only
+   the host may write it, which is exactly who is choosing. */
+function mpPublishBots(){
+  if(!mpRoom || !sbUser || mpRoom.host !== sbUser.id) return;
+  var st = {};
+  if(mpRoom.state && typeof mpRoom.state === "object")
+    for(var k in mpRoom.state) st[k] = mpRoom.state[k];
+  st.bots = Math.min(mpBots, mpFreeSeats());
+  mpRoom.state = st;
+  sb.from("poker_rooms").update({state: st}).eq("code", mpRoom.code).then(function(){});
 }
 function mpEsc(t){
   return String(t).replace(/[&<>"]/g, function(c){
@@ -232,7 +289,7 @@ function mpLeave(){
 /* ---- starting ---- */
 function mpStart(){
   if(!mpRoom || sbUser.id !== mpRoom.host) return;
-  if(mpSeats.length < 2) return;
+  if(mpSeats.length + Math.min(mpBots, mpFreeSeats()) < 2) return;
   mpSay("mpRoomNote", "Closing the table…");
   /* Closing it is a security step, not a tidy-up: an open room can be joined
      by anyone holding the code, and a seat is what grants read access to the
@@ -350,6 +407,11 @@ function mpResume(){
     sb.from("poker_rooms").select("*").eq("code", code).maybeSingle().then(function(r2){
       if(r2.error || !r2.data) return;
       mpRoom = r2.data;
+      /* A host who reloads should find their own table as they left it, house
+         seats and all -- the number is in the room, so it is read back rather
+         than quietly reset to none. */
+      if(sbUser && mpRoom.host === sbUser.id && mpRoom.state && typeof mpRoom.state.bots === "number")
+        mpBots = mpRoom.state.bots;                  /* set in the lobby, and carried on by mpPublic */
       mpRefreshSeats(code, function(){
         mpWatch(code);
         if(!mpRoom.is_open){
