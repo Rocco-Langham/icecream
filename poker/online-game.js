@@ -104,7 +104,7 @@ function mpHostBegin(){
   var free = Math.max(0, MP_MAX_SEATS - sorted.length);
   var want = Math.min(typeof mpBots === "number" ? mpBots : 0, free);
   if(want > 0){
-    var cast = pokDrawCast();                         /* distinct names and personas */
+    var cast = pokDrawCast(want);                     /* distinct names and personas */
     for(var i = 0; i < want; i++){
       mpOrder.push(null);
       names.push(cast.names[i + 1] || ("player " + (i + 1)));
@@ -213,7 +213,7 @@ function mpBotStep(){
     var amt = mv.action === "raise" ? pokSnapRaise(mv.raiseTo, lg) : 0;
     if(!pokAct(mpT, mv.action, amt)) return;
     mpAfterAction();
-  }, pokThinkMs(mpT, seat));
+  }, pokThinkMs(mpT, mpWho[seat]));           /* its own personality, not the other table's */
 }
 
 function mpAfterAction(){

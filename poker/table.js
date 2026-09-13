@@ -55,18 +55,6 @@ function pokRenderHandInfo(T){
 /* ==========================================================================
    Table UI
    ========================================================================== */
-/* The table geometry seats four, paired either side of the dealer, so four of
-   the fifteen personalities are drawn each time you sit down. */
-var POK_BOTS = 4;
-
-/* Plain first names, and deliberately nothing more. The seats used to be
-   labelled Rock and Maniac, which handed you the read before a card was dealt
-   -- the whole point of a personality is that you have to work it out from how
-   they play. Neutral names, so the table is people rather than strategies. */
-var POK_NAMES = ["Alex","Sam","Jordan","Casey","Riley","Morgan","Jamie","Taylor",
-                 "Avery","Quinn","Reese","Rowan","Skyler","Charlie","Frankie",
-                 "Emerson","Harper","Sage","Drew","Noor"];
-
 var pok = {T:null, seated:false, buyin:250, timer:null, endTimer:null, revealed:false, say:{},
            raiseTo:null, raiseKey:null, who:[], speed:1};
 
@@ -76,24 +64,6 @@ var pok = {T:null, seated:false, buyin:250, timer:null, endTimer:null, revealed:
    the next deal, because the speed was for a hand you were no longer in. */
 var POK_SKIP = 5;
 function pokMs(n){ return Math.round(n / pok.speed); }
-
-/* n distinct items, drawn without replacement so no two seats are the same
-   person twice over. */
-function pokPick(list, n){
-  var pool = list.slice(), out = [];
-  while(out.length < n && pool.length) out.push(pool.splice(rnd(pool.length), 1)[0]);
-  return out;
-}
-
-/* Seat 0 is always the player. The rest is a fresh cast: which personalities
-   turn up, and what they are called, are drawn independently, so a name tells
-   you nothing about the style behind it even across sessions. */
-function pokDrawCast(){
-  return {
-    names: ["You"].concat(pokPick(POK_NAMES, POK_BOTS)),
-    who:   [null].concat(pokPick(Object.keys(POK_PERSONAS), POK_BOTS))
-  };
-}
 
 /* What a move should say, worked out BEFORE it is played. Acting can end the
    street, which zeroes every bet, so reading the amount afterwards would show
@@ -1030,19 +1000,6 @@ function pokDeal(){
 }
 /* Drives whoever is next: the player gets the buttons enabled, a bot gets a
    pause so the table does not resolve itself faster than it can be read. */
-/* Long enough to read as somebody deciding rather than a script firing. A bet
-   to answer and a later street both add to it, and then the personality's own
-   think offset lands on top: the careful ones deliberate, the wild ones snap
-   it in. That pause is a tell in itself, and the only one they give away for
-   free -- everything else you have to work out from the betting. */
-function pokThinkMs(T, seat){
-  var lg = pokLegal(T), ms = 950 + rnd(850);
-  if(lg && lg.callAmount > 0) ms += 320;
-  if(T.stage !== "preflop") ms += 220;
-  var style = POK_PERSONAS[pok.who[seat]];
-  if(style) ms += style.think;
-  return pokMs(Math.max(620, ms));
-}
 function pokStep(){
   clearTimeout(pok.timer);
   if(!pok.T) return;
@@ -1067,7 +1024,7 @@ function pokStep(){
     }
     if(pok.T.stage !== wasStage && pok.T.stage !== "done") pokSweepBets(snap);
     pokStep();
-  }, pokThinkMs(pok.T, seat));
+  }, pokMs(pokThinkMs(pok.T, pok.who[seat])));
 }
 function pokHeroAct(action, amount){
   if(!pok.T || pok.T.toAct !== 0) return;

@@ -2,12 +2,18 @@
 /* ==========================================================================
    Poker, part 2 of 3: the opponents.
 
-   How the other four decide. Strength comes from rolling the hand out against
-   random opponents rather than from a table of hunches, so they answer the
-   board actually in front of them; personality then decides what to do with
-   that number. Pure like the engine: it reads a table and returns a move.
+   Everything about the players who are not people: who they are, what they
+   are called, how they decide, and how long they take about it. Both tables
+   draw their opponents from here -- the one against the house and the online
+   one, where the host fills empty seats from the same fifteen.
 
-   Loads after part 1. Nothing here may read or write the page either.
+   Strength comes from rolling the hand out against random opponents rather
+   than from a table of hunches, so they answer the board actually in front of
+   them; personality then decides what to do with that number.
+
+   Loads after part 1. Pure like the engine: nothing here reads or writes the
+   page, and nothing reaches forward into either table -- a caller says which
+   personality is acting rather than this file going to look.
    ========================================================================== */
 
 function pokEquity(hole, board, opponents, trials){
@@ -112,4 +118,64 @@ function pokBotAction(T, seat, persona){
   if(r < style.bluff * 0.35 && lg.raise && toCall < p.stack * 0.12)
     return {action:"raise", raiseTo:lg.minRaiseTo};
   return {action:"fold"};
+}
+
+/* ==========================================================================
+   Casting a table
+   ========================================================================== */
+
+/* The felt is drawn for four seats around the arc, so that is how many the
+   single-player game draws. The online table asks for however many the host
+   left empty. */
+var POK_BOTS = 4;
+
+/* Plain first names, and deliberately nothing more. The seats used to be
+   labelled Rock and Maniac, which handed you the read before a card was dealt
+   -- the whole point of a personality is that you have to work it out from how
+   they play. Neutral names, so the table is people rather than strategies. */
+var POK_NAMES = ["Alex","Sam","Jordan","Casey","Riley","Morgan","Jamie","Taylor",
+                 "Avery","Quinn","Reese","Rowan","Skyler","Charlie","Frankie",
+                 "Emerson","Harper","Sage","Drew","Noor"];
+
+/* n distinct items, drawn without replacement so no two seats are the same
+   person twice over. */
+function pokPick(list, n){
+  var pool = list.slice(), out = [];
+  while(out.length < n && pool.length) out.push(pool.splice(rnd(pool.length), 1)[0]);
+  return out;
+}
+
+/* Seat 0 is left empty for whoever is being dealt to -- the player at the
+   single-player table, and nobody at the online one, where the host slots
+   these in behind the people who turned up. Names and personalities are drawn
+   independently, so a name tells you nothing about the style behind it even
+   across sessions. */
+function pokDrawCast(n){
+  var want = typeof n === "number" ? n : POK_BOTS;
+  return {
+    names: ["You"].concat(pokPick(POK_NAMES, want)),
+    who:   [null].concat(pokPick(Object.keys(POK_PERSONAS), want))
+  };
+}
+
+/* How long one of them sits there before acting.
+
+   Long enough to read as somebody deciding rather than a script firing. A bet
+   to answer and a later street both add to it, and then the personality's own
+   think offset lands on top: the careful ones deliberate, the wild ones snap
+   it in. That pause is a tell in itself, and the only one they give away for
+   free -- everything else you have to work out from the betting.
+
+   The persona is passed in rather than looked up. It used to reach into the
+   single-player table's own cast, which was right for that table and silently
+   wrong for the online one -- an online bot got the base pause and none of its
+   personality, because the cast it was being looked up in belonged to a game
+   that was not being played. */
+function pokThinkMs(T, persona){
+  var lg = pokLegal(T), ms = 950 + rnd(850);
+  if(lg && lg.callAmount > 0) ms += 320;
+  if(T.stage !== "preflop") ms += 220;
+  var style = POK_PERSONAS[persona];
+  if(style) ms += style.think;
+  return Math.max(620, ms);
 }
