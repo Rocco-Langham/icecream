@@ -13,7 +13,13 @@
    ========================================================================== */
 
 var PC_MAX_HOLE = 2, PC_MAX_BOARD = 5;
-var pcPicked = [];                                   /* first two are yours, the rest is the board */
+/* Your cards and the board are kept apart, not sliced out of one list. They
+   were one list to begin with, and correcting a mis-tap then slid the first
+   board card up into your hand without a word -- take back a king with a flop
+   showing and you were suddenly holding one of the community cards, reading
+   odds for a hand nobody had. A gap in your hand now stays a gap until you
+   fill it. pcSeq is tap order, and exists only so Undo knows what was last. */
+var pcHoleCards = [], pcBoardCards = [], pcSeq = [];
 var pcOpps = 1;
 
 /* The engine compares suits by identity, not by their symbol, so every card
@@ -23,10 +29,21 @@ var pcOpps = 1;
 function pcCard(rank, suit){ return {r:rank, su:suit}; }
 function pcKey(c){ return c.r + c.su.s; }
 function pcTaken(c){
-  return pcPicked.some(function(p){ return pcKey(p) === pcKey(c); });
+  return pcSeq.some(function(p){ return pcKey(p) === pcKey(c); });
 }
-function pcHole(){ return pcPicked.slice(0, PC_MAX_HOLE); }
-function pcBoard(){ return pcPicked.slice(PC_MAX_HOLE); }
+function pcHole(){ return pcHoleCards.slice(); }
+function pcBoard(){ return pcBoardCards.slice(); }
+function pcCount(){ return pcHoleCards.length + pcBoardCards.length; }
+/* Your hand first, then the board -- and after taking a card back out of your
+   hand, the next tap fills that gap rather than going to the board. */
+function pcAdd(card){
+  if(pcTaken(card)) return false;
+  if(pcHoleCards.length < PC_MAX_HOLE) pcHoleCards.push(card);
+  else if(pcBoardCards.length < PC_MAX_BOARD) pcBoardCards.push(card);
+  else return false;
+  pcSeq.push(card);
+  return true;
+}
 
 /* ---- the deck of buttons ---- */
 function pcBuildDeck(){
@@ -46,16 +63,18 @@ function pcBuildDeck(){
   Array.prototype.forEach.call(deck.querySelectorAll(".pc-card"), function(b){
     b.addEventListener("click", function(){
       var c = pcCard(RANKS[+b.dataset.r], SUITS[+b.dataset.s]);
-      if(pcTaken(c)){ pcRemove(c); }
-      else if(pcPicked.length < PC_MAX_HOLE + PC_MAX_BOARD){ pcPicked.push(c); }
-      else return;
+      if(pcTaken(c)) pcRemove(c);
+      else if(!pcAdd(c)) return;
       if(typeof playClick === "function") playClick();
       pcRender();
     });
   });
 }
 function pcRemove(card){
-  pcPicked = pcPicked.filter(function(p){ return pcKey(p) !== pcKey(card); });
+  var gone = function(list){ return list.filter(function(p){ return pcKey(p) !== pcKey(card); }); };
+  pcHoleCards = gone(pcHoleCards);
+  pcBoardCards = gone(pcBoardCards);
+  pcSeq = gone(pcSeq);
 }
 
 /* ---- the slots along the top ---- */
@@ -116,7 +135,7 @@ function pcRender(){
     var c = pcCard(RANKS[+b.dataset.r], SUITS[+b.dataset.s]);
     var used = pcTaken(c);
     b.classList.toggle("used", used);
-    b.disabled = !used && pcPicked.length >= PC_MAX_HOLE + PC_MAX_BOARD;
+    b.disabled = !used && pcCount() >= PC_MAX_HOLE + PC_MAX_BOARD;
   });
 
   var el = document.getElementById("pcResult");
@@ -179,12 +198,13 @@ function pcRenderOpps(){
 
 /* ---- wiring ---- */
 document.getElementById("pcClear").addEventListener("click", function(){
-  pcPicked = [];
+  pcHoleCards = []; pcBoardCards = []; pcSeq = [];
   if(typeof playClick === "function") playClick();
   pcRender();
 });
 document.getElementById("pcUndo").addEventListener("click", function(){
-  pcPicked.pop();
+  var last = pcSeq[pcSeq.length - 1];                /* tap order, not board-then-hand */
+  if(last) pcRemove(last);
   if(typeof playClick === "function") playClick();
   pcRender();
 });
