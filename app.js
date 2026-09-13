@@ -1893,6 +1893,22 @@ function submitDevCode(){
       : "Code accepted — casino renamed. (Your browser blocked the pop-up.)";
     devNote.style.color = "var(--good)";
     setTimeout(function(){ settingsOverlay.classList.remove("on"); }, 900);
+  }else if(raw.toLowerCase() === "irlpoker" && CASINO_NAME === "xyz"){
+    /* The same switch as the dev console's, reachable from a phone. The
+       console lives in a pop-up window that talks back through window.opener,
+       and a phone browser either blocks that outright or buries it in another
+       tab -- so on the device this tool is actually for, the only way to turn
+       it on was no way at all. Still behind dev mode: the box only answers to
+       this once xyz has been entered. */
+    irlPoker = !irlPoker;
+    save();
+    renderIrlPoker();
+    playClick();
+    devCodeInput.value = "";
+    devNote.textContent = irlPoker
+      ? "Poker Check is on the menu, under Other."
+      : "Poker Check hidden.";
+    devNote.style.color = "var(--good)";
   }else{
     playLose();
     devNote.textContent = "Incorrect code.";

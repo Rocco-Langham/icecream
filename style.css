@@ -630,10 +630,26 @@
   .pc-suitbtn:disabled{opacity:.3;cursor:default}
 
   @media(max-width:560px){
-    .pc-slot{width:36px;height:50px;font-size:14px}
+    .pc-slot{width:38px;height:52px;font-size:14px}
     .pc-slots{gap:12px}
-    .pc-rank{height:40px;font-size:13px}
-    .pc-suitbtn{width:50px;height:58px;font-size:24px}
+    .pc-suitbtn{width:54px;height:62px;font-size:25px}
+
+    /* Thirteen across a phone leaves each rank about nineteen pixels wide,
+       which is not a thumb-sized target -- and a mis-tap here is not a
+       cosmetic problem, it is the wrong card and the wrong odds. So on a
+       narrow screen they wrap into two rows and get a real size instead.
+       The extra height costs nothing: this page already scrolls on a phone,
+       and fitGame does not run below 761px to be upset by it. */
+    .pc-ranks{flex-wrap:wrap;gap:6px}
+    /* Seven to a row, so thirteen falls as 7 and 6 rather than leaving the
+       king stranded on a line of its own. Sized off the width available
+       rather than pinned to a number, so a narrower phone gets narrower
+       buttons instead of a third row: 100% less the six gaps, split seven
+       ways. */
+    .pc-rank{
+      flex:0 0 calc((100% - 36px) / 7);
+      min-width:0;max-width:none;height:46px;font-size:15px;
+    }
   }
 
   /* ---------- poker online lobby ---------- */
