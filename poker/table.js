@@ -62,7 +62,14 @@ var POK_NAMES = ["Alex","Sam","Jordan","Casey","Riley","Morgan","Jamie","Taylor"
                  "Emerson","Harper","Sage","Drew","Noor"];
 
 var pok = {T:null, seated:false, buyin:250, timer:null, endTimer:null, revealed:false, say:{},
-           raiseTo:null, raiseKey:null, who:[]};
+           raiseTo:null, raiseKey:null, who:[], speed:1};
+
+/* Fold and the hand still has to play itself out. Skip runs the rest of it at
+   POK_SKIP times speed -- every pause and every animation divided by the same
+   number, so the table still reads as a table, just a brisk one. Resets with
+   the next deal, because the speed was for a hand you were no longer in. */
+var POK_SKIP = 5;
+function pokMs(n){ return Math.round(n / pok.speed); }
 
 /* n distinct items, drawn without replacement so no two seats are the same
    person twice over. */
@@ -99,7 +106,7 @@ function pokMoveText(T, action, raiseTo){
   return "";
 }
 function pokSpeak(seat, text){
-  if(text) pok.say[seat] = {text:text, until:Date.now() + 2100};
+  if(text) pok.say[seat] = {text:text, until:Date.now() + pokMs(2100)};
 }
 
 /* Chips in motion. Purely decorative: the stacks and the pot are drawn from the
@@ -108,7 +115,7 @@ var pokChipFly = [];
 function pokChipMove(from, to, n, col, delay){
   pokChipFly.push({x0:from.x, y0:from.y, x1:to.x, y1:to.y,
                    n:Math.max(1, Math.min(5, n)), col:col,
-                   start:Date.now() + (delay||0), dur:420});
+                   start:Date.now() + pokMs(delay||0), dur:pokMs(420)});
 }
 function pokSeatStackPt(seat){
   if(seat === 0) return {x:TBL.cx+166, y:pokHeroY()-22};
@@ -516,7 +523,7 @@ function pokQueueDeal(T){
     for(var i=0; i<T.players.length; i++){
       var seat = (T.dealer + 1 + i) % T.players.length;
       if(!T.players[seat].inHand) continue;
-      pokFly.push({kind:"hole", seat:seat, idx:round, start:now + k*80, dur:260});
+      pokFly.push({kind:"hole", seat:seat, idx:round, start:now + pokMs(k*80), dur:pokMs(260)});
       k++;
     }
   }
@@ -648,7 +655,7 @@ function pokScene(t){
 
   if(T.board.length > pokBoardShown){
     for(var bi=pokBoardShown; bi<T.board.length; bi++)
-      pokFly.push({kind:"board", idx:bi, start:Date.now()+(bi-pokBoardShown)*110, dur:250});
+      pokFly.push({kind:"board", idx:bi, start:Date.now()+pokMs((bi-pokBoardShown)*110), dur:pokMs(250)});
     pokBoardShown = T.board.length;
   }
 
@@ -864,6 +871,14 @@ function pokRenderActions(){
   var foldedOut = !!(pok.T && !pok.T.players[0].inHand);
   $("pokNext").style.display = handOver ? "" : "none";
   $("pokLeave").disabled = !(handOver || foldedOut);
+
+  /* Only while you are out of a hand that is still being played: before the
+     fold there are decisions to make, and once it is over there is nothing
+     left to hurry. */
+  var canSkip = !!(pok.seated && foldedOut && !handOver);
+  $("pokSkip").hidden = !canSkip;
+  $("pokSkip").classList.toggle("on", pok.speed > 1);
+  $("pokSkip").textContent = pok.speed > 1 ? "\u25B6\u25B6 " + POK_SKIP + "\u00D7" : "\u23E9 Skip";
 }
 /* The scene repaints itself every frame; only the buttons need telling. */
 function pokRender(){ pokRenderActions(); }
@@ -920,6 +935,7 @@ function pokDeal(){
     return;
   }
   pok.revealed = false;
+  pok.speed = 1;                                     /* a new hand is yours again */
   pok.say = {}; pokChipFly = [];
   pokCurDeg = {};                                    /* everyone is back in the hand */
   pokHandInfoKey = null;
@@ -945,7 +961,7 @@ function pokThinkMs(T, seat){
   if(T.stage !== "preflop") ms += 220;
   var style = POK_PERSONAS[pok.who[seat]];
   if(style) ms += style.think;
-  return Math.max(620, ms);
+  return pokMs(Math.max(620, ms));
 }
 function pokStep(){
   clearTimeout(pok.timer);
@@ -991,7 +1007,7 @@ function pokHeroAct(action, amount){
 function pokShowdown(){
   pok.revealed = pokLive(pok.T).length > 1;
   pok.T.lastWinners.forEach(function(w, i){
-    pokChipMove(pokPotPt(), pokSeatStackPt(w.id), pokStackH(w.won)+2, "#c9a227", 240 + i*130);
+    pokChipMove(pokPotPt(), pokSeatStackPt(w.id), pokStackH(w.won)+2, "#c9a227", 240 + i*130);  /* pokChipMove scales the delay itself */
   });
   pokRender();
   pokSetPokerStack(pok.T.players[0].stack);
@@ -1015,7 +1031,7 @@ function pokShowdown(){
     pok.endTimer = setTimeout(function(){
       pokSay("You are out of chips.", "lose");
       pokLeave();
-    }, 1600);
+    }, pokMs(1600));
   }
 }
 
@@ -1062,6 +1078,18 @@ function pokFsChanged(){
 document.addEventListener("fullscreenchange", pokFsChanged);
 document.addEventListener("webkitfullscreenchange", pokFsChanged);
 $("pokNext").addEventListener("click", function(){ playClick(); pokDeal(); });
+
+/* Speeding up the pause that is already running matters as much as the ones
+   after it: the bot whose turn it is was scheduled at full length before the
+   click, so without re-arming the timer the first thing you see after pressing
+   Skip is the same wait you pressed Skip to avoid. */
+$("pokSkip").addEventListener("click", function(){
+  if(pok.speed > 1) return;
+  playClick();
+  pok.speed = POK_SKIP;
+  pokRender();
+  pokStep();
+});
 $("pokFold").addEventListener("click",  function(){ pokHeroAct("fold"); });
 $("pokCheck").addEventListener("click", function(){ pokHeroAct("check"); });
 $("pokCall").addEventListener("click",  function(){ pokHeroAct("call"); });

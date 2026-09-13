@@ -347,7 +347,9 @@
      overlay on the scene rather than a control -- it needs to sit relative to
      the stage regardless of whether the stage is a column (normal) or a row
      (fullscreen). */
-  #pokStage{position:relative}
+  /* --pok-rail is the fullscreen control column's width, kept here so the
+     Skip button can sit clear of it without the number being written twice. */
+  #pokStage{position:relative;--pok-rail:260px}
   /* It lives in the control column in the markup so fullscreen stacks it in the
      right place, but outside fullscreen it is painted over the felt instead of
      sitting in the flow. That is deliberate: its height changes with the hand
@@ -415,6 +417,26 @@
     }
   }
 
+  /* Opposite corner to the hand readout, and over the felt in every layout:
+     the control rail is for moves, and a folded player has none left to make.
+     display is set on the class, so [hidden] has to be spelled out or it
+     loses -- a class selector outranks the [hidden] attribute rule. */
+  .pok-skip{
+    position:absolute;top:10px;right:10px;z-index:6;
+    display:inline-flex;align-items:center;gap:6px;
+    padding:7px 13px;font-size:11.5px;letter-spacing:.04em;
+    background:rgba(10,8,6,.78);border:1px solid rgba(232,194,100,.34);
+    color:#efe2c2;
+  }
+  .pok-skip:hover{background:rgba(20,16,10,.9);border-color:rgba(232,194,100,.6)}
+  .pok-skip[hidden]{display:none}
+  /* On while the rest of the hand is running fast, so it reads as a state and
+     not a button you can press again for more. */
+  .pok-skip.on{
+    background:rgba(232,194,100,.9);border-color:#e8c264;color:#1a1206;font-weight:700;
+    cursor:default;
+  }
+
   /* The table itself is a canvas; only the controls are DOM. */
   #pokCanvas{
     display:block;width:100%;
@@ -452,8 +474,12 @@
      these three, the whole rail quietly grows past 260px again. */
   #pokStage:fullscreen #pokControls,
   #pokStage:-webkit-full-screen #pokControls{
-    flex:0 0 260px;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:14px;
+    flex:0 0 var(--pok-rail);min-width:0;display:flex;flex-direction:column;justify-content:center;gap:14px;
   }
+  /* The canvas stops where the rail begins, so the button clears the rail plus
+     the 14px gap and the stage's own 14px padding, then its own 10px inset. */
+  #pokStage:fullscreen .pok-skip,
+  #pokStage:-webkit-full-screen .pok-skip{right:calc(var(--pok-rail) + 38px);top:24px}
   #pokStage:fullscreen .betbar,
   #pokStage:-webkit-full-screen .betbar{
     flex-direction:column;align-items:stretch;margin-top:0;padding-top:0;border-top:none;gap:8px;
@@ -488,6 +514,10 @@
     #pokStage:-webkit-full-screen .betbar{flex-direction:row;flex-wrap:wrap}
     #pokStage:fullscreen .betbar .btn,
     #pokStage:-webkit-full-screen .betbar .btn{width:auto}
+    /* Stacked: the rail is below the felt, so the top-right corner is the
+       canvas's own again. */
+    #pokStage:fullscreen .pok-skip,
+    #pokStage:-webkit-full-screen .pok-skip{right:24px;top:24px}
   }
 
 

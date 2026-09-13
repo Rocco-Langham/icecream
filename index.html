@@ -382,6 +382,10 @@
              stack them underneath it. -->
         <div id="pokStage">
           <canvas class="playfield" id="pokCanvas"></canvas>
+          <!-- Out of the hand but the table plays on: this sits over the felt
+               rather than in the control rail, because the rail is for moves
+               and once you have folded you have none left to make. -->
+          <button class="btn sm pok-skip" id="pokSkip" hidden>&#9193; Skip</button>
           <div id="pokControls">
             <!-- Top to bottom: fold, the one call/check that applies, chips to
                  build a raise with, a box to type one instead, then raise. -->
