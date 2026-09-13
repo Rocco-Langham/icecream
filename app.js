@@ -579,19 +579,34 @@ Array.prototype.forEach.call(document.querySelectorAll(".sidebar-link[data-tab]"
 });
 
 /* ---- mobile nav sheet ---- */
-var NAV_ITEMS = GAMES.concat([{key:"leaderboard", name:"Leaderboard", icon:"&#127942;"}]);
 var navSheet = $("navSheet"), menuBtn = $("menuBtn");
 
+/* Built from the rail itself, not from a list of its own.
+
+   It used to be GAMES plus the leaderboard, which quietly meant the phone
+   menu could only ever show the tables that keep a profit figure. Poker
+   Online and Poker Check are neither -- one is a room, the other is a tool --
+   so on a phone they did not exist at all, while the desktop rail had them
+   sitting there in plain markup the whole time. Anything reading the rail saw
+   them; only a thumb did not.
+
+   Reading the rail means a screen added to it appears here too, with its own
+   heading and its own icon, and nobody has to remember this file exists. */
 function renderNavSheet(){
   var active = (document.querySelector(".sidebar-link.on") || {dataset:{}}).dataset.tab;
-  $("navSheetList").innerHTML = '<div class="navsheet-label">Games</div>' +
-    NAV_ITEMS.map(function(n){
-      /* the leaderboard sits under its own heading, mirroring the desktop rail */
-      return (n.key === "leaderboard" ? '<div class="navsheet-label">Other</div>' : "") +
-             '<button class="navsheet-link' + (n.key === active ? " on" : "") + '" data-nav="' + n.key + '">' +
-               '<span class="ic">' + n.icon + '</span>' + n.name +
-             '</button>';
-    }).join("");
+  var html = "";
+  Array.prototype.forEach.call(document.querySelectorAll(".sidebar-section"), function(sec){
+    var label = sec.querySelector(".sidebar-label");
+    var links = Array.prototype.filter.call(sec.querySelectorAll(".sidebar-link[data-tab]"),
+      function(b){ return !b.hidden; });     /* a gated entry stays gated here too */
+    if(!links.length) return;
+    if(label) html += '<div class="navsheet-label">' + label.textContent + "</div>";
+    links.forEach(function(b){
+      html += '<button class="navsheet-link' + (b.dataset.tab === active ? " on" : "") +
+              '" data-nav="' + b.dataset.tab + '">' + b.innerHTML + "</button>";
+    });
+  });
+  $("navSheetList").innerHTML = html;
 }
 function openNav(){
   renderNavSheet();                                  /* rebuilt each time so the tick follows the current tab */
