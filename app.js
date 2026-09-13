@@ -190,10 +190,52 @@ function fmt(n){ return n.toLocaleString("en-US"); }
 function rnd(n){ return Math.floor(Math.random()*n); }
 
 var bankEl = $("bank");
+
+/* ---- the tray ----
+   The balance drawn as the chips it would actually be, largest first, the way
+   a tray is stacked at a table. Greedy on purpose: it gives the fewest chips,
+   which is how anybody would really rack it up.
+
+   A stack is only drawn so tall -- past that the height stops meaning
+   anything and the count beside it does the work instead. Whatever is left
+   under a five has no chip to sit in, so it lives in the total underneath,
+   which is the exact figure and always has been. */
+var BANK_CHIPS = [100, 50, 20, 10, 5];
+var BANK_STACK_MAX = 6;
+var bankTray = $("bankTray");
+
+function bankRack(n){
+  var left = Math.max(0, Math.floor(n)), out = [];
+  BANK_CHIPS.forEach(function(v){
+    var many = Math.floor(left / v);
+    if(many){ out.push({value: v, count: many}); left -= many * v; }
+  });
+  return out;
+}
+function renderBankTray(){
+  if(!bankTray) return;
+  var rack = bankRack(bank);
+  if(!rack.length){
+    bankTray.innerHTML = '<span class="tray-empty">no chips</span>';
+    return;
+  }
+  bankTray.innerHTML = rack.map(function(s){
+    var drawn = Math.min(s.count, BANK_STACK_MAX), discs = "";
+    /* built bottom to top so the one carrying the number sits on top */
+    for(var i = 0; i < drawn; i++)
+      discs += '<i class="disc"' + (i === drawn - 1 ? ' data-face="' + s.value + '"' : "") + "></i>";
+    return '<span class="stack v' + s.value + '" title="' + s.count + ' x ' + s.value + '">' +
+             '<span class="discs">' + discs + "</span>" +
+             '<b class="tally">' + (s.count > 1 ? "&times;" + s.count : "&nbsp;") + "</b>" +
+           "</span>";
+  }).join("");
+}
+
 function setBank(next, delta){
   bank = next;
   if(bank > stats.peak) stats.peak = bank;
   bankEl.textContent = fmt(bank);
+  renderBankTray();
   bankEl.classList.remove("flash-up","flash-dn");
   if(delta){
     void bankEl.offsetWidth;                       // restart the animation
