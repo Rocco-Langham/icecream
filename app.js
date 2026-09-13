@@ -27,17 +27,30 @@ function load(){
   }catch(e){}
   return null;
 }
-function save(){
+/* The write to this device only. Kept separate because a successful cloud push
+   has to record its own stamp locally, and going through save() for that would
+   queue another push, whose success would record another stamp, and so on every
+   two seconds for as long as the tab stayed open. */
+/* Applying a cloud row walks through setBank, which saves, which queues a push
+   -- so every pull wrote the row straight back two seconds later, moving its
+   stamp, knocking every other device out of step, and replacing the token we
+   had just taken from the server with one of our own. A pull is not a change;
+   it should leave no trace in the cloud. */
+var applyingCloudRow = false;
+function saveLocal(){
   var data = {
     bank:bank, stats:stats, gameNet:gameNet, streak:streak,
     flappyBest:flappyBest, snakeBest:snakeBest,
     theme:currentTheme, font:currentFont, soundOn:soundOn,
     soundVolume:soundVolume, casinoName:CASINO_NAME,
     rigUser:rigUser, rigHost:rigHost,
-    pokerStack:pokerStack
+    pokerStack:pokerStack, syncToken:syncToken
   };
   mem = data;
   try{ localStorage.setItem(KEY, JSON.stringify(data)); }catch(e){}
+}
+function save(){
+  saveLocal();
   if(typeof cloudPushSoon === "function") cloudPushSoon();
 }
 
@@ -62,6 +75,26 @@ var gameNet      = (saved && saved.gameNet) || {};
 /* Chips sitting on the poker table. Held here so a refresh mid-session hands
    them back instead of quietly eating the buy-in. */
 var pokerStack   = saved && typeof saved.pokerStack === "number" ? saved.pokerStack : 0;
+/* The updated_at of the cloud row as this device last left it -- pushed or
+   pulled. It answers the only question a sync actually needs to ask: has
+   anybody else written since we last agreed? If not, whatever is in front of
+   the player is the newer save and belongs in the cloud. hands used to stand
+   in for that and could not, because a stats reset sends hands DOWN, and a
+   reset save then loses to every row on file including the one it just
+   replaced. */
+var syncToken    = saved && typeof saved.syncToken === "string" ? saved.syncToken : null;
+/* Never compare these two as strings. JavaScript mints "2026-09-13T10:00:00.000Z"
+   and Postgres renders the very same instant as "2026-09-13T10:00:00+00:00" --
+   different offset spelling, and a .000 fraction dropped entirely -- so an
+   equality test is false even for a stamp this device just wrote, and every
+   sync would take the cloud branch and throw the session away.
+   "Not newer than ours" rather than "equal to ours" also covers our own push
+   landing while a sync's select was already in flight. */
+function rowIsNewerThanOurs(rowStamp, token){
+  var a = Date.parse(rowStamp), b = Date.parse(token);
+  if(!isFinite(a) || !isFinite(b)) return true;      /* unreadable: assume the cloud knows better */
+  return a > b;
+}
 GAMES.forEach(function(g){ if(typeof gameNet[g.key] !== "number") gameNet[g.key] = 0; });
 var streak       = (saved && saved.streak) || {count:0, best:0, last:null, claimed:null};
 /* Most pipes cleared in a single Flappy run, ever. Pipes rather than chips won,
@@ -1152,6 +1185,10 @@ $("resetStatsGo").addEventListener("click", function(){
   renderLeaderboard();
   if(typeof syncFlappyUI === "function") syncFlappyUI();
   save();
+  /* Straight up rather than through the two-second coalescer: a reset is the
+     one change a player may well close the tab immediately after. */
+  clearTimeout(cloudTimer);
+  if(sbUser) cloudPush();
   closeReset2();
 });
 
@@ -1176,8 +1213,15 @@ function renderAccount(){
   $("railAuth").textContent = sbUser ? "Sign out" : "Log in";
 }
 function applyCloudRow(row){
+  applyingCloudRow = true;
+  try{ applyCloudRowInner(row); } finally { applyingCloudRow = false; }
+}
+function applyCloudRowInner(row){
   stats.hands = row.hands; stats.won = row.won; stats.big = row.big; stats.peak = row.peak;
-  gameNet = row.net || {};
+  /* a copy: assigning row.net straight across leaves gameNet pointing into the
+     fetched row, so every later bet quietly edits the object we compared against */
+  gameNet = {};
+  if(row.net) for(var k in row.net){ if(typeof row.net[k] === "number") gameNet[k] = row.net[k]; }
   GAMES.forEach(function(g){ if(typeof gameNet[g.key] !== "number") gameNet[g.key] = 0; });
   streak = {
     count: row.streak_count || 0,
@@ -1191,6 +1235,7 @@ function applyCloudRow(row){
      cloud save has won, and max()-ing instead would leak one account's best
      onto the next account signed in on the same device */
   flappyBest = row.flappy_best || 0;
+  syncToken = row.updated_at || null;                /* we are now in step with this row */
   setBank(row.bank, 0);                              /* re-renders the footer stats and saves locally */
   renderStatsPanel();
   renderLeaderboard();
@@ -1199,25 +1244,45 @@ function applyCloudRow(row){
 function cloudPush(){
   if(!sbUser) return;
   $("acctSync").textContent = "Saving…";
+  var stamp = new Date().toISOString();
   return sb.from("scores").upsert({                  /* returned so a caller can wait for the balance to land */
     user_id: sbUser.id, bank: bank, hands: stats.hands, won: stats.won,
     big: stats.big, peak: stats.peak, net: gameNet,
     streak_count: streak.count, streak_best: streak.best, streak_last: streak.last,
     streak_claimed: streak.claimed,
     flappy_best: flappyBest,
-    updated_at: new Date().toISOString()
-  }).then(function(res){
+    updated_at: stamp
+  }).select().then(function(res){
     $("acctSync").textContent = res.error ? "Failed" : "Saved";
-    if(res.error) acctSay(res.error.message, "bad");
+    if(res.error){ acctSay(res.error.message, "bad"); return; }
+    /* Prefer the row as the server rendered it: that is the exact text the next
+       select will hand back, and it also catches the server having written a
+       stamp of its own -- claiming a code does that, straight from SQL. Falls
+       back to what we sent if the read-back is unavailable. */
+    var back = res.data && res.data[0] && res.data[0].updated_at;
+    /* Only on success. Left to run on a failed write, the token would claim we
+       are in step with a row that still holds the old figures, and the next
+       sync would push right past them instead of noticing. */
+    syncToken = typeof back === "string" ? back : stamp;
+    saveLocal();                                     /* never save() here -- see saveLocal */
   });
 }
 /* setBank fires on every chip movement, so coalesce the writes */
 var cloudTimer = null;
 function cloudPushSoon(){
-  if(!sbUser) return;
+  if(!sbUser || applyingCloudRow) return;
   clearTimeout(cloudTimer);
-  cloudTimer = setTimeout(cloudPush, 2000);
+  /* Tied to the account it was scheduled for. Sign out with a push pending and
+     sign in as somebody else inside two seconds, and the timer would otherwise
+     fire against the new account and write the signed-out player's wiped save
+     over theirs. */
+  var forUser = sbUser.id;
+  cloudTimer = setTimeout(function(){
+    if(sbUser && sbUser.id === forUser) cloudPush();
+  }, 2000);
 }
+/* Nothing pending may outlive the session it belonged to. */
+function cloudPushCancel(){ clearTimeout(cloudTimer); cloudTimer = null; }
 /* On sign-in one side has to win. hands only ever counts up, so the bigger
    count is the more-played save — that keeps a fresh device from wiping a
    real one, and a real one from being wiped by a fresh cloud row.
@@ -1232,12 +1297,24 @@ function cloudPushSoon(){
    over the new account's cloud save. The signed-out player loses nothing: their
    progress is already in their own row. */
 function resetLocalProgress(){
+  /* The token describes this device's agreement with one account's row, so it
+     means nothing to the next account signed in here. Cleared, the next sync is
+     a first contact again and the bigger history wins, which is what protects a
+     real cloud save from a device that has just been wiped. */
+  syncToken = null;
+  cloudPushCancel();                                 /* nothing queued may reach the next account */
+  /* Chips left sitting on the poker table belong to the account that sat down.
+     Left behind, the next player to sign in here is handed them. */
+  pokerStack = 0;
   stats = {hands:0, won:0, big:0, peak:1000};
   gameNet = {};
   GAMES.forEach(function(g){ gameNet[g.key] = 0; });
   streak = {count:0, best:0, last:null, claimed:null};
   flappyBest = 0;
-  snakeBest = 0;
+  /* snakeBest deliberately survives: unlike flappyBest it has no column in the
+     scores row, so zeroing it here does not hand the next account a clean slate
+     -- it destroys the score outright, with nowhere to restore it from. It
+     stays a property of the device, like the theme and the volume. */
   setBank(1000, 0);
   renderStatsPanel();
   renderLeaderboard();
@@ -1255,13 +1332,31 @@ function cloudSync(){
   sb.from("scores").select("*").eq("user_id", sbUser.id).maybeSingle().then(function(res){
     if(res.error){ acctSay(res.error.message, "bad"); return; }
     var row = res.data;
-    if(row && row.hands >= stats.hands){
+    if(!row){
+      cloudPush();                                   /* nothing on file yet */
+      return;
+    }
+    /* Has anyone written since this device last agreed with the row? If the
+       stamp still matches the one we left, nobody has, so what is in front of
+       the player is the newer save -- reset included -- and the cloud takes it.
+       If it has moved, another device wrote and that one wins.
+
+       The hands comparison is only the first-contact rule now: a device with no
+       token has never synced this account, so it has nothing to say about which
+       save is newer, and the bigger history wins to keep a fresh device from
+       wiping a real one. */
+    var firstContact = !syncToken;                   /* this device has never synced this account */
+    var inStep       = !firstContact && !rowIsNewerThanOurs(row.updated_at, syncToken);
+    var takeCloud    = firstContact ? row.hands >= stats.hands : !inStep;
+
+    if(takeCloud){
       applyCloudRow(row);
       acctSay("Loaded your cloud save (" + fmt(row.hands) + " hands).", "good");
       $("acctSync").textContent = "Loaded";
     }else{
       cloudPush();
-      acctSay("This device was further ahead, so the cloud was updated.", "good");
+      acctSay(inStep ? "Your latest progress was saved to the cloud."
+                     : "This device was further ahead, so the cloud was updated.", "good");
     }
   });
   sb.from("profiles").select("username").eq("id", sbUser.id).maybeSingle().then(function(res){
