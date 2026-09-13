@@ -561,6 +561,33 @@ function pokBeard(c, o){
   pokRR(c, -5, -74.8, 10, 1.6, .8); c.fill();
   c.restore();
 }
+/* A gold chain, worn over the collar rather than inside it -- inside, at this
+   size, it is a scratch on the shirt. Drawn as links along the curve rather
+   than a stroked line: a line reads as piping, a row of beads reads as gold.
+   It hangs from the base of the neck and dips just past the point of the V,
+   so it is plainly a chain and not a trim on the shirt. */
+function pokChain(c){
+  var x0 = -14, y0 = -52, cx = 0, cy = -14, x2 = 14, y2 = -52, N = 17;
+  var i, t, u, x, y, g;
+  c.save();
+  for(i = 0; i <= N; i++){                            /* what it throws on the shirt */
+    t = i/N; u = 1 - t;
+    x = u*u*x0 + 2*u*t*cx + t*t*x2;
+    y = u*u*y0 + 2*u*t*cy + t*t*y2;
+    c.fillStyle = "rgba(0,0,0,.35)";
+    c.beginPath(); c.arc(x, y + 1.2, 1.7, 0, 7); c.fill();
+  }
+  for(i = 0; i <= N; i++){
+    t = i/N; u = 1 - t;
+    x = u*u*x0 + 2*u*t*cx + t*t*x2;
+    y = u*u*y0 + 2*u*t*cy + t*t*y2;
+    g = c.createRadialGradient(x - .6, y - .7, 0, x, y, 2);
+    g.addColorStop(0, "#fff1c4"); g.addColorStop(.5, "#e8c264"); g.addColorStop(1, "#9a7420");
+    c.fillStyle = g;
+    c.beginPath(); c.arc(x, y, 1.7, 0, 7); c.fill();
+  }
+  c.restore();
+}
 function pokPerson(c,x,y,s,o,t,seed,dim,cigar){
   var br=pokBob(t,seed);
   c.save(); c.translate(x,y+br); c.scale(s,s);
@@ -605,7 +632,7 @@ function pokPerson(c,x,y,s,o,t,seed,dim,cigar){
     c.beginPath(); c.arc( 7,-86,7,0,7); c.stroke();
     c.beginPath(); c.moveTo(-1,-86); c.lineTo(1,-86); c.stroke();
   }
-  if(cigar){ pokBeard(c, o); pokHat(c); pokCigar(c, t, seed); }
+  if(cigar){ pokChain(c); pokBeard(c, o); pokHat(c); pokCigar(c, t, seed); }
   c.restore();
 }
 
