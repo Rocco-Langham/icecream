@@ -410,6 +410,11 @@
   .pok-chip[data-r="50"]{background:radial-gradient(circle at 35% 30%,#7f5ad6,#42227e)}
   .pok-chip[data-r="100"]{background:radial-gradient(circle at 35% 30%,#3a3a3a,#111)}
   .pok-chip[data-r="250"]{background:radial-gradient(circle at 35% 30%,#dd6d95,#8b2b52)}
+  /* Teal rather than the purple a 500 wears on the other games' bet bars: here
+     it would be sitting next to the 50, which is already purple, and two
+     chips the same colour in one row is the problem these rules exist for. */
+  .pok-chip[data-r="500"]{background:radial-gradient(circle at 35% 30%,#23897d,#0f4f47)}
+  .pok-chip[data-r="1000"]{background:radial-gradient(circle at 35% 30%,#c87a22,#7a3d0c)}
   .pok-chip:disabled{opacity:.35;cursor:default;transform:none}
   .pok-chip:disabled:hover{transform:none}
   .pok-raiserow{display:flex;gap:6px;align-items:center;justify-content:center}

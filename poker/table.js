@@ -611,23 +611,35 @@ function pokPiles(n){
   return out;
 }
 /* ---- the chips you raise with ----
-   Five buttons is all the row holds, so at a big buy-in they have to earn
-   the space: a 20 is loose change in a thousand-chip game, and the raise you
-   actually mean is a dozen clicks away. Past a thousand the 20 stands down
-   and a 250 takes its seat. The buttons are the ones already in the page --
+   Five buttons is all the row holds, so at a big buy-in they have to earn the
+   space: a 20 is loose change in a thousand-chip game and a 10 is nothing at
+   all in a five-thousand one. The buttons are the ones already in the page --
    only the number on them changes -- so the click handler bound at load
    keeps working, reading the value off the button at the moment it is hit. */
-var POK_CHIPS_SMALL = [5, 10, 20, 50, 100];
-var POK_CHIPS_BIG   = [5, 10, 50, 100, 250];
-/* Buying in for exactly a thousand counts: it is the largest buy-in the
-   buttons offer, and a rule you cannot reach from the buttons is no rule. */
-var POK_BIG_BUYIN   = 1000;
+/* Each step up drops the chip that has become loose change and brings in one
+   worth clicking, so the raise you actually mean is never more than a few
+   presses away. Read top down: the first tier your buy-in reaches is yours.
+   "At this buy-in and up", so a table bought for exactly the figure gets the
+   chips -- a thousand is the largest buy-in the buttons offer, and a rule you
+   cannot reach from the buttons is no rule at all. */
+var POK_CHIP_TIERS = [
+  {from: 30000, chips: [5, 100, 250, 500, 1000]},     /* the 50 goes */
+  {from:  5000, chips: [5,  50, 100, 250,  500]},     /* the 10 goes */
+  {from:  1000, chips: [5,  10,  50, 100,  250]},     /* the 20 goes */
+  {from:     0, chips: [5,  10,  20,  50,  100]}
+];
 function pokBuyinNow(){
   if(pokRemote && typeof mpRoom !== "undefined" && mpRoom) return mpRoom.buyin || 0;
   return pok.buyin;
 }
+function pokChipSet(){
+  var buyin = pokBuyinNow(), i;
+  for(i = 0; i < POK_CHIP_TIERS.length; i++)
+    if(buyin >= POK_CHIP_TIERS[i].from) return POK_CHIP_TIERS[i].chips;
+  return POK_CHIP_TIERS[POK_CHIP_TIERS.length - 1].chips;
+}
 function pokTuneRaiseChips(){
-  var set = pokBuyinNow() >= POK_BIG_BUYIN ? POK_CHIPS_BIG : POK_CHIPS_SMALL;
+  var set = pokChipSet();
   Array.prototype.forEach.call(document.querySelectorAll("#pokRaiseChips .pok-chip"), function(b, i){
     if(Number(b.dataset.r) === set[i]) return;
     b.dataset.r = set[i];
@@ -684,12 +696,18 @@ function pokDrawHeroStack(c, T, me){
       c.strokeStyle = "rgba(255,255,255,.42)"; c.lineWidth = .8;
       c.beginPath(); c.ellipse(x, yy, 12, 4.8, 0, 0, 7); c.stroke();
     }
-    /* The top chip of every pile says what the pile is made of. */
+    /* The first pile of a denomination is labelled and the ones beside it are
+       not: they are the same colour and they are touching, so the label would
+       only be repeating itself -- and once a stack runs to five or six piles
+       the labels are close enough together to collide. */
     var topY = b.base - (p.count - 1) * b.step;
-    c.fillStyle = "#fff"; c.textAlign = "center"; c.textBaseline = "middle";
-    c.font = "800 " + pokFont(8) + "px system-ui,sans-serif";
-    c.fillText(String(p.v), x, topY - .2);
+    if(i === 0 || b.piles[i-1].v !== p.v){
+      c.fillStyle = "#fff"; c.textAlign = "center"; c.textBaseline = "middle";
+      c.font = "800 " + pokFont(8) + "px system-ui,sans-serif";
+      c.fillText(String(p.v), x, topY - .2);
+    }
     if(p.more){
+      c.textAlign = "center"; c.textBaseline = "middle";
       c.fillStyle = "rgba(244,234,215,.85)"; c.font = "700 " + pokFont(8) + "px system-ui,sans-serif";
       c.fillText("\u00d7" + p.more, x, topY - 11);
     }
