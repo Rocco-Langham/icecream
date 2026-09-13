@@ -49,10 +49,38 @@ function pokRenderHandInfo(T){
 /* ==========================================================================
    Table UI
    ========================================================================== */
-var POK_SEATS = ["You", "Rock", "Maniac", "Grinder", "Station"];
-var POK_WHO   = [null, "rock", "maniac", "grinder", "station"];
+/* The table geometry seats four, paired either side of the dealer, so four of
+   the fifteen personalities are drawn each time you sit down. */
+var POK_BOTS = 4;
+
+/* Plain first names, and deliberately nothing more. The seats used to be
+   labelled Rock and Maniac, which handed you the read before a card was dealt
+   -- the whole point of a personality is that you have to work it out from how
+   they play. Neutral names, so the table is people rather than strategies. */
+var POK_NAMES = ["Alex","Sam","Jordan","Casey","Riley","Morgan","Jamie","Taylor",
+                 "Avery","Quinn","Reese","Rowan","Skyler","Charlie","Frankie",
+                 "Emerson","Harper","Sage","Drew","Noor"];
+
 var pok = {T:null, seated:false, buyin:250, timer:null, endTimer:null, revealed:false, say:{},
-           raiseTo:null, raiseKey:null};
+           raiseTo:null, raiseKey:null, who:[]};
+
+/* n distinct items, drawn without replacement so no two seats are the same
+   person twice over. */
+function pokPick(list, n){
+  var pool = list.slice(), out = [];
+  while(out.length < n && pool.length) out.push(pool.splice(rnd(pool.length), 1)[0]);
+  return out;
+}
+
+/* Seat 0 is always the player. The rest is a fresh cast: which personalities
+   turn up, and what they are called, are drawn independently, so a name tells
+   you nothing about the style behind it even across sessions. */
+function pokDrawCast(){
+  return {
+    names: ["You"].concat(pokPick(POK_NAMES, POK_BOTS)),
+    who:   [null].concat(pokPick(Object.keys(POK_PERSONAS), POK_BOTS))
+  };
+}
 
 /* What a move should say, worked out BEFORE it is played. Acting can end the
    street, which zeroes every bet, so reading the amount afterwards would show
@@ -848,7 +876,9 @@ function pokSit(){
   if(pok.buyin > bank){ pokSay("Not enough chips for that buy-in.", "lose"); return; }
   var bl = pokBlinds(pok.buyin);
   wager(pok.buyin, "poker");
-  pok.T = pokTable(POK_SEATS, pok.buyin, bl.sb, bl.bb);
+  var cast = pokDrawCast();
+  pok.who = cast.who;
+  pok.T = pokTable(cast.names, pok.buyin, bl.sb, bl.bb);
   pok.seated = true;
   pokSetPokerStack(pok.buyin);
   $("pokBuyBar").hidden = true;
@@ -905,15 +935,16 @@ function pokDeal(){
 /* Drives whoever is next: the player gets the buttons enabled, a bot gets a
    pause so the table does not resolve itself faster than it can be read. */
 /* Long enough to read as somebody deciding rather than a script firing. A bet
-   to answer, a later street and a deliberate player all add to it; the maniac
-   takes it off again, because snapping it in is the tell that fits him. */
+   to answer and a later street both add to it, and then the personality's own
+   think offset lands on top: the careful ones deliberate, the wild ones snap
+   it in. That pause is a tell in itself, and the only one they give away for
+   free -- everything else you have to work out from the betting. */
 function pokThinkMs(T, seat){
   var lg = pokLegal(T), ms = 950 + rnd(850);
   if(lg && lg.callAmount > 0) ms += 320;
   if(T.stage !== "preflop") ms += 220;
-  if(POK_WHO[seat] === "rock") ms += 260;
-  if(POK_WHO[seat] === "station") ms += 120;
-  if(POK_WHO[seat] === "maniac") ms -= 230;
+  var style = POK_PERSONAS[pok.who[seat]];
+  if(style) ms += style.think;
   return Math.max(620, ms);
 }
 function pokStep(){
@@ -925,7 +956,7 @@ function pokStep(){
   var seat = pok.T.toAct;
   pok.timer = setTimeout(function(){
     if(!pok.T || pok.T.toAct !== seat) return;
-    var mv = pokBotAction(pok.T, seat, POK_WHO[seat]);
+    var mv = pokBotAction(pok.T, seat, pok.who[seat]);
     if(!mv){ pokStep(); return; }
     pokSpeak(seat, pokMoveText(pok.T, mv.action, mv.raiseTo));
     var putIn = pokLegal(pok.T);

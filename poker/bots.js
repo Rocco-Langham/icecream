@@ -34,15 +34,45 @@ function pokEquity(hole, board, opponents, trials){
 var POK_PERSONAS = {
   /* Thresholds are in "shares": equity divided by an even split of the pot, so
      1.0 is an average hand however many players are in. Raw equity will not do
-     here - 45% is a monster four-handed and a fold heads-up. */
-  rock:    {name:"Rock",    callShare:1.05, raiseShare:1.95, bluff:0.03, sizing:0.50, tag:"tight, passive"},
-  maniac:  {name:"Maniac",  callShare:0.62, raiseShare:1.25, bluff:0.22, sizing:0.85, tag:"loose, aggressive"},
-  grinder: {name:"Grinder", callShare:0.85, raiseShare:1.55, bluff:0.09, sizing:0.65, tag:"balanced"},
-  /* The calling station: comes along with almost anything but almost never
-     raises. Loose-passive was the one corner the other three left uncovered,
-     and it is the archetype that punishes bluffing into it. */
-  station: {name:"Station",  callShare:0.55, raiseShare:2.30, bluff:0.02, sizing:0.45, tag:"calls anything"}
+     here - 45% is a monster four-handed and a fold heads-up.
+
+     callShare multiplies the pot odds a call has to beat, so LOWER calls wider.
+     raiseShare is the share needed to raise, so LOWER raises more often. think
+     is the pause before acting, in ms: the deliberate players run long and the
+     wild ones snap it in, which is a tell in itself.
+
+     Fifteen of them, four drawn per table, so the same seat is a different
+     opponent each time you sit down. The keys are never shown -- you only get
+     the play to read. */
+
+  /* --- tight and passive: fold a lot, believe them when they bet --- */
+  rock:       {callShare:1.05, raiseShare:1.95, bluff:0.03, sizing:0.50, think: 260, tag:"tight, passive"},
+  nit:        {callShare:1.20, raiseShare:2.20, bluff:0.01, sizing:0.55, think: 300, tag:"folds almost everything"},
+
+  /* --- tight and aggressive: selective, and punishing once they commit --- */
+  shark:      {callShare:0.95, raiseShare:1.60, bluff:0.14, sizing:0.70, think:  40, tag:"tight, aggressive"},
+  accountant: {callShare:1.00, raiseShare:1.75, bluff:0.05, sizing:0.60, think: 180, tag:"pot-odds purist"},
+  surgeon:    {callShare:0.98, raiseShare:1.50, bluff:0.11, sizing:0.80, think:  90, tag:"rare spots, big bets"},
+
+  /* --- balanced: the middle of the range, hardest to pin down --- */
+  grinder:    {callShare:0.85, raiseShare:1.55, bluff:0.09, sizing:0.65, think:   0, tag:"balanced"},
+  veteran:    {callShare:0.90, raiseShare:1.65, bluff:0.08, sizing:0.60, think: 140, tag:"balanced, cautious"},
+  needler:    {callShare:0.78, raiseShare:1.35, bluff:0.15, sizing:0.35, think: -60, tag:"small-ball, raises often"},
+
+  /* --- loose and aggressive: they will run you over if you only play premiums --- */
+  maniac:     {callShare:0.62, raiseShare:1.25, bluff:0.22, sizing:0.85, think:-230, tag:"loose, aggressive"},
+  bully:      {callShare:0.80, raiseShare:1.40, bluff:0.18, sizing:0.95, think:-120, tag:"overbets relentlessly"},
+  hothead:    {callShare:0.65, raiseShare:1.30, bluff:0.25, sizing:0.75, think:-180, tag:"bluffs the most"},
+  showman:    {callShare:0.72, raiseShare:1.45, bluff:0.20, sizing:0.90, think: -90, tag:"plays for big pots"},
+
+  /* --- loose and passive: they come along for the ride. The archetype that
+         punishes bluffing, because there is no point firing at someone who
+         will not fold. --- */
+  station:    {callShare:0.55, raiseShare:2.30, bluff:0.02, sizing:0.45, think: 120, tag:"calls anything"},
+  tourist:    {callShare:0.60, raiseShare:1.85, bluff:0.06, sizing:0.40, think:  60, tag:"loose, timid bets"},
+  dreamer:    {callShare:0.58, raiseShare:2.00, bluff:0.04, sizing:0.50, think: 200, tag:"chases every draw"}
 };
+
 function pokBotAction(T, seat, persona){
   var p = T.players[seat], lg = pokLegal(T);
   if(!lg) return null;
