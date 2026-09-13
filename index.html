@@ -39,6 +39,8 @@
       <div class="sidebar-section">
         <span class="sidebar-label">Other</span>
         <button class="sidebar-link" data-tab="leaderboard"><span class="ic">&#127942;</span>Leaderboard</button>
+        <!-- Off the menu until it is switched on from the dev console. -->
+        <button class="sidebar-link" id="navPokerCheck" data-tab="pokercheck" hidden><span class="ic">&#9827;</span>Poker Check</button>
       </div>
     </div>
 
@@ -331,6 +333,17 @@
       </div>
     </div>
   </section>
+
+  <!-- ================= POKER CHECK ================= -->
+
+  <!-- Deliberately empty: it is a blank screen until there is something
+
+       to put on it. The section still has to exist, because showTab picks
+
+       sections by id and an absent one would leave the last tab showing. -->
+
+  <section class="game" id="tab-pokercheck"></section>
+
 
   <!-- ================= LEADERBOARD ================= -->
   <section class="game" id="tab-leaderboard">
@@ -837,6 +850,7 @@ renderLeaderboard();
 renderStreak();
 renderChangelog();                                   /* also stamps the version onto the settings button */
 renderCodes();
+renderIrlPoker();                                    /* it survives a reload once switched on */
 $("versionTag").textContent = VERSION;
 $("betaVersion").textContent = VERSION;
 betaOverlay.classList.add("on");

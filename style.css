@@ -92,6 +92,10 @@
     font:inherit;font-size:12px;font-weight:700;letter-spacing:calc(1.5px * var(--ui-track));text-transform:var(--ui-case);
     color:var(--gold-dim);background:transparent;transition:.15s;
   }
+  /* display is set on the class, so [hidden] loses without this: a class
+     selector outranks the [hidden] attribute rule, and the link would sit in
+     the menu regardless of the attribute. */
+  .sidebar-link[hidden]{display:none}
   .sidebar-link .ic{font-size:16px;width:18px;text-align:center;flex:0 0 auto}
   .sidebar-link:hover{color:var(--cream);background:rgba(var(--panel-tint-rgb),.25)}
   .sidebar-link.on{

@@ -43,7 +43,7 @@ function saveLocal(){
     flappyBest:flappyBest, snakeBest:snakeBest,
     theme:currentTheme, font:currentFont, soundOn:soundOn,
     soundVolume:soundVolume, casinoName:CASINO_NAME,
-    rigUser:rigUser, rigHost:rigHost,
+    rigUser:rigUser, rigHost:rigHost, irlPoker:irlPoker,
     pokerStack:pokerStack, syncToken:syncToken
   };
   mem = data;
@@ -112,6 +112,10 @@ var CASINO_NAME  = saved && typeof saved.casinoName === "string" ? saved.casinoN
 /* ============ rigging (dev console) ============ */
 /* 0 = untouched RNG, 100 = every round forced. Values in between are the
    percentage chance that a given round gets forced. User rig wins ties. */
+/* Poker Check is off the menu until the console switches it on, and stays on
+   once it has been -- like the rig levels, it is a dev setting rather than a
+   thing to re-enter every reload. */
+var irlPoker = !!(saved && saved.irlPoker);
 var rigUser = saved && typeof saved.rigUser === "number" ? saved.rigUser : 0;
 var rigHost = saved && typeof saved.rigHost === "number" ? saved.rigHost : 0;
 
@@ -414,6 +418,17 @@ function chipRow(container, get, set, onChange){
 /* ============ tabs ============ */
 /* One switcher for both navs — the sidebar rail on desktop and the mobile
    sheet — so neither can drift out of sync with the other. */
+function renderIrlPoker(){
+  var link = $("navPokerCheck");
+  if(!link) return;
+  link.hidden = !irlPoker;
+  /* Switching it off while it is the tab on screen would otherwise leave the
+     player looking at a blank page with nothing in the menu leading back. */
+  if(!irlPoker){
+    var open = document.querySelector(".game.on");
+    if(open && open.id === "tab-pokercheck") showTab("slots");
+  }
+}
 function showTab(name){
   Array.prototype.forEach.call(document.querySelectorAll(".sidebar-link[data-tab]"), function(o){
     o.classList.toggle("on", o.dataset.tab === name);
@@ -1679,7 +1694,7 @@ function openDevPopup(){
     '      setTimeout(function(){ window.close(); }, 250);',
     '      return;',
     '    }',
-    '    if(cmd !== "chips" && cmd !== "rig" && cmd !== "reset" && cmd !== "codes"){',
+    '    if(cmd !== "chips" && cmd !== "rig" && cmd !== "reset" && cmd !== "codes" && cmd !== "irlpoker"){',
     '      print("Unknown command: " + esc(cmd) + " (try \\"help\\")", "out-err");',
     '      return;',
     '    }',
@@ -1763,6 +1778,16 @@ window.addEventListener("message", function(e){
     }else{
       reply("Balance: " + fmt(bank) + " chips", "info");
     }
+  }else if(cmd === "irlpoker"){
+    /* Kept out of help on purpose. It is not a secret worth defending -- the
+       console is right there and anyone reading this file can see it -- just
+       something that should not be sitting in the list for everyone who types
+       help. Typing it again puts it away. */
+    irlPoker = !irlPoker;
+    save();
+    renderIrlPoker();
+    reply(irlPoker ? "Poker Check is on the menu, under Other."
+                   : "Poker Check hidden.", "ok");
   }else if(cmd === "rig"){
     var who = (args[0] || "").toLowerCase();
     if(who === "off" || who === "reset"){
