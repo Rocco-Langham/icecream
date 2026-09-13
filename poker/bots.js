@@ -37,7 +37,7 @@ function pokEquity(hole, board, opponents, trials){
   }
   return score / trials;
 }
-var POK_PERSONAS = {
+var POK_ARCHETYPES = {
   /* Thresholds are in "shares": equity divided by an even split of the pot, so
      1.0 is an average hand however many players are in. Raw equity will not do
      here - 45% is a monster four-handed and a fold heads-up.
@@ -121,6 +121,78 @@ function pokBotAction(T, seat, persona){
 }
 
 /* ==========================================================================
+   Three hundred of them
+   --------------------------------------------------------------------------
+   The fifteen above are hand-tuned and measurably distinct: fold rate tracks
+   the calling threshold across all of them in order. Writing three hundred by
+   hand would not add three hundred ways to play -- it would add two hundred
+   and eighty-five near-duplicates and quietly lose the one property worth
+   having. So each archetype seeds twenty players instead.
+
+   Every parameter is nudged by a fixed amount derived from the seat's own
+   name, so two players from the same archetype are recognisably the same
+   school and never the same person: one rock calls a fraction wider than
+   another, one maniac fires a little bigger. Variant zero is the archetype
+   untouched, so the originals are all still in the deck exactly as tuned.
+
+   Deterministic on purpose. The same key always gives the same player, so a
+   personality can be looked up, tested and argued about rather than being a
+   different opponent every time the page loads.
+   ========================================================================== */
+
+var POK_VARIANTS = 20;
+
+/* A small fixed hash: same string in, same number out, spread across -1..1 to
+   push a parameter either way.
+
+   The mixing at the end is not decoration. FNV on its own leaves short, very
+   similar strings sitting close together, and taking it modulo a small number
+   then threw most of what little spread there was away: "dreamer2" and
+   "dreamer8" came out identical on every one of the five parameters, so two
+   of the three hundred were the same player. The finalising rounds scatter
+   the low bits properly, and the whole 32-bit range is used rather than two
+   thousand buckets of it. */
+function pokJitter(key, salt){
+  var h = 2166136261;
+  var s = key + "#" + salt;
+  for(var i = 0; i < s.length; i++){
+    h ^= s.charCodeAt(i);
+    h = (h * 16777619) >>> 0;
+  }
+  h = (h ^ (h >>> 13)) >>> 0; h = (h * 2246822519) >>> 0;
+  h = (h ^ (h >>> 15)) >>> 0; h = (h * 3266489917) >>> 0;
+  /* >>> 0 after every xor: ^ in JavaScript hands back a SIGNED 32-bit number,
+     so without it the last step can go negative and the result lands outside
+     -1..1 -- which quietly pushes a parameter harder than the band intends. */
+  h = (h ^ (h >>> 16)) >>> 0;
+  return (h / 4294967295) * 2 - 1;                   /* -1 .. 1 */
+}
+function pokClamp(v, lo, hi){ return v < lo ? lo : v > hi ? hi : v; }
+
+var POK_PERSONAS = (function(){
+  var out = {};
+  Object.keys(POK_ARCHETYPES).forEach(function(name){
+    var base = POK_ARCHETYPES[name];
+    for(var i = 0; i < POK_VARIANTS; i++){
+      var key = i === 0 ? name : name + i;
+      if(i === 0){ out[key] = base; continue; }      /* the tuned original, untouched */
+      out[key] = {
+        /* Bands rather than free rein: a variant is a shade of its archetype,
+           not a new one, and none of them may drift into a player who folds
+           everything or calls everything. */
+        callShare:  +pokClamp(base.callShare  + pokJitter(key, "c") * 0.07, 0.50, 1.28).toFixed(4),
+        raiseShare: +pokClamp(base.raiseShare + pokJitter(key, "r") * 0.14, 1.18, 2.40).toFixed(4),
+        bluff:      +pokClamp(base.bluff      + pokJitter(key, "b") * 0.035, 0.01, 0.30).toFixed(4),
+        sizing:     +pokClamp(base.sizing     + pokJitter(key, "s") * 0.08, 0.30, 1.00).toFixed(4),
+        think: Math.round(base.think + pokJitter(key, "t") * 70),
+        tag: base.tag
+      };
+    }
+  });
+  return out;
+})();
+
+/* ==========================================================================
    Casting a table
    ========================================================================== */
 
@@ -133,9 +205,38 @@ var POK_BOTS = 4;
    labelled Rock and Maniac, which handed you the read before a card was dealt
    -- the whole point of a personality is that you have to work it out from how
    they play. Neutral names, so the table is people rather than strategies. */
-var POK_NAMES = ["Alex","Sam","Jordan","Casey","Riley","Morgan","Jamie","Taylor",
-                 "Avery","Quinn","Reese","Rowan","Skyler","Charlie","Frankie",
-                 "Emerson","Harper","Sage","Drew","Noor"];
+var POK_NAMES = [
+  "Alex", "Sam", "Jordan", "Casey", "Riley", "Morgan", "Jamie", "Taylor", "Avery", "Quinn",
+  "Reese", "Rowan", "Skyler", "Charlie", "Frankie", "Emerson", "Harper", "Sage", "Drew", "Noor",
+  "Aria", "Beau", "Cleo", "Dara", "Eden", "Flynn", "Greer", "Hollis", "Indigo", "Jules",
+  "Kai", "Lane", "Marlow", "Nico", "Oakley", "Paz", "Quill", "Remy", "Sasha", "Tatum",
+  "Uma", "Vesper", "Wren", "Xan", "Yuki", "Zephyr", "Adair", "Blair", "Cameron", "Dallas",
+  "Ellis", "Finley", "Gray", "Haven", "Ira", "Jesse", "Kendall", "Lennon", "Marley", "Nova",
+  "Oscar", "Payton", "Rory", "Shea", "Tanner", "Val", "Winter", "Yael", "Ziggy", "Arden",
+  "Bailey", "Corey", "Devon", "Emery", "Frances", "Glenn", "Hayden", "Iris", "Joss", "Kit",
+  "Logan", "Micah", "Noel", "Orion", "Parker", "Quincy", "Robin", "Sloane", "Toby", "Vega",
+  "Wade", "Yara", "Zane", "Ainsley", "Brett", "Cassidy", "Darcy", "Elliot", "Fern", "Gale",
+  "Hunter", "Isa", "Jody", "Keegan", "Linden", "Maddox", "Nash", "Odin", "Presley", "Reagan",
+  "Sawyer", "Teagan", "Ulric", "Verity", "Wesley", "Xiomara", "Yosef", "Zara", "Amari", "Bodhi",
+  "Cove", "Delta", "Echo", "Fable", "Gia", "Hale", "Ivo", "Juno", "Kaya", "Leith",
+  "Mabel", "Niko", "Ozzy", "Pilar", "Quinnley", "Rain", "Sol", "Tova", "Ute", "Viv",
+  "Wilder", "Xena", "Yanis", "Zia", "Abel", "Bryn", "Colby", "Dove", "Esme", "Fox",
+  "Gideon", "Hollie", "Ines", "Jarvis", "Kira", "Lior", "Mira", "Neel", "Ola", "Perry",
+  "Rhys", "Sidonie", "Thea", "Uri", "Vidal", "Wray", "Ximena", "Yves", "Zuri", "Anwen",
+  "Bram", "Caelan", "Dermot", "Effie", "Fionn", "Gwen", "Hadley", "Ilse", "Jonty", "Kester",
+  "Lark", "Merrin", "Nia", "Orla", "Piers", "Rafe", "Saoirse", "Torin", "Una", "Vaughn",
+  "Wynn", "Yannick", "Zinnia", "Arlo", "Blythe", "Caspian", "Dune", "Elio", "Fenn", "Goldie",
+  "Halcyon", "Ilia", "Jove", "Kestrel", "Lyra", "Maeve", "Nyx", "Onyx", "Peregrine", "Quorra",
+  "Roan", "Selkie", "Tamsin", "Ursa", "Vale", "Willa", "Xanthe", "Yarrow", "Zephyrine", "Ansel",
+  "Bex", "Cyrus", "Della", "Emrys", "Faye", "Gus", "Hattie", "Idris", "Jonah", "Keira",
+  "Lachlan", "Mose", "Nell", "Otto", "Posy", "Rune", "Shiloh", "Tobias", "Verona", "Wilf",
+  "Yolanda", "Zeb", "Astrid", "Bly", "Clemmie", "Dax", "Etta", "Freya", "Grover", "Hugo",
+  "Ivy", "Jarek", "Kofi", "Lumi", "Mateo", "Nadia", "Oren", "Pax", "Rosalind", "Soren",
+  "Tilly", "Umberto", "Viveca", "Wendell", "Xiu", "Yusuf", "Zola", "Beckett", "Calla", "Dashiell",
+  "Elowen", "Fintan", "Gita", "Hesper", "Imre", "Jinx", "Kanoa", "Linus", "Moss", "Noa",
+  "Ottoline", "Pip", "Quilla", "Rilla", "Stellan", "Tycho", "Ulla", "Vidar", "Yseult", "Zarek",
+  "Bo", "Cricket", "Dew", "Fennec", "Guthrie", "Hazel", "Isolde", "Jem", "Kip", "Zephyrus"
+];
 
 /* n distinct items, drawn without replacement so no two seats are the same
    person twice over. */
