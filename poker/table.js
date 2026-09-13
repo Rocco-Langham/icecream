@@ -463,16 +463,19 @@ function pokStackH(n){ return Math.max(0, Math.min(9, Math.round(n/60))); }
 /* ---- your own stack, as the chips it would be ----
    Everyone else's pile is one colour and a rough height, which is all you can
    tell of a stack across a table. Yours is in front of you, so it is racked
-   the way you would rack it: hundreds, fifties, twenties, tens and fives,
-   largest first, and the exact figure written underneath -- the figure is
-   still the only thing that is precise. Greedy on purpose, which gives
-   the fewest chips, and anything under a five has no chip to sit in. */
+   the way you would rack it: two-fifties, hundreds, fifties, twenties, tens
+   and fives, largest first, and the exact figure written underneath -- the
+   figure is still the only thing that is precise. Greedy on purpose, which
+   gives the fewest chips, and anything under a five has no chip to sit in.
+   The colours are the ones on the raise buttons, so a chip means the same
+   thing wherever it turns up and is learned once. */
 var POK_RACK = [
-  {v:100, col:"#2e2e2e"},
-  {v:50,  col:"#c87a22"},
-  {v:20,  col:"#3f8f5f"},
-  {v:10,  col:"#3d78c4"},
-  {v:5,   col:"#c9383f"}
+  {v:250, col:"#dd6d95"},
+  {v:100, col:"#3a3a3a"},
+  {v:50,  col:"#7f5ad6"},
+  {v:20,  col:"#3c6ea8"},
+  {v:10,  col:"#4c9d6b"},
+  {v:5,   col:"#e05a5f"}
 ];
 var POK_RACK_MAX = 6;                                 /* discs drawn before the count takes over */
 function pokRack(n){
@@ -483,8 +486,33 @@ function pokRack(n){
   });
   return out;
 }
+/* ---- the chips you raise with ----
+   Five buttons is all the row holds, so at a big buy-in they have to earn
+   the space: a 20 is loose change in a thousand-chip game, and the raise you
+   actually mean is a dozen clicks away. Past a thousand the 20 stands down
+   and a 250 takes its seat. The buttons are the ones already in the page --
+   only the number on them changes -- so the click handler bound at load
+   keeps working, reading the value off the button at the moment it is hit. */
+var POK_CHIPS_SMALL = [5, 10, 20, 50, 100];
+var POK_CHIPS_BIG   = [5, 10, 50, 100, 250];
+/* Buying in for exactly a thousand counts: it is the largest buy-in the
+   buttons offer, and a rule you cannot reach from the buttons is no rule. */
+var POK_BIG_BUYIN   = 1000;
+function pokBuyinNow(){
+  if(pokRemote && typeof mpRoom !== "undefined" && mpRoom) return mpRoom.buyin || 0;
+  return pok.buyin;
+}
+function pokTuneRaiseChips(){
+  var set = pokBuyinNow() >= POK_BIG_BUYIN ? POK_CHIPS_BIG : POK_CHIPS_SMALL;
+  Array.prototype.forEach.call(document.querySelectorAll("#pokRaiseChips .pok-chip"), function(b, i){
+    if(Number(b.dataset.r) === set[i]) return;
+    b.dataset.r = set[i];
+    b.textContent = String(set[i]);
+  });
+}
+
 function pokDrawHeroStack(c, T, me){
-  var cx = TBL.cx + 166, w = 152, h = 66, top = pokHeroY() - 34;
+  var cx = TBL.cx + 166, w = 174, h = 66, top = pokHeroY() - 34;
   var turn = T.toAct === 0;
   c.save();
   c.fillStyle = turn ? "rgba(232,194,100,.2)" : "rgba(0,0,0,.55)";
@@ -493,7 +521,7 @@ function pokDrawHeroStack(c, T, me){
   c.lineWidth = turn ? 2 : 1; c.stroke();
 
   var rack = pokRack(me.stack);
-  var gap = 30, x0 = cx - (rack.length - 1) * gap / 2, base = top + 40;
+  var gap = 28, x0 = cx - (rack.length - 1) * gap / 2, base = top + 40;
   rack.forEach(function(st, i){
     var x = x0 + i * gap, drawn = Math.min(st.count, POK_RACK_MAX);
     for(var k = 0; k < drawn; k++){
@@ -503,8 +531,7 @@ function pokDrawHeroStack(c, T, me){
       c.strokeStyle = "rgba(255,255,255,.42)"; c.lineWidth = .8;
       c.beginPath(); c.ellipse(x, yy, 12, 4.8, 0, 0, 7); c.stroke();
     }
-    /* The top disc says what the stack is worth; the colour says it too,
-       the same colours as the chips on every bet bar, so it is learned once. */
+    /* The top disc says what the stack is worth; the colour says it too. */
     var topY = base - (drawn - 1) * 4;
     c.fillStyle = "#fff"; c.textAlign = "center"; c.textBaseline = "middle";
     c.font = "800 " + pokFont(8) + "px system-ui,sans-serif";
@@ -926,6 +953,7 @@ function pokRenderActions(){
     pok.raiseTo = null;
     $("pokRaise").textContent = "Raise (R)";
   }
+  pokTuneRaiseChips();
   Array.prototype.forEach.call(document.querySelectorAll("#pokRaiseChips .pok-chip"), function(b){
     /* a chip that could not be added without going past all-in is spent */
     b.disabled = !canRaise || (pok.raiseTo >= lg.maxRaiseTo);

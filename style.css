@@ -409,6 +409,7 @@
   .pok-chip[data-r="20"]{background:radial-gradient(circle at 35% 30%,#3c6ea8,#1d3f68)}
   .pok-chip[data-r="50"]{background:radial-gradient(circle at 35% 30%,#7f5ad6,#42227e)}
   .pok-chip[data-r="100"]{background:radial-gradient(circle at 35% 30%,#3a3a3a,#111)}
+  .pok-chip[data-r="250"]{background:radial-gradient(circle at 35% 30%,#dd6d95,#8b2b52)}
   .pok-chip:disabled{opacity:.35;cursor:default;transform:none}
   .pok-chip:disabled:hover{transform:none}
   .pok-raiserow{display:flex;gap:6px;align-items:center;justify-content:center}
