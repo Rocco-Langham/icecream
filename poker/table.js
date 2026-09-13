@@ -170,23 +170,33 @@ var pokCanvas = $("pokCanvas"), pokCtx = pokCanvas.getContext("2d");
    Rather than a second copy of six hundred lines of drawing, the scene is
    pointed at another canvas for as long as that game is up, and handed back
    afterwards. Everything below carries on reading pok.T without knowing. */
-var pokOwnCanvas = pokCanvas, pokOwnCtx = pokCtx, pokLent = false;
+var pokLent = false;
 /* The line across the top of the felt is read out of the page rather than
    held in a variable, so a borrower says which element holds its own. */
 var pokMsgId = "pokMsg";
-function pokLend(canvas, msgId){
-  if(!canvas || pok.seated) return false;            /* see pokCanLend */
-  pokCanvas = canvas;
-  pokCtx = canvas.getContext("2d");
+/* Set while the table is being driven from somewhere else. The buttons all
+   funnel through pokHeroAct, so this is the only place a move has to be
+   diverted -- everything above goes on computing what is legal, what the
+   raise adds up to and what the hand is worth, none of which cares where the
+   move ends up being applied. */
+var pokRemote = null;
+function pokLend(mount, msgId, remote){
+  if(!mount || pok.seated) return false;             /* see pokCanLend */
+  /* The whole stage moves, not a copy of it: the felt, the controls, the
+     chips that build a raise, the hand readout and the fullscreen button are
+     one piece of furniture and they are carried across together. */
+  mount.appendChild(pokStage);
   pokMsgId = msgId || "pokMsg";
+  pokRemote = remote || null;
   pokLent = true;
   pokCssW = 0;                                       /* a different box: measure it again */
   return true;
 }
 function pokUnlend(){
-  pokCanvas = pokOwnCanvas;
-  pokCtx = pokOwnCtx;
+  var home = $("pokTableView");
+  if(home && pokStage.parentNode !== home) home.appendChild(pokStage);
   pokMsgId = "pokMsg";
+  pokRemote = null;
   pokLent = false;
   pokCssW = 0;
   pok.T = null;
@@ -905,12 +915,30 @@ function pokRenderActions(){
      to be out of it. */
   /* Once seated the felt carries the commentary, so the one at the top of the
      card stands down rather than saying it twice. */
-  $("pokMsg").hidden = !!pok.seated;
+  $("pokMsg").hidden = !!pok.seated || !!pokRemote;
 
   var handOver = !!(pok.T && pok.T.stage === "done");
   var foldedOut = !!(pok.T && !pok.T.players[0].inHand);
+
+  /* At an online table three of these mean something else, so they are set
+     from the same facts but by a different rule:
+       Next hand  -- the dealer starts the next one on their own clock, so
+                     there is nothing here to press.
+       Stand up   -- you may go at any point. The chips in front of you come
+                     home either way, and nobody else is waiting on a hand of
+                     yours to finish.
+       Skip       -- it hurries a table full of bots along. There is no
+                     hurrying four other people. */
+  if(pokRemote){
+    $("pokNext").style.display = "none";
+    $("pokLeave").disabled = false;
+    $("pokLeave").textContent = "Leave the game";
+    $("pokSkip").hidden = true;
+    return;
+  }
   $("pokNext").style.display = handOver ? "" : "none";
   $("pokLeave").disabled = !(handOver || foldedOut);
+  $("pokLeave").textContent = "Stand up & cash out";
 
   /* Only while you are out of a hand that is still being played: before the
      fold there are decisions to make, and once it is over there is nothing
@@ -1043,6 +1071,10 @@ function pokStep(){
 }
 function pokHeroAct(action, amount){
   if(!pok.T || pok.T.toAct !== 0) return;
+  /* Driven from elsewhere: the move is sent rather than applied. Nothing is
+     changed here on the way out -- the table this screen is showing is a copy
+     of somebody else's, and it is their engine that decides what happened. */
+  if(pokRemote && pokRemote.send){ pokRemote.send(action, amount); return; }
   var say = pokMoveText(pok.T, action, amount), lg = pokLegal(pok.T);
   var spend = action === "call" ? lg.callAmount
             : action === "raise" ? Math.max(lg.minRaiseTo, Math.min(amount, lg.maxRaiseTo)) - pok.T.players[0].bet
@@ -1094,7 +1126,11 @@ var pokBuyBtns = chipRow($("pokBuyBar"), null, function(v){
 }, null);
 pokBuyBtns[1].classList.add("sel");
 $("pokSit").addEventListener("click", function(){ playClick(); pokSit(); });
-$("pokLeave").addEventListener("click", function(){ playClick(); pokLeave(); });
+$("pokLeave").addEventListener("click", function(){
+  playClick();
+  if(pokRemote && pokRemote.leave) pokRemote.leave();
+  else pokLeave();
+});
 
 /* ---- fullscreen ----
    Prefixed names are still what Safari answers to, so both are tried. If the

@@ -693,16 +693,12 @@
   #mpActions{justify-content:center;flex-wrap:wrap}
   #mpActions[hidden]{display:none}
 
-  /* The felt on the online screen: the same shape as the single-player one,
-     because it is literally the same scene being painted. */
-  #mpCanvas{
-    display:block;width:100%;aspect-ratio:900/640;
-    border-radius:14px;border:1px solid var(--edge);background:#07100c;
-  }
-  #mpCanvas[hidden]{display:none}
+  /* The single-player stage is moved in here while an online hand is up, so
+     this only has to keep out of its way. */
+  #mpStageMount:empty{display:none}
+  #mpPlain[hidden], #mpPlainCards[hidden]{display:none}
   /* kept in the page for the felt to read, but not shown twice */
   .mp-offscreen{position:absolute;left:-9999px;height:0;overflow:hidden}
-  @media(max-width:760px){ #mpCanvas{aspect-ratio:900/700} }
 
   /* ---------- settings modal ---------- */
   .modal-overlay{

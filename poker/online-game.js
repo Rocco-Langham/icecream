@@ -306,6 +306,7 @@ function mpRenderGame(){
 
   /* Your own two cards, and what they add up to -- the same readout the
      single-player table gives, from the same engine. */
+  if(mpFeltOn) return;                               /* the real table draws all of this */
   var mine = document.getElementById("mpMine");
   mine.innerHTML = mpMyCards ? mpMyCards.map(mpCardHtml).join("")
                              : '<span class="mp-note">Not in this hand</span>';
@@ -430,35 +431,35 @@ function mpFeltTable(){
 
 /* Ask for the felt when a hand comes up, and give it back when the game ends
    or the screen is left. */
+function mpPlainOnly(on){
+  var pl = document.getElementById("mpPlain");      if(pl) pl.hidden = !on;
+  var pc = document.getElementById("mpPlainCards"); if(pc) pc.hidden = !on;
+  var hd = document.getElementById("mpMsg");
+  if(hd) hd.classList.toggle("mp-offscreen", !on);   /* the felt draws it instead */
+}
 function mpFeltStart(){
   if(mpFeltOn) return;
   if(typeof pokCanLend !== "function" || !pokCanLend()){
     /* Somebody is still sat at the single-player table, which owns pok.T and
        has real chips in it. Said plainly rather than quietly taking it. */
-    document.getElementById("mpCanvas").hidden = true;
-    document.getElementById("mpPlain").hidden = false;
-    mpSay("mpGameNote", "Stand up from the single-player poker table to see the felt here.", "");
+    mpPlainOnly(true);
+    mpSay("mpGameNote", "Stand up from the single-player poker table to play here with the full table.", "");
     return;
   }
-  if(pokLend(document.getElementById("mpCanvas"), "mpMsg")){
+  /* The whole table comes across -- felt, buttons, raise chips, hand readout,
+     fullscreen. The moves go back out through mpSend instead of being applied
+     here, and standing up means leaving the game. */
+  if(pokLend(document.getElementById("mpStageMount"), "mpMsg", {send: mpSend, leave: mpLeave})){
     mpFeltOn = true;
-    document.getElementById("mpCanvas").hidden = false;
-    document.getElementById("mpPlain").hidden = true;
-    /* The felt paints the line itself, so the written-out one above it would
-       only say the same thing twice. */
-    document.getElementById("mpMsg").classList.add("mp-offscreen");
+    mpPlainOnly(false);
+    mpSay("mpGameNote", "");
   }
 }
 function mpFeltStop(){
   if(!mpFeltOn) return;
   mpFeltOn = false;
   if(typeof pokUnlend === "function") pokUnlend();
-  var hd = document.getElementById("mpMsg");
-  if(hd) hd.classList.remove("mp-offscreen");
-  var cv = document.getElementById("mpCanvas");
-  if(cv) cv.hidden = true;
-  var pl = document.getElementById("mpPlain");
-  if(pl) pl.hidden = false;
+  mpPlainOnly(true);
 }
 /* Called on every published state: the felt is driven by handing it a table,
    exactly as the single-player game does. */
@@ -469,13 +470,11 @@ function mpFeltUpdate(){
      stops this screen writing over a seat that has real chips in it. */
   if(mpFeltOn && (typeof pokLent === "undefined" || !pokLent)){
     mpFeltOn = false;
-    var cv = document.getElementById("mpCanvas"); if(cv) cv.hidden = true;
-    var pl = document.getElementById("mpPlain");  if(pl) pl.hidden = false;
-    var hd = document.getElementById("mpMsg");    if(hd) hd.classList.remove("mp-offscreen");
-    /* Said here as well as in mpFeltStart. Without it the felt vanishes for
+    mpPlainOnly(true);
+    /* Said here as well as in mpFeltStart. Without it the table vanishes for
        one paint with nothing to explain where it went -- mpFeltStart runs
        before this and bows out early while the loan still looks live. */
-    mpSay("mpGameNote", "Stand up from the single-player poker table to see the felt here.", "");
+    mpSay("mpGameNote", "Stand up from the single-player poker table to play here with the full table.", "");
   }
   if(!mpFeltOn) return;
   pok.T = mpFeltTable();
@@ -483,4 +482,8 @@ function mpFeltUpdate(){
      rule the single-player table uses. */
   pok.revealed = mpState.stage === "done" &&
                  mpState.players.some(function(p){ return !!p.cards; });
+  /* The scene repaints itself every frame, but the buttons are told. In the
+     single-player game pokStep does this after every move; here the published
+     state arriving is the equivalent moment. */
+  if(typeof pokRender === "function") pokRender();
 }

@@ -392,9 +392,11 @@
       <div class="mp-view" id="mpGame" hidden>
         <div class="mp-headline" id="mpMsg"></div>
 
-        <!-- The same felt the single-player game draws, lent to this screen
-             for as long as a hand is up. -->
-        <canvas class="playfield" id="mpCanvas"></canvas>
+        <!-- The single-player table is moved in here while a hand is up:
+             the felt, the controls, the chips that build a raise, the hand
+             readout and fullscreen, all of it, rather than a second set that
+             would drift out of step with the first. -->
+        <div id="mpStageMount"></div>
 
         <!-- The written-out version, for when the felt cannot be lent because
              a single-player seat is still being held. -->
@@ -411,26 +413,31 @@
           </div>
         </div>
 
-        <div class="mp-panel">
-          <span class="pc-slot-label">Your cards</span>
-          <div class="mp-cards" id="mpMine"></div>
-          <div class="mp-note" id="mpMyHand"></div>
-        </div>
+        <!-- Only reached when the felt could not be borrowed, so these stay
+             as the written-out stand-ins. -->
+        <div id="mpPlainCards">
+          <div class="mp-panel">
+            <span class="pc-slot-label">Your cards</span>
+            <div class="mp-cards" id="mpMine"></div>
+            <div class="mp-note" id="mpMyHand"></div>
+          </div>
 
-        <div class="betbar" id="mpActions">
-          <button class="btn ghost" id="mpFold">Fold</button>
-          <button class="btn" id="mpCheck">Check</button>
-          <button class="btn" id="mpCall">Call</button>
-          <div class="mp-joinrow">
-            <input type="number" class="custom-bet" id="mpRaiseTo" min="0" step="5" placeholder="Raise to">
-            <button class="btn" id="mpRaise">Raise</button>
+          <div class="betbar" id="mpActions">
+            <button class="btn ghost" id="mpFold">Fold</button>
+            <button class="btn" id="mpCheck">Check</button>
+            <button class="btn" id="mpCall">Call</button>
+            <div class="mp-joinrow">
+              <input type="number" class="custom-bet" id="mpRaiseTo" min="0" step="5" placeholder="Raise to">
+              <button class="btn" id="mpRaise">Raise</button>
+            </div>
+          </div>
+
+          <div class="mp-actions">
+            <button class="btn ghost sm" id="mpQuit">Leave the game</button>
           </div>
         </div>
 
         <div class="mp-note" id="mpGameNote"></div>
-        <div class="mp-actions">
-          <button class="btn ghost sm" id="mpQuit">Leave the game</button>
-        </div>
       </div>
 
       <div class="mp-view" id="mpRoom" hidden>
