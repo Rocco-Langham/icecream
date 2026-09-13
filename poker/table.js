@@ -27,12 +27,18 @@ function pokRenderHandInfo(T){
   pokHandInfoKey = key;
   el.hidden = false;
 
-  if(T.board.length === 0){
+  /* pokOuts only answers for a real street -- three, four or five cards -- and
+     returns null for anything else. The single-player game never asks with a
+     board of one or two, because its own board goes straight from nothing to a
+     flop. Now that this readout is also drawn for a table arriving from
+     somewhere else, a board mid-flight would have thrown here instead of
+     simply showing the two cards in hand. */
+  var info = T.board.length ? pokOuts(me.hole, T.board) : null;
+  if(!info){
     el.innerHTML = '<div class="pok-hi-title">Your hand</div>' +
       '<div class="pok-hi-current">' + pokDescribeHole(me.hole) + "</div>";
     return;
   }
-  var info = pokOuts(me.hole, T.board);
   var html = '<div class="pok-hi-title">Your hand</div>' +
              '<div class="pok-hi-current">' + pokDescribeHand(info.current) + "</div>";
   if(info.outs.length){
@@ -158,6 +164,39 @@ function pokMiniCard(card, hidden){
    it, and never changes a chip.
    ========================================================================== */
 var pokCanvas = $("pokCanvas"), pokCtx = pokCanvas.getContext("2d");
+/* ---- lending the felt ----
+   The online game draws the same room, the same table and the same people; it
+   just has a different set of cards and a different screen to put them on.
+   Rather than a second copy of six hundred lines of drawing, the scene is
+   pointed at another canvas for as long as that game is up, and handed back
+   afterwards. Everything below carries on reading pok.T without knowing. */
+var pokOwnCanvas = pokCanvas, pokOwnCtx = pokCtx, pokLent = false;
+/* The line across the top of the felt is read out of the page rather than
+   held in a variable, so a borrower says which element holds its own. */
+var pokMsgId = "pokMsg";
+function pokLend(canvas, msgId){
+  if(!canvas || pok.seated) return false;            /* see pokCanLend */
+  pokCanvas = canvas;
+  pokCtx = canvas.getContext("2d");
+  pokMsgId = msgId || "pokMsg";
+  pokLent = true;
+  pokCssW = 0;                                       /* a different box: measure it again */
+  return true;
+}
+function pokUnlend(){
+  pokCanvas = pokOwnCanvas;
+  pokCtx = pokOwnCtx;
+  pokMsgId = "pokMsg";
+  pokLent = false;
+  pokCssW = 0;
+  pok.T = null;
+  pokCurDeg = {};
+  pokFly = []; pokChipFly = []; pokBoardShown = 0;
+}
+/* Only one game can own pok.T at a time, and the single-player table keeps
+   real chips in it. Rather than quietly clobbering a seat somebody is still
+   sitting in, the online game asks first and says so if the answer is no. */
+function pokCanLend(){ return !pok.seated; }
 var POK_W = 900, POK_H = 520, POK_ROOM = 300, pokZ = 1, pokCssW = 0, pokCssH = 0;
 var TBL = {cx:450, cy:442, rx:400, ry:176};
 
@@ -732,7 +771,7 @@ function pokWrapText(c, text, maxW, maxLines){
   return lines.slice(0, maxLines);
 }
 function pokDrawMessage(c){
-  var el = document.getElementById("pokMsg");
+  var el = document.getElementById(pokMsgId);
   if(!el) return;
   var text = (el.textContent || "").trim();
   if(!text) return;
@@ -773,7 +812,8 @@ function pokVignette(c){
 var pokT0 = Date.now();
 function pokFrame(){
   var sec = document.querySelector(".game.on");
-  if(sec && sec.id === "tab-poker"){
+  var mine = sec && (sec.id === "tab-poker" || (pokLent && sec.id === "tab-online"));
+  if(mine){
     if(pokCssW < 5 || stale(pokCanvas, pokCssW, pokCssH)) pokResize();
     if(pokCssW > 4) pokScene((Date.now()-pokT0)/1000);
   }
@@ -887,6 +927,10 @@ function pokSay(text, kind){ msg($("pokMsg"), text, kind || "info"); }
 
 function pokSit(){
   if(pok.seated) return;
+  /* The felt may be out on loan to the online game. Sitting down here takes
+     it back -- that screen notices on its next paint and falls back to its
+     written-out view rather than the two of them fighting over pok.T. */
+  if(typeof pokLent !== "undefined" && pokLent) pokUnlend();
   if(pok.buyin < 20){ pokSay("The minimum buy-in is 20 chips.", "lose"); return; }
   if(pok.buyin > bank){ pokSay("Not enough chips for that buy-in.", "lose"); return; }
   var bl = pokBlinds(pok.buyin);

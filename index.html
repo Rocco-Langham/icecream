@@ -392,15 +392,23 @@
       <div class="mp-view" id="mpGame" hidden>
         <div class="mp-headline" id="mpMsg"></div>
 
-        <div class="mp-panel">
-          <span class="pc-slot-label">Board</span>
-          <div class="mp-cards" id="mpBoard"></div>
-          <div class="mp-note" id="mpPot"></div>
-        </div>
+        <!-- The same felt the single-player game draws, lent to this screen
+             for as long as a hand is up. -->
+        <canvas class="playfield" id="mpCanvas"></canvas>
 
-        <div class="mp-panel">
-          <span class="pc-slot-label">At the table</span>
-          <div class="people-list" id="mpPlayers"></div>
+        <!-- The written-out version, for when the felt cannot be lent because
+             a single-player seat is still being held. -->
+        <div id="mpPlain">
+          <div class="mp-panel">
+            <span class="pc-slot-label">Board</span>
+            <div class="mp-cards" id="mpBoard"></div>
+            <div class="mp-note" id="mpPot"></div>
+          </div>
+
+          <div class="mp-panel">
+            <span class="pc-slot-label">At the table</span>
+            <div class="people-list" id="mpPlayers"></div>
+          </div>
         </div>
 
         <div class="mp-panel">

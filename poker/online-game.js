@@ -259,6 +259,7 @@ function mpWatchGame(code){
     .subscribe();
 }
 function mpUnwatchGame(){
+  mpFeltStop();
   if(mpGameChan){ sb.removeChannel(mpGameChan); mpGameChan = null; }
   clearTimeout(mpClock); clearTimeout(mpNextTimer);
   mpT = null; mpState = null; mpMyCards = null; mpLastSeen = 0;
@@ -278,6 +279,8 @@ function mpCardHtml(c){
 function mpRenderGame(){
   if(!mpState) return;
   var me = mpMySeat();
+  mpFeltStart();
+  mpFeltUpdate();
 
   document.getElementById("mpMsg").textContent = mpState.msg || "";
 
@@ -368,3 +371,116 @@ document.getElementById("mpRaiseTo").addEventListener("input", function(){
   mpSetActions(mpState && mpState.toAct === mpMySeat());
 });
 document.getElementById("mpQuit").addEventListener("click", function(){ playClick(); mpLeave(); });
+
+/* ==========================================================================
+   The felt
+   --------------------------------------------------------------------------
+   The single-player table draws whatever is in pok.T, with seat 0 at the
+   bottom of the screen. So the published state is turned into a table of that
+   shape, rotated so that YOUR seat is seat 0 -- otherwise everyone would see
+   themselves sitting in whichever chair the host happened to deal them, and
+   only one player would ever be at the front.
+   ========================================================================== */
+
+var mpFeltOn = false;
+
+/* Two face-down stand-ins. The renderer only looks at a card's face when the
+   hand is over and the cards have been turned over, so anything with the
+   right length draws a pair of backs. */
+function mpBacks(){ return [{r:"?", su:SUITS[0]}, {r:"?", su:SUITS[0]}]; }
+
+function mpFeltTable(){
+  var n = mpState.players.length;
+  var me = mpMySeat();
+  if(me < 0) me = 0;                                 /* watching rather than playing */
+  var seatOf = function(display){ return (display + me) % n; };
+
+  var players = [];
+  for(var d = 0; d < n; d++){
+    var p = mpState.players[seatOf(d)];
+    var hole;
+    if(d === 0) hole = (mpMyCards || []).map(mpCardIn);
+    else if(p.cards) hole = p.cards.map(mpCardIn);    /* turned over at the showdown */
+    else hole = p.inHand ? mpBacks() : [];
+    players.push({
+      id: d, name: p.name, stack: p.stack, bet: p.bet, committed: p.committed,
+      inHand: p.inHand, allIn: p.allIn, hasActed: p.hasActed,
+      isHero: d === 0, hole: hole, score: null
+    });
+  }
+  /* Everything that names a seat has to be turned by the same amount, or the
+     dealer button and the highlight end up on the wrong chairs. */
+  var toDisplay = function(seat){ return seat < 0 ? -1 : (seat - me + n) % n; };
+  return {
+    players: players,
+    sb: mpState.sb, bb: mpState.bb,
+    dealer: toDisplay(mpState.dealer),
+    board: mpState.board.map(mpCardIn),
+    deck: [], pots: [], refunds: {},
+    stage: mpState.stage,
+    toAct: toDisplay(mpState.toAct),
+    currentBet: mpState.currentBet,
+    minRaise: mpState.minRaise,
+    lastWinners: (mpState.winners || []).map(function(w){
+      return {id: toDisplay(w.seat), won: w.won, how: w.how};
+    }),
+    lastPot: mpState.pot, log: []
+  };
+}
+
+/* Ask for the felt when a hand comes up, and give it back when the game ends
+   or the screen is left. */
+function mpFeltStart(){
+  if(mpFeltOn) return;
+  if(typeof pokCanLend !== "function" || !pokCanLend()){
+    /* Somebody is still sat at the single-player table, which owns pok.T and
+       has real chips in it. Said plainly rather than quietly taking it. */
+    document.getElementById("mpCanvas").hidden = true;
+    document.getElementById("mpPlain").hidden = false;
+    mpSay("mpGameNote", "Stand up from the single-player poker table to see the felt here.", "");
+    return;
+  }
+  if(pokLend(document.getElementById("mpCanvas"), "mpMsg")){
+    mpFeltOn = true;
+    document.getElementById("mpCanvas").hidden = false;
+    document.getElementById("mpPlain").hidden = true;
+    /* The felt paints the line itself, so the written-out one above it would
+       only say the same thing twice. */
+    document.getElementById("mpMsg").classList.add("mp-offscreen");
+  }
+}
+function mpFeltStop(){
+  if(!mpFeltOn) return;
+  mpFeltOn = false;
+  if(typeof pokUnlend === "function") pokUnlend();
+  var hd = document.getElementById("mpMsg");
+  if(hd) hd.classList.remove("mp-offscreen");
+  var cv = document.getElementById("mpCanvas");
+  if(cv) cv.hidden = true;
+  var pl = document.getElementById("mpPlain");
+  if(pl) pl.hidden = false;
+}
+/* Called on every published state: the felt is driven by handing it a table,
+   exactly as the single-player game does. */
+function mpFeltUpdate(){
+  if(!mpState) return;
+  /* The single-player table can take the felt back at any moment by seating
+     somebody. Noticing here, rather than assuming it is still ours, is what
+     stops this screen writing over a seat that has real chips in it. */
+  if(mpFeltOn && (typeof pokLent === "undefined" || !pokLent)){
+    mpFeltOn = false;
+    var cv = document.getElementById("mpCanvas"); if(cv) cv.hidden = true;
+    var pl = document.getElementById("mpPlain");  if(pl) pl.hidden = false;
+    var hd = document.getElementById("mpMsg");    if(hd) hd.classList.remove("mp-offscreen");
+    /* Said here as well as in mpFeltStart. Without it the felt vanishes for
+       one paint with nothing to explain where it went -- mpFeltStart runs
+       before this and bows out early while the loan still looks live. */
+    mpSay("mpGameNote", "Stand up from the single-player poker table to see the felt here.", "");
+  }
+  if(!mpFeltOn) return;
+  pok.T = mpFeltTable();
+  /* Cards are turned over at the showdown and only then, which is the same
+     rule the single-player table uses. */
+  pok.revealed = mpState.stage === "done" &&
+                 mpState.players.some(function(p){ return !!p.cards; });
+}
