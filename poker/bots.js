@@ -121,13 +121,13 @@ function pokBotAction(T, seat, persona){
 }
 
 /* ==========================================================================
-   Three hundred of them
+   A hundred of them
    --------------------------------------------------------------------------
    The fifteen above are hand-tuned and measurably distinct: fold rate tracks
    the calling threshold across all of them in order. Writing three hundred by
-   hand would not add three hundred ways to play -- it would add two hundred
-   and eighty-five near-duplicates and quietly lose the one property worth
-   having. So each archetype seeds twenty players instead.
+   hand would not add that many ways to play -- it would add near-duplicates
+   and quietly lose the one property worth having. So each archetype seeds a
+   share of the total instead.
 
    Every parameter is nudged by a fixed amount derived from the seat's own
    name, so two players from the same archetype are recognisably the same
@@ -140,7 +140,11 @@ function pokBotAction(T, seat, persona){
    different opponent every time the page loads.
    ========================================================================== */
 
-var POK_VARIANTS = 20;
+/* How many opponents there are in total. Fifteen archetypes will not divide
+   into it evenly, so the remainder is handed out one apiece from the top
+   rather than piled on one school: at a hundred, ten archetypes field seven
+   players and five field six. Change this number and the rest follows. */
+var POK_TOTAL = 100;
 
 /* A small fixed hash: same string in, same number out, spread across -1..1 to
    push a parameter either way.
@@ -171,9 +175,13 @@ function pokClamp(v, lo, hi){ return v < lo ? lo : v > hi ? hi : v; }
 
 var POK_PERSONAS = (function(){
   var out = {};
-  Object.keys(POK_ARCHETYPES).forEach(function(name){
+  var names = Object.keys(POK_ARCHETYPES);
+  var each = Math.floor(POK_TOTAL / names.length);
+  var spare = POK_TOTAL % names.length;
+  names.forEach(function(name, n){
     var base = POK_ARCHETYPES[name];
-    for(var i = 0; i < POK_VARIANTS; i++){
+    var howMany = each + (n < spare ? 1 : 0);
+    for(var i = 0; i < howMany; i++){
       var key = i === 0 ? name : name + i;
       if(i === 0){ out[key] = base; continue; }      /* the tuned original, untouched */
       out[key] = {
