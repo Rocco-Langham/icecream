@@ -386,6 +386,45 @@
         <div class="mp-note" id="mpLobbyNote"></div>
       </div>
 
+      <!-- The hand in progress. Deliberately plain for now: the felt from the
+           single-player table is the next step, and it draws from a state
+           object of this exact shape. -->
+      <div class="mp-view" id="mpGame" hidden>
+        <div class="mp-headline" id="mpMsg"></div>
+
+        <div class="mp-panel">
+          <span class="pc-slot-label">Board</span>
+          <div class="mp-cards" id="mpBoard"></div>
+          <div class="mp-note" id="mpPot"></div>
+        </div>
+
+        <div class="mp-panel">
+          <span class="pc-slot-label">At the table</span>
+          <div class="people-list" id="mpPlayers"></div>
+        </div>
+
+        <div class="mp-panel">
+          <span class="pc-slot-label">Your cards</span>
+          <div class="mp-cards" id="mpMine"></div>
+          <div class="mp-note" id="mpMyHand"></div>
+        </div>
+
+        <div class="betbar" id="mpActions">
+          <button class="btn ghost" id="mpFold">Fold</button>
+          <button class="btn" id="mpCheck">Check</button>
+          <button class="btn" id="mpCall">Call</button>
+          <div class="mp-joinrow">
+            <input type="number" class="custom-bet" id="mpRaiseTo" min="0" step="5" placeholder="Raise to">
+            <button class="btn" id="mpRaise">Raise</button>
+          </div>
+        </div>
+
+        <div class="mp-note" id="mpGameNote"></div>
+        <div class="mp-actions">
+          <button class="btn ghost sm" id="mpQuit">Leave the game</button>
+        </div>
+      </div>
+
       <div class="mp-view" id="mpRoom" hidden>
         <div class="mp-panel">
           <span class="pc-slot-label">Table code &mdash; share it to invite people</span>
@@ -963,6 +1002,7 @@
 <script src="poker/table.js"></script>
 <script src="poker/check.js"></script>
 <script src="poker/online.js"></script>
+<script src="poker/online-game.js"></script>
 <script>
 "use strict";
 /* Everything above only declares things. This is the part that runs, so it

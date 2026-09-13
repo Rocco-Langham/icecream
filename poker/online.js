@@ -2,9 +2,9 @@
 /* ==========================================================================
    Poker Online, part 1: the lobby.
 
-   Opening a table, joining one, and watching people arrive. The hand itself
-   is not wired up yet -- this gets everybody seated and keeps every seated
-   player's screen in step with everyone else's.
+   Opening a table, joining one, and watching people arrive. Playing the hand
+   itself is next door in online-game.js; this gets everybody seated, keeps
+   every screen in step, and hands over when the host starts.
 
    HOW A TABLE IS SHARED. Whoever opens it hosts it: their browser owns the
    deck, deals, applies the moves and publishes the result. There is no
@@ -63,15 +63,37 @@ function mpCode(){
 
 /* ---- which of the four views is on screen ---- */
 function mpShow(which){
-  ["mpSignedOut", "mpNoTables", "mpLobby", "mpRoom"].forEach(function(id){
+  ["mpSignedOut", "mpNoTables", "mpLobby", "mpRoom", "mpGame"].forEach(function(id){
     var el = document.getElementById(id);
     if(el) el.hidden = id !== which;
   });
 }
 function mpRender(){
   if(!mpOn()){ mpShow("mpSignedOut"); return; }
+  if(mpRoom && mpInPlay()){ mpShow("mpGame"); mpRenderGame(); return; }
   if(mpRoom){ mpShow("mpRoom"); mpRenderRoom(); return; }
   mpShow("mpLobby");
+}
+/* A game is under way once the host has published a state with players in it.
+   Until then the room is still a waiting room. */
+function mpInPlay(){
+  return !!(typeof mpState !== "undefined" && mpState && mpState.players && mpState.players.length);
+}
+/* Your buy-in leaves your own bank, once, when the game starts -- and comes
+   back when you leave. Nobody can move chips in anybody else's browser, which
+   is the honest shape of this: each player's balance is theirs to keep. */
+var mpPaid = false;
+function mpPayIn(){
+  if(mpPaid || !mpRoom) return;
+  mpPaid = true;
+  wager(mpRoom.buyin, "poker");
+}
+function mpCashOut(){
+  if(!mpPaid) return;
+  mpPaid = false;
+  var me = (typeof mpMySeat === "function") ? mpMySeat() : -1;
+  var left = (me >= 0 && mpState) ? mpState.players[me].stack : 0;
+  if(left > 0) payout(left, "poker");
 }
 
 /* ---- the room you are sitting in ---- */
@@ -192,7 +214,9 @@ function mpJoin(){
 function mpLeave(){
   if(!mpRoom) return;
   var code = mpRoom.code, iHost = sbUser.id === mpRoom.host;
+  mpCashOut();
   mpUnwatch();
+  if(typeof mpUnwatchGame === "function") mpUnwatchGame();
   /* Closing the room takes the seats and the hands with it, on delete cascade
      -- nobody is left sitting at a table that is no longer there. */
   var q = iHost
@@ -217,8 +241,10 @@ function mpStart(){
     .then(function(res){
       if(res.error) return mpFail("mpRoomNote", res.error);
       mpRoom = (res.data || [])[0] || mpRoom;
+      mpPayIn();
+      mpWatchGame(mpRoom.code);
+      mpHostBegin();
       mpRender();
-      mpSay("mpRoomNote", "Everyone is seated and the table is closed. Dealing comes next.", "good");
     });
 }
 
@@ -247,7 +273,17 @@ function mpWatch(code){
           mpSay("mpLobbyNote", "The host closed that table.", "bad");
           return;
         }
-        if(payload.new) mpRoom = payload.new;
+        if(payload.new){
+          var was = mpRoom;
+          mpRoom = payload.new;
+          /* The host closing the table is the starting gun: everyone pays in
+             and starts watching for hands. */
+          if(was && was.is_open && !mpRoom.is_open){
+            mpPayIn();
+            mpWatchGame(code);
+          }
+          if(mpRoom.state && mpRoom.state.players) mpOnState(mpRoom.state);
+        }
         mpRender();
       })
     .subscribe();
@@ -314,7 +350,17 @@ function mpResume(){
     sb.from("poker_rooms").select("*").eq("code", code).maybeSingle().then(function(r2){
       if(r2.error || !r2.data) return;
       mpRoom = r2.data;
-      mpRefreshSeats(code, function(){ mpWatch(code); mpRender(); });
+      mpRefreshSeats(code, function(){
+        mpWatch(code);
+        if(!mpRoom.is_open){
+          /* Back at a game already running. The buy-in was taken when it
+             started, so it is not taken again. */
+          mpPaid = true;
+          mpWatchGame(code);
+          if(mpRoom.state && mpRoom.state.players) mpOnState(mpRoom.state);
+        }
+        mpRender();
+      });
     });
   });
 }
