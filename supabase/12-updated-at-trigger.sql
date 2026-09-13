@@ -2,6 +2,12 @@
 -- Run this in: Supabase dashboard -> SQL Editor -> New query -> Run.
 -- (TWELFTH script. Safe to run more than once.)
 --
+-- IF YOU HIT "function public.scores_touch_updated_at() does not exist":
+-- run PART 1 on its own, press Run, then run PART 2. The editor splits a
+-- script on semicolons, and a function body has semicolons inside it, so a
+-- long script can get cut in the wrong place and the function never gets
+-- created. Running the two halves separately sidesteps that entirely.
+--
 -- WHY THIS EXISTS
 --
 -- updated_at is what decides which save wins when a device syncs. The browser
@@ -23,6 +29,12 @@
 -- any device believes the time to be. now() is the start of the transaction,
 -- so every row in a single statement gets the same stamp.
 --
+-- The function ignores whatever the client sent — that is the whole point, so
+-- that the value comes from one clock and nowhere else. An upsert arrives as
+-- INSERT ... ON CONFLICT DO UPDATE, so the trigger is declared for both paths;
+-- the column's own default only ever applied to inserts that omitted the
+-- value, which the app's upsert does not.
+--
 -- The claim functions in 05, 07 and 09 set updated_at = now() themselves. That
 -- becomes redundant rather than wrong — the trigger sets it again to the same
 -- transaction time — so they are left alone.
@@ -32,36 +44,50 @@
 -- with or without this trigger. Running it removes the clock-skew hazard; not
 -- running it leaves the app exactly as it is today.
 
+
+-- ============================================================
+-- PART 1 — the function
+-- ============================================================
+
 create or replace function public.scores_touch_updated_at()
 returns trigger
 language plpgsql
+security definer
+set search_path = public
 as $$
 begin
-  -- Ignore whatever the client sent. The point of the trigger is that this
-  -- value comes from one clock, so an inserted or updated row is stamped here
-  -- and nowhere else. An upsert arrives as INSERT ... ON CONFLICT DO UPDATE,
-  -- which fires this on both paths, and the column's own default only ever
-  -- applied to inserts that omitted it -- which the app's upsert does not.
   new.updated_at := now();
   return new;
-end;
-$$;
+end $$;
+
+
+-- ============================================================
+-- PART 2 — the trigger
+-- ============================================================
 
 drop trigger if exists scores_set_updated_at on public.scores;
 
 create trigger scores_set_updated_at
   before insert or update on public.scores
-  for each row
-  execute function public.scores_touch_updated_at();
+  for each row execute function public.scores_touch_updated_at();
 
--- Check it took: run this, save something in the app, and run it again. The
--- stamp should move, and it should agree with the server's clock rather than
--- with the browser's.
+
+-- ============================================================
+-- CHECK IT TOOK
+-- ============================================================
+-- This should return one row naming the trigger:
+--
+--   select tgname from pg_trigger
+--   where tgrelid = 'public.scores'::regclass and not tgisinternal;
+--
+-- Then save something in the app and run this twice a minute apart — the
+-- stamp should move, and agree with the server's clock, not the browser's:
 --
 --   select user_id, hands, updated_at, now() - updated_at as age
---   from public.scores
---   where user_id = auth.uid();
+--   from public.scores where user_id = auth.uid();
 
--- To undo:
---   drop trigger if exists scores_set_updated_at on public.scores;
---   drop function if exists public.scores_touch_updated_at();
+-- ============================================================
+-- TEARDOWN
+-- ============================================================
+-- drop trigger if exists scores_set_updated_at on public.scores;
+-- drop function if exists public.scores_touch_updated_at();
