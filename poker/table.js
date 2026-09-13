@@ -532,6 +532,35 @@ function pokHat(c){
   c.fillStyle = "rgba(255,255,255,.08)"; c.fillRect(-14, -110, 28, 1.5);
   c.restore();
 }
+/* A beard to go under the rest of it. Clipped to the head, so it takes the
+   line of the jaw rather than being cut to one particular face, and it grows
+   up the sides to meet the hair -- without that it is a bib. The mouth stays
+   as a line drawn in it: a beard that swallows the mouth reads as a scarf. */
+function pokBeard(c, o){
+  c.save();
+  /* A shade lower and wider than the head, so the beard hangs just past the
+     jaw instead of being sliced off flush with it. */
+  c.beginPath(); c.ellipse(0, -84, 20.5, 24, 0, 0, 7); c.clip();
+  c.fillStyle = o.hair;
+  /* The top edge is the whole shape of it: low across the lip, sweeping up at
+     the sides to meet the hair. Everything below is jaw, and the clip cuts
+     that to whatever the face is. */
+  c.beginPath();
+  c.moveTo(-21, -94);
+  c.quadraticCurveTo(-12, -77, 0, -77);
+  c.quadraticCurveTo( 12, -77, 21, -94);
+  c.lineTo(21, -55); c.lineTo(-21, -55);
+  c.closePath(); c.fill();
+  /* a little shape in it, rather than one flat colour */
+  var g = c.createLinearGradient(0, -80, 0, -60);
+  g.addColorStop(0, "rgba(255,255,255,.07)"); g.addColorStop(1, "rgba(0,0,0,.30)");
+  c.fillStyle = g; c.fill();
+  c.fillStyle = "rgba(0,0,0,.20)";                    /* heavier over the lip */
+  c.beginPath(); c.ellipse(0, -78.5, 9.5, 3, 0, 0, 7); c.fill();
+  c.fillStyle = "rgba(0,0,0,.40)";                    /* and the mouth, a line in it */
+  pokRR(c, -5, -74.8, 10, 1.6, .8); c.fill();
+  c.restore();
+}
 function pokPerson(c,x,y,s,o,t,seed,dim,cigar){
   var br=pokBob(t,seed);
   c.save(); c.translate(x,y+br); c.scale(s,s);
@@ -576,7 +605,7 @@ function pokPerson(c,x,y,s,o,t,seed,dim,cigar){
     c.beginPath(); c.arc( 7,-86,7,0,7); c.stroke();
     c.beginPath(); c.moveTo(-1,-86); c.lineTo(1,-86); c.stroke();
   }
-  if(cigar){ pokHat(c); pokCigar(c, t, seed); }
+  if(cigar){ pokBeard(c, o); pokHat(c); pokCigar(c, t, seed); }
   c.restore();
 }
 
