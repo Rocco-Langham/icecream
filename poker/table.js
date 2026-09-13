@@ -908,6 +908,14 @@ function pokSit(){
 }
 function pokLeave(){
   if(!pok.seated) return;
+  /* Drop out of fullscreen first. The element being shown fullscreen is
+     #pokStage, which sits inside #pokTableView -- and the lines below hide
+     #pokTableView. A fullscreen element inside a hidden ancestor has nothing
+     left to draw, so standing up, or being sent away with an empty stack,
+     left the player staring at a broken fullscreen with no table in it and
+     no obvious way back. Both routes out of a seat come through here.
+     Leaving is asynchronous; pokFsChanged re-fits the card when it lands. */
+  if(pokFsEl()) pokFsExit();
   clearTimeout(pok.timer);
   clearTimeout(pok.endTimer);
   /* Only what is still in front of you. Chips already pushed into the pot are
