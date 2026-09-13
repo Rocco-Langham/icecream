@@ -464,8 +464,8 @@ function pokStackH(n){ return Math.max(0, Math.min(9, Math.round(n/60))); }
    Everyone else's pile is one colour and a rough height, which is all you can
    tell of a stack across a table. Yours is in front of you, so it is racked
    the way you would rack it: hundreds, fifties, twenties, tens and fives,
-   largest first, and the exact figure written small underneath -- the figure
-   is still the only thing that is precise. Greedy on purpose, which gives
+   largest first, and the exact figure written underneath -- the figure is
+   still the only thing that is precise. Greedy on purpose, which gives
    the fewest chips, and anything under a five has no chip to sit in. */
 var POK_RACK = [
   {v:100, col:"#2e2e2e"},
@@ -484,7 +484,7 @@ function pokRack(n){
   return out;
 }
 function pokDrawHeroStack(c, T, me){
-  var cx = TBL.cx + 166, w = 140, h = 60, top = pokHeroY() - 30;
+  var cx = TBL.cx + 166, w = 152, h = 66, top = pokHeroY() - 34;
   var turn = T.toAct === 0;
   c.save();
   c.fillStyle = turn ? "rgba(232,194,100,.2)" : "rgba(0,0,0,.55)";
@@ -493,32 +493,32 @@ function pokDrawHeroStack(c, T, me){
   c.lineWidth = turn ? 2 : 1; c.stroke();
 
   var rack = pokRack(me.stack);
-  var gap = 25, x0 = cx - (rack.length - 1) * gap / 2, base = top + 36;
+  var gap = 30, x0 = cx - (rack.length - 1) * gap / 2, base = top + 40;
   rack.forEach(function(st, i){
     var x = x0 + i * gap, drawn = Math.min(st.count, POK_RACK_MAX);
     for(var k = 0; k < drawn; k++){
-      var yy = base - k * 3.2;
-      c.fillStyle = "rgba(0,0,0,.45)"; c.beginPath(); c.ellipse(x, yy + 1.6, 9.5, 3.8, 0, 0, 7); c.fill();
-      c.fillStyle = st.col;            c.beginPath(); c.ellipse(x, yy, 9.5, 3.8, 0, 0, 7); c.fill();
-      c.strokeStyle = "rgba(255,255,255,.42)"; c.lineWidth = .7;
-      c.beginPath(); c.ellipse(x, yy, 9.5, 3.8, 0, 0, 7); c.stroke();
+      var yy = base - k * 4;
+      c.fillStyle = "rgba(0,0,0,.45)"; c.beginPath(); c.ellipse(x, yy + 1.8, 12, 4.8, 0, 0, 7); c.fill();
+      c.fillStyle = st.col;            c.beginPath(); c.ellipse(x, yy, 12, 4.8, 0, 0, 7); c.fill();
+      c.strokeStyle = "rgba(255,255,255,.42)"; c.lineWidth = .8;
+      c.beginPath(); c.ellipse(x, yy, 12, 4.8, 0, 0, 7); c.stroke();
     }
     /* The top disc says what the stack is worth; the colour says it too,
        the same colours as the chips on every bet bar, so it is learned once. */
-    var topY = base - (drawn - 1) * 3.2;
+    var topY = base - (drawn - 1) * 4;
     c.fillStyle = "#fff"; c.textAlign = "center"; c.textBaseline = "middle";
-    c.font = "800 " + pokFont(6.5) + "px system-ui,sans-serif";
+    c.font = "800 " + pokFont(8) + "px system-ui,sans-serif";
     c.fillText(String(st.v), x, topY - .2);
     /* Past six the height has stopped meaning anything, so the count does. */
     if(st.count > drawn){
-      c.fillStyle = "rgba(244,234,215,.85)"; c.font = "700 " + pokFont(7.5) + "px system-ui,sans-serif";
-      c.fillText("\u00d7" + st.count, x, topY - 9);
+      c.fillStyle = "rgba(244,234,215,.85)"; c.font = "700 " + pokFont(8) + "px system-ui,sans-serif";
+      c.fillText("\u00d7" + st.count, x, topY - 11);
     }
   });
   c.textBaseline = "alphabetic";
   c.textAlign = "center"; c.fillStyle = "#efe2c2";
-  c.font = "700 " + pokFont(8.5) + "px system-ui,sans-serif";
-  c.fillText("YOUR STACK  " + fmt(me.stack), cx, top + h - 7);
+  c.font = "800 " + pokFont(10) + "px system-ui,sans-serif";
+  c.fillText(fmt(me.stack), cx, top + h - 7);
   c.restore();
 }
 
