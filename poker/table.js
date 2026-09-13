@@ -477,6 +477,35 @@ function pokSmoke(c, x, y, s, t, seed){
   }
 }
 
+/* Dark glasses, for the one with the cigar. Drawn in the same coordinates as
+   the wire pair they stand in for -- lenses over the eyes, a bridge between
+   them, arms back toward the ears -- and painted after the eyes, so the eyes
+   go behind them the way they should. */
+function pokShades(c){
+  c.save();
+  c.strokeStyle = "rgba(18,15,13,.9)"; c.lineCap = "round";
+  c.lineWidth = 1.8;                                  /* arms, back to the ears */
+  c.beginPath(); c.moveTo(-12.4,-88.4); c.lineTo(-19.6,-86.6); c.stroke();
+  c.beginPath(); c.moveTo( 12.4,-88.4); c.lineTo( 19.6,-86.6); c.stroke();
+  c.lineWidth = 2.2;                                  /* bridge */
+  c.beginPath(); c.moveTo(-2.4,-88.6); c.lineTo(2.4,-88.6); c.stroke();
+  [-7.4, 7.4].forEach(function(lx){
+    var g = c.createLinearGradient(lx-5.6,-90.6,lx+5.6,-81.6);
+    g.addColorStop(0, "#42474f"); g.addColorStop(.45, "#15181d"); g.addColorStop(1, "#0a0c0f");
+    c.fillStyle = g; pokRR(c, lx-5.6, -90.6, 11.2, 9, 4); c.fill();
+    /* the glint, kept inside the lens rather than across the cheek */
+    c.save();
+    pokRR(c, lx-5.6, -90.6, 11.2, 9, 4); c.clip();
+    c.fillStyle = "rgba(255,255,255,.20)";
+    c.beginPath();
+    c.moveTo(lx-4.8,-90.6); c.lineTo(lx-1.6,-90.6); c.lineTo(lx-4.4,-81.6); c.lineTo(lx-7.6,-81.6);
+    c.closePath(); c.fill();
+    c.restore();
+    c.strokeStyle = "rgba(232,224,206,.35)"; c.lineWidth = .9;
+    pokRR(c, lx-5.6, -90.6, 11.2, 9, 4); c.stroke();
+  });
+  c.restore();
+}
 function pokPerson(c,x,y,s,o,t,seed,dim,cigar){
   var br=pokBob(t,seed);
   c.save(); c.translate(x,y+br); c.scale(s,s);
@@ -512,7 +541,10 @@ function pokPerson(c,x,y,s,o,t,seed,dim,cigar){
   c.beginPath(); c.ellipse(-7,-86,2.7,2.2,0,0,7); c.fill();
   c.beginPath(); c.ellipse( 7,-86,2.7,2.2,0,0,7); c.fill();
   c.fillStyle="rgba(0,0,0,.22)"; pokRR(c,-5,-75,10,2,1); c.fill();
-  if(o.glasses){
+  /* The smoker wears the dark pair, whichever he turned up in: the two never
+     sit on the same face. */
+  if(cigar) pokShades(c);
+  else if(o.glasses){
     c.strokeStyle="rgba(235,225,205,.6)"; c.lineWidth=1.6;
     c.beginPath(); c.arc(-7,-86,7,0,7); c.stroke();
     c.beginPath(); c.arc( 7,-86,7,0,7); c.stroke();
