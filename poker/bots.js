@@ -144,6 +144,25 @@ function pokBotAction(T, seat, persona){
    into it evenly, so the remainder is handed out one apiece from the top
    rather than piled on one school: at a hundred, ten archetypes field seven
    players and five field six. Change this number and the rest follows. */
+/* One apiece, and it never moves: the player built from the first key gets
+   the first of these, and so on down. Pair them by position rather than by
+   hashing the key, because position gives exactly one name to exactly one
+   player with no chance of two sharing. The order of the archetypes above
+   and POK_TOTAL are therefore load-bearing -- reorder either and everybody
+   is renamed, which is a thing to do deliberately or not at all. */
+var POK_NAMES = [
+  "Alex", "Sam", "Jordan", "Casey", "Riley", "Morgan", "Jamie", "Taylor", "Avery", "Quinn",
+  "Reese", "Rowan", "Skyler", "Charlie", "Frankie", "Emerson", "Harper", "Sage", "Drew", "Noor",
+  "Aria", "Beau", "Cleo", "Dara", "Eden", "Flynn", "Greer", "Hollis", "Indigo", "Jules",
+  "Kai", "Lane", "Marlow", "Nico", "Oakley", "Paz", "Quill", "Remy", "Sasha", "Tatum",
+  "Uma", "Vesper", "Wren", "Xan", "Yuki", "Zephyr", "Adair", "Blair", "Cameron", "Dallas",
+  "Ellis", "Finley", "Gray", "Haven", "Ira", "Jesse", "Kendall", "Lennon", "Marley", "Nova",
+  "Oscar", "Payton", "Rory", "Shea", "Tanner", "Val", "Winter", "Yael", "Ziggy", "Arden",
+  "Bailey", "Corey", "Devon", "Emery", "Frances", "Glenn", "Hayden", "Iris", "Joss", "Kit",
+  "Logan", "Micah", "Noel", "Orion", "Parker", "Quincy", "Robin", "Sloane", "Toby", "Vega",
+  "Wade", "Yara", "Zane", "Ainsley", "Brett", "Cassidy", "Darcy", "Elliot", "Fern", "Gale"
+];
+
 var POK_TOTAL = 100;
 
 /* A small fixed hash: same string in, same number out, spread across -1..1 to
@@ -175,16 +194,27 @@ function pokClamp(v, lo, hi){ return v < lo ? lo : v > hi ? hi : v; }
 
 var POK_PERSONAS = (function(){
   var out = {};
-  var names = Object.keys(POK_ARCHETYPES);
-  var each = Math.floor(POK_TOTAL / names.length);
-  var spare = POK_TOTAL % names.length;
-  names.forEach(function(name, n){
-    var base = POK_ARCHETYPES[name];
+  var schools = Object.keys(POK_ARCHETYPES);
+  var each = Math.floor(POK_TOTAL / schools.length);
+  var spare = POK_TOTAL % schools.length;
+  var seat = 0;                                      /* which name this one gets */
+  schools.forEach(function(school, n){
+    var base = POK_ARCHETYPES[school];
     var howMany = each + (n < spare ? 1 : 0);
     for(var i = 0; i < howMany; i++){
-      var key = i === 0 ? name : name + i;
-      if(i === 0){ out[key] = base; continue; }      /* the tuned original, untouched */
+      var key = i === 0 ? school : school + i;
+      var who = POK_NAMES[seat++] || key;
+      if(i === 0){
+        /* The tuned original, untouched but for being told its name. */
+        out[key] = {
+          callShare: base.callShare, raiseShare: base.raiseShare,
+          bluff: base.bluff, sizing: base.sizing, think: base.think,
+          tag: base.tag, name: who
+        };
+        continue;
+      }
       out[key] = {
+        name: who,
         /* Bands rather than free rein: a variant is a shade of its archetype,
            not a new one, and none of them may drift into a player who folds
            everything or calls everything. */
@@ -209,42 +239,6 @@ var POK_PERSONAS = (function(){
    left empty. */
 var POK_BOTS = 4;
 
-/* Plain first names, and deliberately nothing more. The seats used to be
-   labelled Rock and Maniac, which handed you the read before a card was dealt
-   -- the whole point of a personality is that you have to work it out from how
-   they play. Neutral names, so the table is people rather than strategies. */
-var POK_NAMES = [
-  "Alex", "Sam", "Jordan", "Casey", "Riley", "Morgan", "Jamie", "Taylor", "Avery", "Quinn",
-  "Reese", "Rowan", "Skyler", "Charlie", "Frankie", "Emerson", "Harper", "Sage", "Drew", "Noor",
-  "Aria", "Beau", "Cleo", "Dara", "Eden", "Flynn", "Greer", "Hollis", "Indigo", "Jules",
-  "Kai", "Lane", "Marlow", "Nico", "Oakley", "Paz", "Quill", "Remy", "Sasha", "Tatum",
-  "Uma", "Vesper", "Wren", "Xan", "Yuki", "Zephyr", "Adair", "Blair", "Cameron", "Dallas",
-  "Ellis", "Finley", "Gray", "Haven", "Ira", "Jesse", "Kendall", "Lennon", "Marley", "Nova",
-  "Oscar", "Payton", "Rory", "Shea", "Tanner", "Val", "Winter", "Yael", "Ziggy", "Arden",
-  "Bailey", "Corey", "Devon", "Emery", "Frances", "Glenn", "Hayden", "Iris", "Joss", "Kit",
-  "Logan", "Micah", "Noel", "Orion", "Parker", "Quincy", "Robin", "Sloane", "Toby", "Vega",
-  "Wade", "Yara", "Zane", "Ainsley", "Brett", "Cassidy", "Darcy", "Elliot", "Fern", "Gale",
-  "Hunter", "Isa", "Jody", "Keegan", "Linden", "Maddox", "Nash", "Odin", "Presley", "Reagan",
-  "Sawyer", "Teagan", "Ulric", "Verity", "Wesley", "Xiomara", "Yosef", "Zara", "Amari", "Bodhi",
-  "Cove", "Delta", "Echo", "Fable", "Gia", "Hale", "Ivo", "Juno", "Kaya", "Leith",
-  "Mabel", "Niko", "Ozzy", "Pilar", "Quinnley", "Rain", "Sol", "Tova", "Ute", "Viv",
-  "Wilder", "Xena", "Yanis", "Zia", "Abel", "Bryn", "Colby", "Dove", "Esme", "Fox",
-  "Gideon", "Hollie", "Ines", "Jarvis", "Kira", "Lior", "Mira", "Neel", "Ola", "Perry",
-  "Rhys", "Sidonie", "Thea", "Uri", "Vidal", "Wray", "Ximena", "Yves", "Zuri", "Anwen",
-  "Bram", "Caelan", "Dermot", "Effie", "Fionn", "Gwen", "Hadley", "Ilse", "Jonty", "Kester",
-  "Lark", "Merrin", "Nia", "Orla", "Piers", "Rafe", "Saoirse", "Torin", "Una", "Vaughn",
-  "Wynn", "Yannick", "Zinnia", "Arlo", "Blythe", "Caspian", "Dune", "Elio", "Fenn", "Goldie",
-  "Halcyon", "Ilia", "Jove", "Kestrel", "Lyra", "Maeve", "Nyx", "Onyx", "Peregrine", "Quorra",
-  "Roan", "Selkie", "Tamsin", "Ursa", "Vale", "Willa", "Xanthe", "Yarrow", "Zephyrine", "Ansel",
-  "Bex", "Cyrus", "Della", "Emrys", "Faye", "Gus", "Hattie", "Idris", "Jonah", "Keira",
-  "Lachlan", "Mose", "Nell", "Otto", "Posy", "Rune", "Shiloh", "Tobias", "Verona", "Wilf",
-  "Yolanda", "Zeb", "Astrid", "Bly", "Clemmie", "Dax", "Etta", "Freya", "Grover", "Hugo",
-  "Ivy", "Jarek", "Kofi", "Lumi", "Mateo", "Nadia", "Oren", "Pax", "Rosalind", "Soren",
-  "Tilly", "Umberto", "Viveca", "Wendell", "Xiu", "Yusuf", "Zola", "Beckett", "Calla", "Dashiell",
-  "Elowen", "Fintan", "Gita", "Hesper", "Imre", "Jinx", "Kanoa", "Linus", "Moss", "Noa",
-  "Ottoline", "Pip", "Quilla", "Rilla", "Stellan", "Tycho", "Ulla", "Vidar", "Yseult", "Zarek",
-  "Bo", "Cricket", "Dew", "Fennec", "Guthrie", "Hazel", "Isolde", "Jem", "Kip", "Zephyrus"
-];
 
 /* n distinct items, drawn without replacement so no two seats are the same
    person twice over. */
@@ -256,15 +250,26 @@ function pokPick(list, n){
 
 /* Seat 0 is left empty for whoever is being dealt to -- the player at the
    single-player table, and nobody at the online one, where the host slots
-   these in behind the people who turned up. Names and personalities are drawn
-   independently, so a name tells you nothing about the style behind it even
-   across sessions. */
+   these in behind the people who turned up.
+
+   Only the players are drawn; their names come with them. Ainsley is one
+   particular opponent and always will be, so the names stop being decoration
+   and start being worth remembering -- play enough and you will know who you
+   are up against before a card is dealt, which is the point. It is earned
+   over a season rather than handed over, which is what separates it from the
+   seats that used to be labelled Rock and Maniac. */
 function pokDrawCast(n){
   var want = typeof n === "number" ? n : POK_BOTS;
+  var drawn = pokPick(Object.keys(POK_PERSONAS), want);
   return {
-    names: ["You"].concat(pokPick(POK_NAMES, want)),
-    who:   [null].concat(pokPick(Object.keys(POK_PERSONAS), want))
+    names: ["You"].concat(drawn.map(function(k){ return POK_PERSONAS[k].name; })),
+    who:   [null].concat(drawn)
   };
+}
+/* For anywhere that has a player and wants to know who it is. */
+function pokNameOf(persona){
+  var p = POK_PERSONAS[persona];
+  return (p && p.name) || "player";
 }
 
 /* How long one of them sits there before acting.
