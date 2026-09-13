@@ -588,7 +588,51 @@ function pokChain(c){
   }
   c.restore();
 }
+/* The suit. The jacket is the shirt colour swapped out before anything is
+   drawn, so the sleeves come with it; this puts the rest on top -- the shirt
+   showing in the opening and a lapel laid over each edge of it.
+
+   The torso is a rounded rect 80 across with a 24 corner, so at the very top
+   it is only 32 wide and the shoulders fall away fast. Everything here stays
+   inside that: a lapel starting where a real shoulder is would be drawn on
+   the wallpaper. */
+var POK_SUIT = "#23262e";
+function pokSuit(c){
+  c.save();
+  c.fillStyle = "#e7e1d3";
+  c.beginPath(); c.moveTo(-14, -53); c.lineTo(0, -22); c.lineTo(14, -53); c.closePath(); c.fill();
+  /* the shirt is behind the jacket, so it is in shadow where the jacket overhangs */
+  var sg = c.createLinearGradient(0, -53, 0, -26);
+  sg.addColorStop(0, "rgba(0,0,0,.30)"); sg.addColorStop(1, "rgba(0,0,0,0)");
+  c.fillStyle = sg;
+  c.beginPath(); c.moveTo(-14, -53); c.lineTo(0, -22); c.lineTo(14, -53); c.closePath(); c.fill();
+
+  c.lineJoin = "round"; c.lineCap = "round";
+  c.strokeStyle = "#3a4051"; c.lineWidth = 7;         /* the lapels */
+  c.beginPath(); c.moveTo(-18, -52); c.lineTo(-1, -23); c.stroke();
+  c.beginPath(); c.moveTo( 18, -52); c.lineTo( 1, -23); c.stroke();
+  c.strokeStyle = "rgba(255,255,255,.11)"; c.lineWidth = 1.5;   /* light along each fold */
+  c.beginPath(); c.moveTo(-15.5, -50.5); c.lineTo(-2.5, -26); c.stroke();
+  c.beginPath(); c.moveTo( 15.5, -50.5); c.lineTo( 2.5, -26); c.stroke();
+
+  /* The collar, worn out over the lapels, and the thing that stops the shirt
+     reading as a grey triangle: without it the opening has a hard straight
+     edge running under his chin. */
+  c.fillStyle = "#dcd5c3";
+  [-1, 1].forEach(function(k){
+    c.beginPath();
+    c.moveTo(k*3.5, -55.5); c.lineTo(k*15.5, -50.5); c.lineTo(k*3.5, -37);
+    c.closePath(); c.fill();
+  });
+  c.strokeStyle = "rgba(0,0,0,.28)"; c.lineWidth = .9;
+  [-1, 1].forEach(function(k){
+    c.beginPath(); c.moveTo(k*3.5, -55.5); c.lineTo(k*15.5, -50.5); c.lineTo(k*3.5, -37); c.stroke();
+  });
+  c.restore();
+}
 function pokPerson(c,x,y,s,o,t,seed,dim,cigar){
+  /* Swapped before a stroke is drawn, so the sleeves are jacket too. */
+  if(cigar) o = {skin:o.skin, hair:o.hair, shirt:POK_SUIT, style:o.style, glasses:o.glasses};
   var br=pokBob(t,seed);
   c.save(); c.translate(x,y+br); c.scale(s,s);
   if(dim) c.globalAlpha=0.42;
@@ -632,7 +676,7 @@ function pokPerson(c,x,y,s,o,t,seed,dim,cigar){
     c.beginPath(); c.arc( 7,-86,7,0,7); c.stroke();
     c.beginPath(); c.moveTo(-1,-86); c.lineTo(1,-86); c.stroke();
   }
-  if(cigar){ pokChain(c); pokBeard(c, o); pokHat(c); pokCigar(c, t, seed); }
+  if(cigar){ pokSuit(c); pokChain(c); pokBeard(c, o); pokHat(c); pokCigar(c, t, seed); }
   c.restore();
 }
 
