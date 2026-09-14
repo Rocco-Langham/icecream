@@ -1584,8 +1584,9 @@ function pokHeroAct(action, amount){
 /* ---- the pot coming in ----
    One flying stack is a payment; a pot is a sweep, so it goes as a handful of
    them, each leaving a different corner of the pile and landing a little
-   apart, staggered so it arrives as a stream rather than a single lump. The
-   till rings as the first of them lands, not as they set off.
+   apart, staggered so it arrives as a stream rather than a single lump. It is
+   heard either way as the first of them lands: the till if the pot is yours,
+   the slide of it going across the felt if it is not.
 
    Shared with the online table, which has to do exactly what this one does
    and until now did neither. */
@@ -1604,7 +1605,13 @@ function pokPayPot(T){
                   2 + (i % 3), "#c9a227", 200 + wi * 120 + i * 46);
     }
   });
-  if(mine && typeof playCash === "function") setTimeout(playCash, pokMs(330));
+  /* Both of these land as the first chips arrive rather than as they set off.
+     Yours rings the till; anybody else's is the pot going the other way. */
+  if(mine){
+    if(typeof playCash === "function") setTimeout(playCash, pokMs(330));
+  }else if(typeof playPot === "function"){
+    setTimeout(function(){ playPot(true); }, pokMs(330));
+  }
 }
 function pokShowdown(){
   pok.revealed = pokLive(pok.T).length > 1;

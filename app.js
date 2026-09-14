@@ -191,6 +191,19 @@ var playDeal     = function(){ sfx(function(ctx, t){ noiseBurst(ctx, t, 0.07, 0.
 /* The whole stack going over: a slide, a clatter of chips that keeps going,
    and a low note underneath that none of the other moves has. It is meant to
    carry further than a raise -- it is the biggest thing anybody can do. */
+/* The pot pushed across the felt to somebody else: a long slide with chips
+   tumbling over one another in it, and no ring at the end. The till is for
+   when it is coming your way -- hearing one every time you lose a hand would
+   be a strange way to be told. */
+var playPot      = function(far){
+  var k = far ? 0.62 : 1;
+  sfx(function(ctx, t){
+    noiseBurst(ctx, t, 0.26, 0.030 * k, 900);
+    for(var i = 0; i < 9; i++)
+      tone(ctx, 520 + Math.floor(Math.random()*520), t + 0.02 + i*0.034, 0.05,
+           "triangle", (0.034 - i*0.0024) * k);
+  });
+};
 var playAllIn    = function(far){
   var k = far ? 0.6 : 1;
   sfx(function(ctx, t){
