@@ -184,6 +184,18 @@ var playDeal     = function(){ sfx(function(ctx, t){ noiseBurst(ctx, t, 0.07, 0.
    levels actually came out slightly under a call. `far` is somebody else's, as with a fold. */
 /* Knuckles on the felt, twice. Low and short -- a check is a gesture, not a
    move, and it should sit under the click a call makes. */
+/* Chips slid in to match: a short scrape and two of them settling. Two notes
+   against a raise's three, so it is plainly the smaller move -- and its own
+   sound rather than the general chip click, which is what you hear when you
+   press a chip to build a raise and so cannot also mean "called". */
+var playCall     = function(far){
+  var k = far ? 0.55 : 1;
+  sfx(function(ctx, t){
+    noiseBurst(ctx, t, 0.035, 0.022 * k, 1600);
+    tone(ctx, 1040, t + 0.010, 0.050, "triangle", 0.046 * k);
+    tone(ctx, 1480, t + 0.048, 0.055, "triangle", 0.030 * k);
+  });
+};
 var playCheck    = function(far){
   var k = far ? 0.55 : 1;
   sfx(function(ctx, t){

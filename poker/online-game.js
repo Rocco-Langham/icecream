@@ -318,13 +318,19 @@ function mpOnState(state){
        read rather than `bet`, because bets are swept to nothing when a
        betting round closes and a check is often what closes it. */
     var actor = mpState.toAct;
-    if(actor >= 0 && actor !== mine && state.toAct !== actor && typeof playCheck === "function"){
+    if(actor >= 0 && actor !== mine && state.toAct !== actor){
       var before = null, after = null;
       mpState.players.forEach(function(p){ if(p.seat === actor) before = p; });
       state.players.forEach(function(p){ if(p.seat === actor) after = p; });
-      if(before && after && after.inHand &&
-         after.committed === before.committed &&
-         state.currentBet <= mpState.currentBet) playCheck(true);
+      /* Neither of these is a raise: the bet to call is no higher than it
+         was. What separates them is whether he put anything in. */
+      if(before && after && after.inHand && state.currentBet <= mpState.currentBet){
+        if(after.committed === before.committed){
+          if(typeof playCheck === "function") playCheck(true);
+        }else if(after.committed > before.committed){
+          if(typeof playCall === "function") playCall(true);
+        }
+      }
     }
   }
   mpState = state;
