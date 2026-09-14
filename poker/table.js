@@ -167,6 +167,7 @@ function pokLend(mount, msgId, remote){
   return true;
 }
 function pokUnlend(){
+  pokHushCards();
   var home = $("pokTableView");
   if(home && pokStage.parentNode !== home) home.appendChild(pokStage);
   pokMsgId = "pokMsg";
@@ -1016,8 +1017,26 @@ function pokDealPos(kind, seat, idx){
   var deg = POK_SEAT_DEG[seat-1], cf = onFelt(deg,0.76);
   return {x:cf.x+(idx?10:-10), y:cf.y, rot:(deg-270)*Math.PI/180*0.30, s:0.64};
 }
+/* ---- the sound of a card landing ----
+   Scheduled when the card is thrown rather than played when it is painted.
+   Painting stops while the tab is in the background, so a sound tied to it
+   would either be lost or, worse, come back and play a whole deal at once
+   the moment you returned. The handles are kept so a deal can be called off
+   -- standing up mid-hand should not leave cards landing behind you. */
+var pokSndTimers = [];
+function pokCardSound(ms){
+  if(typeof soundOn !== "undefined" && !soundOn) return;
+  pokSndTimers.push(setTimeout(function(){
+    if(typeof playCard === "function") playCard();
+  }, Math.max(0, ms)));
+}
+function pokHushCards(){
+  pokSndTimers.forEach(clearTimeout);
+  pokSndTimers = [];
+}
 function pokQueueDeal(T){
   pokFly = []; pokBoardShown = 0;
+  pokHushCards();
   var now = Date.now(), k = 0;
   /* one card each, round the table twice, starting left of the button */
   for(var round=0; round<2; round++){
@@ -1025,6 +1044,7 @@ function pokQueueDeal(T){
       var seat = (T.dealer + 1 + i) % T.players.length;
       if(!T.players[seat].inHand) continue;
       pokFly.push({kind:"hole", seat:seat, idx:round, start:now + pokMs(k*80), dur:pokMs(260)});
+      pokCardSound(pokMs(k*80) + pokMs(260));        /* as it lands, not as it leaves */
       k++;
     }
   }
@@ -1160,8 +1180,10 @@ function pokScene(t){
   if(smokeAt) pokSmoke(c, smokeAt.x, smokeAt.y, 0.86, t, smokeAt.seed);
 
   if(T.board.length > pokBoardShown){
-    for(var bi=pokBoardShown; bi<T.board.length; bi++)
+    for(var bi=pokBoardShown; bi<T.board.length; bi++){
       pokFly.push({kind:"board", idx:bi, start:Date.now()+pokMs((bi-pokBoardShown)*110), dur:pokMs(250)});
+      pokCardSound(pokMs((bi-pokBoardShown)*110) + pokMs(250));
+    }
     pokBoardShown = T.board.length;
   }
 
@@ -1449,6 +1471,7 @@ function pokLeave(){
   var stack = pok.T.players[0].stack;
   var net = stack - pok.buyin;
   if(stack > 0) payout(stack, "poker");
+  pokHushCards();                                    /* nothing lands after you have gone */
   pok.seated = false; pok.T = null;
   pokSetPokerStack(0);
   $("pokBuyBar").hidden = false;
@@ -1476,7 +1499,6 @@ function pokDeal(){
   pokQueueDeal(pok.T);
   stats.hands++;
   pokSetPokerStack(pok.T.players[0].stack);
-  playDeal();
   pokSay("Your move.", "info");
   pokRender();
   pokStep();

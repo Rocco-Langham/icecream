@@ -171,6 +171,15 @@ function sfx(fn){
 var playClick    = function(){ sfx(function(ctx, t){ tone(ctx, 720, t, 0.05, "square", 0.032); }); };
 var playChip     = function(){ sfx(function(ctx, t){ tone(ctx, 1100, t, 0.045, "triangle", 0.045); tone(ctx, 1650, t + 0.02, 0.05, "triangle", 0.028); }); };
 var playDeal     = function(){ sfx(function(ctx, t){ noiseBurst(ctx, t, 0.07, 0.11, 2200); }); };
+/* One card, skimmed across the felt and landing: a short hiss and a soft tap
+   after it. Deliberately slight -- it plays eight or ten times in a row at
+   the start of a poker hand. */
+var playCard     = function(){
+  sfx(function(ctx, t){
+    noiseBurst(ctx, t, 0.040, 0.070, 3000);
+    tone(ctx, 205, t + 0.028, 0.045, "triangle", 0.026);
+  });
+};
 var playSpinTick = function(){ sfx(function(ctx, t){ noiseBurst(ctx, t, 0.025, 0.038, 3200); }); };
 var playReelStop = function(){ sfx(function(ctx, t){ tone(ctx, 200, t, 0.09, "square", 0.055); }); };
 var playCoin     = function(){ sfx(function(ctx, t){ tone(ctx, 1568, t, 0.11, "sine", 0.05); tone(ctx, 2093, t + 0.05, 0.13, "sine", 0.035); }); };

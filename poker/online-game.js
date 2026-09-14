@@ -291,7 +291,17 @@ function mpOnState(state){
   if(!state || !state.players) return;
   var fresh = !mpState || mpState.hand !== state.hand;
   mpState = state;
-  if(fresh){ mpMyCards = null; mpFetchMyCards(state.hand); }
+  if(fresh){
+    mpMyCards = null; mpFetchMyCards(state.hand);
+    /* This screen does not throw the hole cards one at a time -- they arrive
+       with the state, already dealt -- so the deal is heard rather than seen:
+       one card for each that went out, round the table twice. */
+    if(typeof pokCardSound === "function"){
+      var inHand = (state.players || []).filter(function(p){ return p.inHand; }).length;
+      var cards = Math.max(2, Math.min(12, inHand * 2));
+      for(var c = 0; c < cards; c++) pokCardSound(c * 80);
+    }
+  }
   mpRenderGame();
 }
 
