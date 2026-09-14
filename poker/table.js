@@ -1528,11 +1528,34 @@ function pokHeroAct(action, amount){
   pokSetPokerStack(pok.T.players[0].stack);
   pokStep();
 }
+/* ---- the pot coming in ----
+   One flying stack is a payment; a pot is a sweep, so it goes as a handful of
+   them, each leaving a different corner of the pile and landing a little
+   apart, staggered so it arrives as a stream rather than a single lump. The
+   till rings as the first of them lands, not as they set off.
+
+   Shared with the online table, which has to do exactly what this one does
+   and until now did neither. */
+var POK_SWEEP_MAX = 9;
+function pokPayPot(T){
+  if(!T || !T.lastWinners || !T.lastWinners.length) return;
+  var mine = null;
+  T.lastWinners.forEach(function(w, wi){
+    if(w.id === 0) mine = w;
+    var from = pokPotPt(), to = pokSeatStackPt(w.id);
+    var many = Math.max(4, Math.min(POK_SWEEP_MAX, 3 + pokStackH(w.won)));
+    for(var i = 0; i < many; i++){
+      var a = (i / many) * Math.PI * 2 + wi;
+      pokChipMove({x: from.x + Math.cos(a) * 14, y: from.y + Math.sin(a) * 5},
+                  {x: to.x   + Math.cos(a) * 10, y: to.y   + Math.sin(a) * 4},
+                  2 + (i % 3), "#c9a227", 200 + wi * 120 + i * 46);
+    }
+  });
+  if(mine && typeof playCash === "function") setTimeout(playCash, pokMs(330));
+}
 function pokShowdown(){
   pok.revealed = pokLive(pok.T).length > 1;
-  pok.T.lastWinners.forEach(function(w, i){
-    pokChipMove(pokPotPt(), pokSeatStackPt(w.id), pokStackH(w.won)+2, "#c9a227", 240 + i*130);  /* pokChipMove scales the delay itself */
-  });
+  pokPayPot(pok.T);
   pokRender();
   pokSetPokerStack(pok.T.players[0].stack);
   var mine = null;
@@ -1541,7 +1564,8 @@ function pokShowdown(){
     return pok.T.players[w.id].name + " " + fmt(w.won);
   }).join(", ");
   if(mine){
-    playWin(mine.won >= pok.buyin ? "big" : "small");
+    /* No playWin here: pokPayPot rings the till, and the two together are
+       just noise on top of each other. */
     pokSay("You win " + fmt(mine.won) + " with " + mine.how + ".", "win");
   }else{
     playLose();

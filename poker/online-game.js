@@ -312,7 +312,7 @@ function mpUnwatchGame(){
   mpFeltStop();
   if(mpGameChan){ sb.removeChannel(mpGameChan); mpGameChan = null; }
   clearTimeout(mpClock); clearTimeout(mpNextTimer); clearTimeout(mpBotTimer);
-  mpT = null; mpState = null; mpMyCards = null; mpLastSeen = 0; mpWho = [];
+  mpT = null; mpState = null; mpMyCards = null; mpLastSeen = 0; mpWho = []; mpPaidHand = -1;
 }
 
 /* ==========================================================================
@@ -434,6 +434,7 @@ document.getElementById("mpQuit").addEventListener("click", function(){ playClic
    ========================================================================== */
 
 var mpFeltOn = false;
+var mpPaidHand = -1;                                 /* the last hand whose pot we have swept in */
 
 /* Two face-down stand-ins. The renderer only looks at a card's face when the
    hand is over and the cards have been turned over, so anything with the
@@ -528,6 +529,14 @@ function mpFeltUpdate(){
   }
   if(!mpFeltOn) return;
   pok.T = mpFeltTable();
+  /* The pot coming in, once per hand. This runs on every state that lands and
+     several of them arrive while a hand sits finished, so the sweep is keyed
+     to the hand number rather than to the stage. */
+  if(mpState.stage === "done" && mpState.winners && mpState.winners.length &&
+     mpPaidHand !== mpState.hand){
+    mpPaidHand = mpState.hand;
+    if(typeof pokPayPot === "function") pokPayPot(pok.T);
+  }
   /* Cards are turned over at the showdown and only then, which is the same
      rule the single-player table uses. */
   pok.revealed = mpState.stage === "done" &&

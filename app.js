@@ -175,6 +175,17 @@ var playSpinTick = function(){ sfx(function(ctx, t){ noiseBurst(ctx, t, 0.025, 0
 var playReelStop = function(){ sfx(function(ctx, t){ tone(ctx, 200, t, 0.09, "square", 0.055); }); };
 var playCoin     = function(){ sfx(function(ctx, t){ tone(ctx, 1568, t, 0.11, "sine", 0.05); tone(ctx, 2093, t + 0.05, 0.13, "sine", 0.035); }); };
 var playLose     = function(){ sfx(function(ctx, t){ tone(ctx, 220, t, 0.18, "sawtooth", 0.032); tone(ctx, 155, t + 0.12, 0.24, "sawtooth", 0.032); }); };
+/* A till: the drawer's ding, then the coins going in after it. Kept short --
+   it lands while the pot is still sliding across the felt. */
+var playCash     = function(){
+  sfx(function(ctx, t){
+    tone(ctx, 1319, t, 0.10, "triangle", 0.055);
+    tone(ctx, 1976, t + 0.03, 0.13, "sine", 0.040);
+    noiseBurst(ctx, t + 0.015, 0.05, 0.05, 2600);
+    for(var i = 0; i < 7; i++)
+      tone(ctx, 880 + Math.floor(Math.random()*900), t + 0.09 + i*0.045, 0.06, "triangle", 0.028);
+  });
+};
 var playWin      = function(size){
   sfx(function(ctx, t){
     var notes = size === "jackpot" ? [523,659,784,1047,1319,1568]
