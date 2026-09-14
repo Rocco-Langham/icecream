@@ -1181,6 +1181,12 @@ function pokScene(t){
   if(smokeAt) pokSmoke(c, smokeAt.x, smokeAt.y, 0.86, t, smokeAt.seed);
 
   if(T.board.length > pokBoardShown){
+    /* Three at once is the flop, and it gets a sound of its own over the top
+       of the three landing. One at a time is the turn or the river, which do
+       not. More than three means the whole board arrived together -- sitting
+       down at an online hand already under way -- and that is a moment too. */
+    if(T.board.length - pokBoardShown >= 3 && typeof playFlop === "function")
+      pokSoundAt(0, playFlop);
     for(var bi=pokBoardShown; bi<T.board.length; bi++){
       pokFly.push({kind:"board", idx:bi, start:Date.now()+pokMs((bi-pokBoardShown)*110), dur:pokMs(250)});
       pokCardSound(pokMs((bi-pokBoardShown)*110) + pokMs(250));

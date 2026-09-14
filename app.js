@@ -199,6 +199,16 @@ var playDeal     = function(){ sfx(function(ctx, t){ noiseBurst(ctx, t, 0.07, 0.
    quick and close together, then done. It has to sit under everything else,
    including an opponent folding: it happens several times a hand and it is
    somebody fidgeting, not somebody acting. */
+/* Three cards spread across the felt in one motion: a sweep, with a low note
+   under it so the flop arrives as a moment rather than as three more cards.
+   It plays alongside the three taps of them landing, not instead. */
+var playFlop     = function(){
+  sfx(function(ctx, t){
+    noiseBurst(ctx, t, 0.20, 0.050, 1500);
+    tone(ctx, 220, t + 0.01, 0.20, "triangle", 0.034);
+    tone(ctx, 330, t + 0.11, 0.16, "triangle", 0.024);
+  });
+};
 var playThink    = function(far){
   var k = far ? 0.6 : 1;
   sfx(function(ctx, t){
