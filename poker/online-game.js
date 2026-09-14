@@ -328,6 +328,18 @@ function mpOnState(state){
        put in, and the bet to call no higher. `committed` is the figure to
        read rather than `bet`, because bets are swept to nothing when a
        betting round closes and a check is often what closes it. */
+    /* A bot's turn coming round online. The state says outright which seats
+       are bots -- they are the ones with nobody's id against them -- so this
+       is only ever the machine thinking, never a person. */
+    if(state.toAct >= 0 && state.toAct !== mpState.toAct && state.toAct !== mine &&
+       typeof playThink === "function"){
+      var upNext = null;
+      state.players.forEach(function(p){ if(p.seat === state.toAct) upNext = p; });
+      if(upNext && !upNext.uid && typeof pokSoundAt === "function")
+        pokSoundAt(700, function(){
+          if(mpState && mpState.toAct === upNext.seat) playThink(true);
+        });
+    }
     var actor = mpState.toAct;
     if(actor >= 0 && actor !== mine && state.toAct !== actor && !allInNow[actor]){
       var before = null, after = null;

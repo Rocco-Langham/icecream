@@ -195,6 +195,18 @@ var playDeal     = function(){ sfx(function(ctx, t){ noiseBurst(ctx, t, 0.07, 0.
    tumbling over one another in it, and no ring at the end. The till is for
    when it is coming your way -- hearing one every time you lose a hand would
    be a strange way to be told. */
+/* Chips riffled while somebody makes their mind up: a run of small clicks,
+   quick and close together, then done. It has to sit under everything else,
+   including an opponent folding: it happens several times a hand and it is
+   somebody fidgeting, not somebody acting. */
+var playThink    = function(far){
+  var k = far ? 0.6 : 1;
+  sfx(function(ctx, t){
+    for(var i = 0; i < 7; i++)
+      tone(ctx, 1500 + Math.floor(Math.random()*700), t + i*0.028, 0.02,
+           "square", (0.015 - i*0.0011) * k);
+  });
+};
 var playPot      = function(far){
   var k = far ? 0.62 : 1;
   sfx(function(ctx, t){

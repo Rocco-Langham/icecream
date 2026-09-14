@@ -1024,11 +1024,12 @@ function pokDealPos(kind, seat, idx){
    the moment you returned. The handles are kept so a deal can be called off
    -- standing up mid-hand should not leave cards landing behind you. */
 var pokSndTimers = [];
-function pokCardSound(ms){
+function pokSoundAt(ms, fn){
   if(typeof soundOn !== "undefined" && !soundOn) return;
-  pokSndTimers.push(setTimeout(function(){
-    if(typeof playCard === "function") playCard();
-  }, Math.max(0, ms)));
+  pokSndTimers.push(setTimeout(fn, Math.max(0, ms)));
+}
+function pokCardSound(ms){
+  pokSoundAt(ms, function(){ if(typeof playCard === "function") playCard(); });
 }
 function pokHushCards(){
   pokSndTimers.forEach(clearTimeout);
@@ -1512,6 +1513,15 @@ function pokStep(){
   pokRender();
   if(pok.T.toAct === 0) return;
   var seat = pok.T.toAct;
+  var think = pokMs(pokThinkMs(pok.T, pok.who[seat]));
+  /* Only when he actually takes a moment over it. A snap decision gets no
+     riffle, and at skip speed there is no moment left to fill. A third of the
+     way in, so there is a beat of silence first -- straight away would read
+     as part of the last move rather than the start of this one. */
+  if(think >= 700)
+    pokSoundAt(Math.round(think * 0.3), function(){
+      if(pok.T && pok.T.toAct === seat && typeof playThink === "function") playThink(true);
+    });
   pok.timer = setTimeout(function(){
     if(!pok.T || pok.T.toAct !== seat) return;
     var mv = pokBotAction(pok.T, seat, pok.who[seat]);
@@ -1536,7 +1546,7 @@ function pokStep(){
     }
     if(pok.T.stage !== wasStage && pok.T.stage !== "done") pokSweepBets(snap);
     pokStep();
-  }, pokMs(pokThinkMs(pok.T, pok.who[seat])));
+  }, think);
 }
 function pokHeroAct(action, amount){
   if(!pok.T || pok.T.toAct !== 0) return;
