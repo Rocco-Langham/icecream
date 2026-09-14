@@ -10,7 +10,7 @@
      app.js for a long time afterwards, so without this a deploy can sit
      there fixed on the server and broken in the only browser that
      matters -- which looks exactly like the fix never worked. -->
-<link rel="stylesheet" href="style.css?v=30">
+<link rel="stylesheet" href="style.css?v=31">
 </head>
 <body>
 <div class="app-shell">
@@ -95,7 +95,7 @@
         <button class="chipbtn" data-v="25">25</button>
         <button class="chipbtn" data-v="100">100</button>
         <button class="chipbtn" data-v="500">500</button>
-        <input type="number" class="custom-bet" id="slotCustom" min="5" step="1" placeholder="Custom">
+        <input type="number" class="custom-bet" id="slotCustom" min="1" step="1" placeholder="Custom">
         <div class="stake" id="slotStake">25</div>
         <button class="btn ghost sm" id="slotClear">Clear</button>
         <button class="btn" id="spinBtn">Spin</button>
@@ -126,7 +126,7 @@
         <button class="chipbtn" data-v="25">25</button>
         <button class="chipbtn" data-v="100">100</button>
         <button class="chipbtn" data-v="500">500</button>
-        <input type="number" class="custom-bet" id="bjCustom" min="5" step="1" placeholder="Custom">
+        <input type="number" class="custom-bet" id="bjCustom" min="1" step="1" placeholder="Custom">
         <div class="stake" id="bjStake">25</div>
         <button class="btn ghost sm" id="bjClear">Clear</button>
         <button class="btn" id="dealBtn">Deal</button>
@@ -159,7 +159,7 @@
         <button class="chipbtn" data-v="25">25</button>
         <button class="chipbtn" data-v="100">100</button>
         <button class="chipbtn" data-v="500">500</button>
-        <input type="number" class="custom-bet" id="rCustom" min="5" step="1" placeholder="Custom">
+        <input type="number" class="custom-bet" id="rCustom" min="1" step="1" placeholder="Custom">
         <div class="stake" id="rTotal">0</div>
         <button class="btn ghost sm" id="rClear">Clear</button>
         <button class="btn" id="rSpin">Spin</button>
@@ -211,7 +211,7 @@
         <button class="chipbtn" data-v="25">25</button>
         <button class="chipbtn" data-v="100">100</button>
         <button class="chipbtn" data-v="500">500</button>
-        <input type="number" class="custom-bet" id="hrCustom" min="5" step="1" placeholder="Custom">
+        <input type="number" class="custom-bet" id="hrCustom" min="1" step="1" placeholder="Custom">
         <div class="stake" id="hrStake">25</div>
         <button class="btn ghost sm" id="hrClear">Clear</button>
         <button class="btn" id="hrRace">Race</button>
@@ -257,7 +257,7 @@
         <button class="chipbtn" data-v="25">25</button>
         <button class="chipbtn" data-v="100">100</button>
         <button class="chipbtn" data-v="500">500</button>
-        <input type="number" class="custom-bet" id="pkCustom" min="5" step="1" placeholder="Custom">
+        <input type="number" class="custom-bet" id="pkCustom" min="1" step="1" placeholder="Custom">
         <div class="stake" id="pkStake">25</div>
         <button class="btn ghost sm" id="pkClear">Clear</button>
         <button class="btn" id="pkDrop">Drop</button>
@@ -296,7 +296,7 @@
         <button class="chipbtn" data-v="25">25</button>
         <button class="chipbtn" data-v="100">100</button>
         <button class="chipbtn" data-v="500">500</button>
-        <input type="number" class="custom-bet" id="fbCustom" min="5" step="1" placeholder="Custom">
+        <input type="number" class="custom-bet" id="fbCustom" min="1" step="1" placeholder="Custom">
         <div class="stake" id="fbStake">25</div>
         <button class="btn ghost sm" id="fbClear">Clear</button>
       </div>
@@ -334,7 +334,7 @@
         <button class="chipbtn" data-v="25">25</button>
         <button class="chipbtn" data-v="100">100</button>
         <button class="chipbtn" data-v="500">500</button>
-        <input type="number" class="custom-bet" id="snCustom" min="5" step="1" placeholder="Custom">
+        <input type="number" class="custom-bet" id="snCustom" min="1" step="1" placeholder="Custom">
         <div class="stake" id="snStake">25</div>
         <button class="btn ghost sm" id="snClear">Clear</button>
       </div>
@@ -1022,16 +1022,16 @@
 <!-- The one external dependency in the file. Only reachable over http(s), which
      is why the offline file:// copy keeps working with cloud saves switched off. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=30"></script>
-<script src="games.js?v=30"></script>
+<script src="app.js?v=31"></script>
+<script src="games.js?v=31"></script>
 <!-- Poker in three parts, loaded in dependency order: the rules, then the
      opponents that consult them, then the table that shows it all. -->
-<script src="poker/engine.js?v=30"></script>
-<script src="poker/bots.js?v=30"></script>
-<script src="poker/table.js?v=30"></script>
-<script src="poker/check.js?v=30"></script>
-<script src="poker/online.js?v=30"></script>
-<script src="poker/online-game.js?v=30"></script>
+<script src="poker/engine.js?v=31"></script>
+<script src="poker/bots.js?v=31"></script>
+<script src="poker/table.js?v=31"></script>
+<script src="poker/check.js?v=31"></script>
+<script src="poker/online.js?v=31"></script>
+<script src="poker/online-game.js?v=31"></script>
 <script>
 "use strict";
 /* Everything above only declares things. This is the part that runs, so it

@@ -400,13 +400,13 @@ function chipRow(container, get, set, onChange, step){
   if(custom){
     /* The typed text is left alone while you are still typing -- rewriting it
        mid-keystroke fights you -- and corrected to the amount actually staked
-       once you leave the field. Five is the house minimum either way; what
-       `step` decides is whether anything between the fives is allowed. */
+       once you leave the field. The smallest stake is the step itself: one
+       chip at the games, five at the poker tables. */
     var to = Math.max(1, step || 1);
     var take = function(){
       var v = Math.floor(Number(custom.value));
       if(!v || v < 1) return null;
-      v = Math.max(5, to > 1 ? Math.round(v / to) * to : v);
+      v = Math.max(to, to > 1 ? Math.round(v / to) * to : v);
       set(v);
       Array.prototype.forEach.call(btns, function(o){ o.classList.remove("sel"); });
       custom.classList.add("sel");
