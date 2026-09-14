@@ -1340,6 +1340,7 @@ var pkW = 700, pkH = 420;
 var PK_VIEW = 860, pkCssW = 0, pkCssH = 0;           /* the width the board is drawn for */
 var pkRows = 12, pkRisk = "medium", pkStake = 25;
 var pkMults = [], pkBalls = [], pkFlash = {}, pkHits = {}, pkClock = 0;
+var PK_TRAIL_SEC = 0.22;                               /* how much of its own past a ball drags behind it */
 var pkBallCount = 1;
 /* Balls queued by a multi-drop, released one per PK_STAGGER so they cascade
    down the board instead of landing on top of each other. Each entry is a
@@ -1485,6 +1486,31 @@ function pkRender(){
     var fade = ball.done ? Math.max(0, 1 - (pkClock - ball.doneAt)/0.9) : 1;
     if(fade <= 0) return;
     pkCtx.globalAlpha = fade;
+
+    /* The trail: drawn as segments rather than one stroke, because a single
+       stroke cannot taper. Each is a little wider and a little brighter than
+       the one behind it, so it thins away to nothing at the far end. Twice
+       over -- a soft wide pass for the glow, a narrow bright one for the
+       core -- which is the difference between a streak of light and a stripe
+       of paint. */
+    var tr = ball.trail, n = tr.length;
+    if(n > 1){
+      pkCtx.lineCap = "round"; pkCtx.lineJoin = "round";
+      for(var pass = 0; pass < 2; pass++){
+        for(var i = 1; i < n; i++){
+          var k = i / (n - 1);                          /* 0 at the tail, 1 at the ball */
+          var a2 = Math.pow(k, 1.6) * (pass ? .85 : .30) * fade;
+          if(a2 <= .004) continue;
+          pkCtx.strokeStyle = pass ? "rgba(255,228,150," + a2.toFixed(3) + ")"
+                                   : "rgba(255,186,64,"  + a2.toFixed(3) + ")";
+          pkCtx.lineWidth = br * (pass ? .18 + .62*k : .5 + 1.5*k);
+          pkCtx.beginPath();
+          pkCtx.moveTo(tr[i-1].x, tr[i-1].y);
+          pkCtx.lineTo(tr[i].x, tr[i].y);
+          pkCtx.stroke();
+        }
+      }
+    }
     pkCtx.beginPath();
     pkCtx.arc(ball.x, ball.y, br*2.2, 0, Math.PI*2);
     pkCtx.fillStyle = "rgba(255,214,106,.16)";
@@ -1531,6 +1557,10 @@ function pkStep(dt){
   }
   var g = pkGeo(), settledAny = false;
   pkBalls.forEach(function(ball){
+    /* The streak ages before the early return, not after it: a ball that has
+       landed stops moving but its trail must still die back into the bucket
+       rather than hanging there at full length while it fades. */
+    while(ball.trail.length && pkClock - ball.trail[0].at > PK_TRAIL_SEC) ball.trail.shift();
     if(ball.done) return;
     ball.t += dt / ball.segDur;
 
@@ -1564,6 +1594,11 @@ function pkStep(dt){
     var t = Math.max(0, Math.min(1, ball.t));
     ball.x = a.x + (b.x - a.x) * (t*t*(3-2*t));        // smoothstep sideways
     ball.y = a.y + (b.y - a.y) * Math.pow(t, 1.45);    // accelerating fall
+
+    /* Where it has just been, kept by age rather than by count, so the streak
+       is the same length of time on any machine instead of the same number of
+       frames. */
+    ball.trail.push({x: ball.x, y: ball.y, at: pkClock});
   });
 
   /* retire faded-out balls so they can't pile up over a long session */
@@ -1714,7 +1749,7 @@ function pkSpawnBall(burst){
 
   var g = pkGeo();
   pkBalls.push({
-    path:path, rows:N, seg:0, t:0, col:0, done:false, doneAt:0,
+    path:path, rows:N, seg:0, t:0, col:0, done:false, doneAt:0, trail:[],
     x: g.cx, y: g.topY - g.V*0.95,
     stake: pkStake, mults: pkMults.slice(), burst: burst,
     segDur: Math.max(0.055, 0.115 - N*0.002)
