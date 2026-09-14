@@ -648,6 +648,27 @@ function pokSuit(c){
   c.fillStyle = "rgba(255,255,255,.10)"; c.fillRect(17, -31.9, 16.5, .6);
   c.restore();
 }
+/* A cane, stood against him on the side away from the cigar. It hugs the
+   body rather than being planted out in the room: he is sitting at a table,
+   and anything reaching far from him lands on the felt or on the next man's
+   nameplate. The shaft stops just above where his own plate begins. */
+function pokCane(c){
+  c.save();
+  c.lineCap = "round";
+  c.strokeStyle = "rgba(0,0,0,.45)"; c.lineWidth = 3.6;     /* what it throws behind it */
+  c.beginPath(); c.moveTo(-40.6, 17); c.lineTo(-46.6, -49); c.stroke();
+  c.strokeStyle = "#3c2b1d"; c.lineWidth = 2.6;
+  c.beginPath(); c.moveTo(-41, 16); c.lineTo(-47, -50); c.stroke();
+  c.strokeStyle = "rgba(255,225,190,.18)"; c.lineWidth = .9; /* the light down one side */
+  c.beginPath(); c.moveTo(-41.9, 15); c.lineTo(-47.9, -49); c.stroke();
+  c.fillStyle = "#b98b3a";                                   /* the collar */
+  c.beginPath(); c.ellipse(-46.7, -46.5, 2.3, 1.7, -.09, 0, 7); c.fill();
+  var g = c.createRadialGradient(-48.7, -54.7, 0, -47.4, -53.2, 4.8);
+  g.addColorStop(0, "#fff1c4"); g.addColorStop(.45, "#e8c264"); g.addColorStop(1, "#8a6a1e");
+  c.fillStyle = g;                                           /* and the knob on top */
+  c.beginPath(); c.arc(-47.4, -53.2, 4.2, 0, 7); c.fill();
+  c.restore();
+}
 function pokPerson(c,x,y,s,o,t,seed,dim,cigar){
   /* Swapped before a stroke is drawn, so the sleeves are jacket too. */
   if(cigar) o = {skin:o.skin, hair:o.hair, shirt:POK_SUIT, style:o.style, glasses:o.glasses};
@@ -694,7 +715,7 @@ function pokPerson(c,x,y,s,o,t,seed,dim,cigar){
     c.beginPath(); c.arc( 7,-86,7,0,7); c.stroke();
     c.beginPath(); c.moveTo(-1,-86); c.lineTo(1,-86); c.stroke();
   }
-  if(cigar){ pokSuit(c); pokChain(c); pokBeard(c, o); pokHat(c); pokCigar(c, t, seed); }
+  if(cigar){ pokSuit(c); pokChain(c); pokBeard(c, o); pokHat(c); pokCane(c); pokCigar(c, t, seed); }
   c.restore();
 }
 
