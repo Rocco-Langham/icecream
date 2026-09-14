@@ -402,6 +402,11 @@
        fullscreen column -- at 44 they came to exactly the container width and
        sat flush against both edges. */
     width:38px;height:38px;font-size:11px;border-width:2px;
+    /* No side padding. A button's default 6px each side leaves 22px of room
+       inside a 34px chip, and a four-figure label wants 30 -- so "1000" and
+       "5000" were spilling over their own rims. The text is centred either
+       way, so dropping it moves nothing that fits already. */
+    padding:0;
     background:radial-gradient(circle at 35% 30%,#3c6ea8,#1d3f68);
   }
   .pok-chip[data-r="5"]{background:radial-gradient(circle at 35% 30%,#e05a5f,#a3242a)}
@@ -415,6 +420,13 @@
      chips the same colour in one row is the problem these rules exist for. */
   .pok-chip[data-r="500"]{background:radial-gradient(circle at 35% 30%,#23897d,#0f4f47)}
   .pok-chip[data-r="1000"]{background:radial-gradient(circle at 35% 30%,#c87a22,#7a3d0c)}
+  /* Ivory, the way the house marks its biggest counter, and the one chip here
+     that needs dark type on it -- white would be the invisible chip all over
+     again. The dashed rim goes dark with it for the same reason. */
+  .pok-chip[data-r="5000"]{
+    background:radial-gradient(circle at 35% 30%,#efe4cc,#bfae8a);
+    color:#241d14;border-color:rgba(60,45,25,.55);
+  }
   .pok-chip:disabled{opacity:.35;cursor:default;transform:none}
   .pok-chip:disabled:hover{transform:none}
   .pok-raiserow{display:flex;gap:6px;align-items:center;justify-content:center}

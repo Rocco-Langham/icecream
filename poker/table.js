@@ -762,12 +762,15 @@ function pokStackH(n){ return Math.max(0, Math.min(9, Math.round(n/60))); }
    The colours are the ones on the raise buttons, so a chip means the same
    thing wherever it turns up and is learned once. */
 /* `from` is the buy-in at which a chip comes into play, the same figures the
-   raise buttons tier on, so the chips in your stack and the chips on the
-   buttons are always the same chips. The bottom six are always in play.
+   raise buttons tier on. The bottom six are always in play. At the top the
+   rack runs one denomination higher than the buttons do -- the biggest chip
+   you can be holding is not the biggest one you would build a raise out of,
+   which is why a real table has plaques as well as chips.
    The thousand is written 1K: it is the only four-figure chip, and spelled
    out it is wide enough to run into its neighbour once a stack is deep
    enough to have eight piles standing side by side. */
 var POK_RACK = [
+  {v:10000, col:"#9c2b45", from:1000000, label:"10K"},
   {v:1000, col:"#c87a22", from:30000, label:"1K"},
   {v:500,  col:"#23897d", from:5000},
   {v:250,  col:"#dd6d95", from:0},
@@ -781,7 +784,11 @@ var POK_RACK = [
    actually come off a table -- a rack is five piles of twenty, and nobody
    stacks higher than about this before it topples. */
 var POK_PILE = 25;
-var POK_PILES_MAX = 8;                                /* piles the pill holds before the rest is a number */
+/* Nine, because at the top buy-in nine denominations can be on the table at
+   once and every one of them is owed a pile. Greedy leaves at most a handful
+   of anything below the top chip, so this is only ever reached by a stack
+   that genuinely holds one of each. */
+var POK_PILES_MAX = 9;
 function pokRack(n){
   var left = Math.max(0, Math.floor(n)), out = [], buyin = pokBuyinNow();
   POK_RACK.forEach(function(d){
@@ -829,6 +836,7 @@ function pokPiles(n){
    chips -- a thousand is the largest buy-in the buttons offer, and a rule you
    cannot reach from the buttons is no rule at all. */
 var POK_CHIP_TIERS = [
+  {from: 1000000, chips: [100, 250, 500, 1000, 5000]},/* the 5 goes */
   {from: 30000, chips: [5, 100, 250, 500, 1000]},     /* the 50 goes */
   {from:  5000, chips: [5,  50, 100, 250,  500]},     /* the 10 goes */
   {from:  1000, chips: [5,  10,  50, 100,  250]},     /* the 20 goes */
