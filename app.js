@@ -174,6 +174,16 @@ var playDeal     = function(){ sfx(function(ctx, t){ noiseBurst(ctx, t, 0.07, 0.
 /* One card, skimmed across the felt and landing: a short hiss and a soft tap
    after it. Deliberately slight -- it plays eight or ten times in a row at
    the start of a poker hand. */
+/* Two cards pushed away face down. Longer and duller than a card being dealt
+   -- a lower hiss, no bright tap on the end of it -- because a fold is a
+   thing you do quietly. */
+var playFold     = function(){
+  sfx(function(ctx, t){
+    noiseBurst(ctx, t, 0.085, 0.058, 1400);
+    noiseBurst(ctx, t + 0.055, 0.070, 0.042, 1050);
+    tone(ctx, 138, t + 0.05, 0.085, "triangle", 0.022);
+  });
+};
 var playCard     = function(){
   sfx(function(ctx, t){
     noiseBurst(ctx, t, 0.040, 0.070, 3000);

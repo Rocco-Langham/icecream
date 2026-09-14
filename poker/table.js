@@ -1536,7 +1536,13 @@ function pokHeroAct(action, amount){
   /* Driven from elsewhere: the move is sent rather than applied. Nothing is
      changed here on the way out -- the table this screen is showing is a copy
      of somebody else's, and it is their engine that decides what happened. */
-  if(pokRemote && pokRemote.send){ pokRemote.send(action, amount); return; }
+  if(pokRemote && pokRemote.send){
+    /* Sending is the only moment this screen knows what you did -- the answer
+       comes back as a whole new state with your cards already gone -- so the
+       fold is heard here or not at all. */
+    if(action === "fold" && typeof playFold === "function") playFold();
+    pokRemote.send(action, amount); return;
+  }
   var say = pokMoveText(pok.T, action, amount), lg = pokLegal(pok.T);
   var spend = action === "call" ? lg.callAmount
             : action === "raise" ? Math.max(lg.minRaiseTo, Math.min(amount, lg.maxRaiseTo)) - pok.T.players[0].bet
@@ -1546,7 +1552,9 @@ function pokHeroAct(action, amount){
   pokSpeak(0, say);
   if(spend > 0) pokChipMove(pokSeatStackPt(0), pokSeatBetPt(0), pokStackH(spend)+1, "#c9a227");
   if(pok.T.stage !== wasStage && pok.T.stage !== "done") pokSweepBets(snap);
-  if(action === "raise" || action === "call") playChip(); else playClick();
+  if(action === "raise" || action === "call") playChip();
+  else if(action === "fold" && typeof playFold === "function") playFold();
+  else playClick();
   pokSetPokerStack(pok.T.players[0].stack);
   pokStep();
 }
