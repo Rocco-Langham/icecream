@@ -1529,6 +1529,8 @@ function pokStep(){
       else playChip();
     }else if(mv.action === "fold" && typeof playFold === "function"){
       playFold(true);                                /* his, so half as loud */
+    }else if(mv.action === "check" && typeof playCheck === "function"){
+      playCheck(true);
     }
     if(pok.T.stage !== wasStage && pok.T.stage !== "done") pokSweepBets(snap);
     pokStep();
@@ -1545,6 +1547,7 @@ function pokHeroAct(action, amount){
        fold is heard here or not at all. */
     if(action === "fold" && typeof playFold === "function") playFold();
     else if(action === "raise" && typeof playRaise === "function") playRaise();
+    else if(action === "check" && typeof playCheck === "function") playCheck();
     pokRemote.send(action, amount); return;
   }
   var say = pokMoveText(pok.T, action, amount), lg = pokLegal(pok.T);
@@ -1559,6 +1562,7 @@ function pokHeroAct(action, amount){
   if(action === "raise" && typeof playRaise === "function") playRaise();
   else if(action === "call") playChip();
   else if(action === "fold" && typeof playFold === "function") playFold();
+  else if(action === "check" && typeof playCheck === "function") playCheck();
   else playClick();
   pokSetPokerStack(pok.T.players[0].stack);
   pokStep();

@@ -182,6 +182,17 @@ var playDeal     = function(){ sfx(function(ctx, t){ noiseBurst(ctx, t, 0.07, 0.
    another, climbing. It has to carry further than the single click a call
    makes -- that is the whole point of it, and the first attempt at these
    levels actually came out slightly under a call. `far` is somebody else's, as with a fold. */
+/* Knuckles on the felt, twice. Low and short -- a check is a gesture, not a
+   move, and it should sit under the click a call makes. */
+var playCheck    = function(far){
+  var k = far ? 0.55 : 1;
+  sfx(function(ctx, t){
+    noiseBurst(ctx, t, 0.030, 0.038 * k, 700);
+    tone(ctx, 150, t, 0.045, "sine", 0.030 * k);
+    noiseBurst(ctx, t + 0.105, 0.030, 0.032 * k, 700);
+    tone(ctx, 150, t + 0.105, 0.045, "sine", 0.025 * k);
+  });
+};
 var playRaise    = function(far){
   var k = far ? 0.55 : 1;
   sfx(function(ctx, t){

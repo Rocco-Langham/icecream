@@ -312,6 +312,20 @@ function mpOnState(state){
       });
       if(by !== null && by !== mine) playRaise(true);
     }
+    /* A check leaves almost no mark at all. What gives it away is the player
+       whose turn it was: still in the hand, the turn moved on, nothing more
+       put in, and the bet to call no higher. `committed` is the figure to
+       read rather than `bet`, because bets are swept to nothing when a
+       betting round closes and a check is often what closes it. */
+    var actor = mpState.toAct;
+    if(actor >= 0 && actor !== mine && state.toAct !== actor && typeof playCheck === "function"){
+      var before = null, after = null;
+      mpState.players.forEach(function(p){ if(p.seat === actor) before = p; });
+      state.players.forEach(function(p){ if(p.seat === actor) after = p; });
+      if(before && after && after.inHand &&
+         after.committed === before.committed &&
+         state.currentBet <= mpState.currentBet) playCheck(true);
+    }
   }
   mpState = state;
   if(fresh){
