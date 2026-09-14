@@ -178,6 +178,19 @@ var playDeal     = function(){ sfx(function(ctx, t){ noiseBurst(ctx, t, 0.07, 0.
    -- a lower hiss, no bright tap on the end of it -- because a fold is a
    thing you do quietly. `far` is somebody else's, half as loud, so a table
    full of them does not drown out your own. */
+/* A stack pushed out: it slides, then the chips knock together on top of one
+   another, climbing. It has to carry further than the single click a call
+   makes -- that is the whole point of it, and the first attempt at these
+   levels actually came out slightly under a call. `far` is somebody else's, as with a fold. */
+var playRaise    = function(far){
+  var k = far ? 0.55 : 1;
+  sfx(function(ctx, t){
+    noiseBurst(ctx, t, 0.05, 0.034 * k, 1800);
+    tone(ctx, 880,  t + 0.015, 0.05, "triangle", 0.058 * k);
+    tone(ctx, 1320, t + 0.048, 0.05, "triangle", 0.048 * k);
+    tone(ctx, 1760, t + 0.080, 0.06, "triangle", 0.038 * k);
+  });
+};
 var playFold     = function(far){
   var k = far ? 0.5 : 1;                             /* across the table, not under your nose */
   sfx(function(ctx, t){

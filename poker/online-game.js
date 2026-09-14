@@ -296,12 +296,22 @@ function mpOnState(state){
      before the new state replaces the old one, since it is the difference
      between them that says what happened. Your own is skipped: it was heard
      as you sent it. */
-  if(!fresh && mpState && typeof playFold === "function"){
-    var mine = mpMySeat(), was = {};
-    mpState.players.forEach(function(p){ was[p.seat] = p.inHand; });
+  if(!fresh && mpState){
+    var mine = mpMySeat(), was = {}, wasBet = {};
+    mpState.players.forEach(function(p){ was[p.seat] = p.inHand; wasBet[p.seat] = p.bet; });
     state.players.forEach(function(p){
-      if(was[p.seat] && !p.inHand && p.seat !== mine) playFold(true);
+      if(was[p.seat] && !p.inHand && p.seat !== mine && typeof playFold === "function") playFold(true);
     });
+    /* A raise is not announced either: the table's bet to call simply goes up.
+       Whoever is now matching that figure, having put more in than they had,
+       is the one who put it there. */
+    if(state.currentBet > mpState.currentBet && typeof playRaise === "function"){
+      var by = null;
+      state.players.forEach(function(p){
+        if(p.bet === state.currentBet && p.bet > (wasBet[p.seat] || 0)) by = p.seat;
+      });
+      if(by !== null && by !== mine) playRaise(true);
+    }
   }
   mpState = state;
   if(fresh){
