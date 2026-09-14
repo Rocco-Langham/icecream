@@ -628,6 +628,24 @@ function pokSuit(c){
   [-1, 1].forEach(function(k){
     c.beginPath(); c.moveTo(k*3.5, -55.5); c.lineTo(k*15.5, -50.5); c.lineTo(k*3.5, -37); c.stroke();
   });
+
+  /* The pocket square, in the breast pocket -- which is on his left, so on
+     the viewer's right. A flat fold barely showing, not a fan of points:
+     three points at this size are a row of teeth. The pocket is drawn first,
+     a shade off the jacket so there is something for the cloth to come out
+     of, and its welt goes over the foot of the square last. */
+  c.fillStyle = "rgba(255,255,255,.055)"; c.fillRect(17, -31, 16.5, 10);
+  c.fillStyle = "#e7e1d3";
+  c.beginPath();
+  c.moveTo(19, -30.2); c.lineTo(31.4, -32); c.lineTo(31.4, -35.4); c.lineTo(19, -33.6);
+  c.closePath(); c.fill();
+  var pg = c.createLinearGradient(19, -35.4, 31.4, -30.2);
+  pg.addColorStop(0, "rgba(255,255,255,.20)"); pg.addColorStop(1, "rgba(0,0,0,.26)");
+  c.fillStyle = pg; c.fill();
+  c.strokeStyle = "rgba(0,0,0,.16)"; c.lineWidth = .7;   /* a crease in the cloth */
+  c.beginPath(); c.moveTo(25, -34.5); c.lineTo(25, -31.2); c.stroke();
+  c.fillStyle = "rgba(0,0,0,.5)";  c.fillRect(17, -31.6, 16.5, 1.7);
+  c.fillStyle = "rgba(255,255,255,.10)"; c.fillRect(17, -31.9, 16.5, .6);
   c.restore();
 }
 function pokPerson(c,x,y,s,o,t,seed,dim,cigar){
