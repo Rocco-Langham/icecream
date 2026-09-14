@@ -431,7 +431,7 @@ function mpResume(){
 chipRow(document.getElementById("mpBuyRow"), null, function(v){
   mpBuyin = v;
   document.getElementById("mpBuyin").textContent = fmt(v);
-}, null);
+}, null, 5);                                         /* poker buys in in fives */
 document.getElementById("mpCreate").addEventListener("click", function(){ playClick(); mpCreate(); });
 document.getElementById("mpJoin").addEventListener("click", function(){ playClick(); mpJoin(); });
 document.getElementById("mpLeave").addEventListener("click", function(){ playClick(); mpLeave(); });

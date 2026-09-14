@@ -379,8 +379,13 @@ function msg(el, text, kind){
   el.className = "msg " + (kind || "info");
 }
 
-/* Wires a row of chip buttons to a stake value. */
-function chipRow(container, get, set, onChange){
+/* Wires a row of chip buttons to a stake value.
+
+   `step` is what a typed stake is rounded to, and it is 1 everywhere but the
+   poker tables: stake any figure you like at the other games. Poker keeps
+   fives because a table's blinds, minimum raise and side pots are all built
+   on them, and a stake of 3 at a 1/2 table is a rule change, not a bet. */
+function chipRow(container, get, set, onChange, step){
   var btns = container.querySelectorAll(".chipbtn");
   var custom = container.querySelector(".custom-bet");
   Array.prototype.forEach.call(btns, function(b){
@@ -393,13 +398,15 @@ function chipRow(container, get, set, onChange){
     });
   });
   if(custom){
-    /* Stakes go in fives. The typed text is left alone while you are still
-       typing -- rewriting it mid-keystroke fights you -- and corrected to the
-       amount actually staked once you leave the field. */
+    /* The typed text is left alone while you are still typing -- rewriting it
+       mid-keystroke fights you -- and corrected to the amount actually staked
+       once you leave the field. Five is the house minimum either way; what
+       `step` decides is whether anything between the fives is allowed. */
+    var to = Math.max(1, step || 1);
     var take = function(){
       var v = Math.floor(Number(custom.value));
       if(!v || v < 1) return null;
-      v = Math.max(5, Math.round(v / 5) * 5);
+      v = Math.max(5, to > 1 ? Math.round(v / to) * to : v);
       set(v);
       Array.prototype.forEach.call(btns, function(o){ o.classList.remove("sel"); });
       custom.classList.add("sel");

@@ -1563,7 +1563,7 @@ function pokShowdown(){
 var pokBuyBtns = chipRow($("pokBuyBar"), null, function(v){
   pok.buyin = v;
   $("pokBuyin").textContent = fmt(v);
-}, null);
+}, null, 5);                                         /* poker buys in in fives */
 pokBuyBtns[1].classList.add("sel");
 $("pokSit").addEventListener("click", function(){ playClick(); pokSit(); });
 $("pokLeave").addEventListener("click", function(){
