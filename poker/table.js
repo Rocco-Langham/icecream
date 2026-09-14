@@ -1526,6 +1526,8 @@ function pokStep(){
     if(spend > 0){
       pokChipMove(pokSeatStackPt(seat), pokSeatBetPt(seat), pokStackH(spend)+1, POK_CHIPCOL[seat-1]);
       playChip();
+    }else if(mv.action === "fold" && typeof playFold === "function"){
+      playFold(true);                                /* his, so half as loud */
     }
     if(pok.T.stage !== wasStage && pok.T.stage !== "done") pokSweepBets(snap);
     pokStep();

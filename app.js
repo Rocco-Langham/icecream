@@ -176,12 +176,14 @@ var playDeal     = function(){ sfx(function(ctx, t){ noiseBurst(ctx, t, 0.07, 0.
    the start of a poker hand. */
 /* Two cards pushed away face down. Longer and duller than a card being dealt
    -- a lower hiss, no bright tap on the end of it -- because a fold is a
-   thing you do quietly. */
-var playFold     = function(){
+   thing you do quietly. `far` is somebody else's, half as loud, so a table
+   full of them does not drown out your own. */
+var playFold     = function(far){
+  var k = far ? 0.5 : 1;                             /* across the table, not under your nose */
   sfx(function(ctx, t){
-    noiseBurst(ctx, t, 0.085, 0.058, 1400);
-    noiseBurst(ctx, t + 0.055, 0.070, 0.042, 1050);
-    tone(ctx, 138, t + 0.05, 0.085, "triangle", 0.022);
+    noiseBurst(ctx, t, 0.085, 0.058 * k, 1400);
+    noiseBurst(ctx, t + 0.055, 0.070, 0.042 * k, 1050);
+    tone(ctx, 138, t + 0.05, 0.085, "triangle", 0.022 * k);
   });
 };
 var playCard     = function(){

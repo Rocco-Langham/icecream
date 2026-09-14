@@ -290,6 +290,19 @@ function mpFetchMyCards(hand){
 function mpOnState(state){
   if(!state || !state.players) return;
   var fresh = !mpState || mpState.hand !== state.hand;
+  /* Nobody announces a fold: it shows up as a seat that was in the hand and
+     now is not. Worth listening for only within a hand -- at the start of the
+     next one everybody is back in, and that is a deal, not four folds. Read
+     before the new state replaces the old one, since it is the difference
+     between them that says what happened. Your own is skipped: it was heard
+     as you sent it. */
+  if(!fresh && mpState && typeof playFold === "function"){
+    var mine = mpMySeat(), was = {};
+    mpState.players.forEach(function(p){ was[p.seat] = p.inHand; });
+    state.players.forEach(function(p){
+      if(was[p.seat] && !p.inHand && p.seat !== mine) playFold(true);
+    });
+  }
   mpState = state;
   if(fresh){
     mpMyCards = null; mpFetchMyCards(state.hand);
