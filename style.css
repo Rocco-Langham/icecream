@@ -1026,6 +1026,22 @@
   }
   .wheel.spinning{animation:wheelSpin .7s linear infinite}
   @keyframes wheelSpin{to{transform:rotate(360deg)}}
+  /* The ball rides inside the wheel, so what you see is its own turn on top
+     of the wheel's: against the wheel's .7s one way, a .35s the other comes
+     out as the same speed in the opposite direction, which is what a real
+     wheel looks like. It shows only while the wheel is turning. */
+  .rball{position:absolute;inset:0;opacity:0;transition:opacity .3s;pointer-events:none}
+  .wheel.spinning .rball{opacity:1;animation:rballOrbit .35s linear infinite reverse}
+  @keyframes rballOrbit{to{transform:rotate(360deg)}}
+  .rball i{position:absolute;inset:0;transform:rotate(var(--a))}
+  /* Placed by its centre, not its top edge: sized by the top alone the
+     smaller marks would sit further in and the streak would spiral. */
+  .rball i::before{
+    content:"";position:absolute;left:50%;top:calc(9.5% - var(--d) / 2);
+    width:var(--d);height:var(--d);margin-left:calc(var(--d) / -2);
+    border-radius:50%;background:var(--c);
+    box-shadow:0 0 var(--g) rgba(255,205,110,.55);
+  }
   .wheel .hub{
     position:absolute;inset:30%;border-radius:50%;
     background:radial-gradient(circle at 35% 30%,#2b2b2b,#0a0a0a);

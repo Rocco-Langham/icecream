@@ -399,6 +399,37 @@ function buildBoard(){
     board.appendChild(c);
   });
 }
+/* ---- the ball, and the streak it drags round the rim ----
+   There was no ball until now: the wheel was a disc that span with a number
+   in the middle of it. The ball is a ring of marks inside the wheel, the
+   first one bright and the rest tailing off behind it round the rim, and the
+   whole ring turns as one -- so the streak is a fixed arc behind the ball and
+   needs nothing redrawn frame by frame.
+
+   Each mark is a full-size box rotated about the centre with its dot at the
+   top edge, which makes the orbit a share of the wheel rather than a number
+   of pixels, so it stays right at every size the wheel is drawn. */
+function buildWheelBall(){
+  var w = $("wheel");
+  if(!w || w.querySelector(".rball")) return;
+  var track = document.createElement("div");
+  track.className = "rball";
+  track.setAttribute("aria-hidden", "true");
+  var N = 11, html = "", i, k, d, a, col, glow;
+  for(i = 0; i < N; i++){
+    k = i / (N - 1);                                   /* 0 is the ball, 1 the far tail */
+    d = (6.2 - 3.6 * k).toFixed(2);                    /* thinning away behind it */
+    a = (-5.5 * i).toFixed(1);                         /* each a little further round */
+    glow = i === 0 ? "8px" : "4px";
+    col = i === 0 ? "#fff6dc"
+        : "rgba(255," + Math.round(208 - 22 * k) + "," + Math.round(124 - 56 * k) + "," +
+          (0.9 * Math.pow(1 - k, 1.5)).toFixed(3) + ")";
+    html += '<i style="--a:' + a + 'deg;--d:' + d + '%;--c:' + col + ';--g:' + glow + '"></i>';
+  }
+  track.innerHTML = html;
+  w.appendChild(track);
+}
+buildWheelBall();
 buildBoard();
 
 board.addEventListener("click", function(e){
