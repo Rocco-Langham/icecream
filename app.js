@@ -188,6 +188,19 @@ var playDeal     = function(){ sfx(function(ctx, t){ noiseBurst(ctx, t, 0.07, 0.
    against a raise's three, so it is plainly the smaller move -- and its own
    sound rather than the general chip click, which is what you hear when you
    press a chip to build a raise and so cannot also mean "called". */
+/* The whole stack going over: a slide, a clatter of chips that keeps going,
+   and a low note underneath that none of the other moves has. It is meant to
+   carry further than a raise -- it is the biggest thing anybody can do. */
+var playAllIn    = function(far){
+  var k = far ? 0.6 : 1;
+  sfx(function(ctx, t){
+    noiseBurst(ctx, t, 0.10, 0.045 * k, 1200);
+    tone(ctx, 196, t, 0.32, "triangle", 0.036 * k);
+    for(var i = 0; i < 6; i++)
+      tone(ctx, 700 + Math.floor(Math.random()*900), t + 0.03 + i*0.052, 0.07,
+           "triangle", (0.070 - i*0.007) * k);
+  });
+};
 var playCall     = function(far){
   var k = far ? 0.55 : 1;
   sfx(function(ctx, t){

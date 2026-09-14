@@ -1525,7 +1525,8 @@ function pokStep(){
     pokAct(pok.T, mv.action, mv.raiseTo);
     if(spend > 0){
       pokChipMove(pokSeatStackPt(seat), pokSeatBetPt(seat), pokStackH(spend)+1, POK_CHIPCOL[seat-1]);
-      if(mv.action === "raise" && typeof playRaise === "function") playRaise(true);
+      if(pok.T.players[seat].allIn && typeof playAllIn === "function") playAllIn(true);
+      else if(mv.action === "raise" && typeof playRaise === "function") playRaise(true);
       else if(typeof playCall === "function") playCall(true);
       else playChip();
     }else if(mv.action === "fold" && typeof playFold === "function"){
@@ -1546,7 +1547,14 @@ function pokHeroAct(action, amount){
     /* Sending is the only moment this screen knows what you did -- the answer
        comes back as a whole new state with your cards already gone -- so the
        fold is heard here or not at all. */
-    if(action === "fold" && typeof playFold === "function") playFold();
+    /* Nothing has been applied here, so whether it is everything has to be
+       worked out from the rules as they stand. */
+    var rlg = pokLegal(pok.T), rme = pok.T.players[0];
+    var rAllIn = !!rlg && rme && (
+      (action === "raise" && amount >= rlg.maxRaiseTo) ||
+      (action === "call"  && rlg.callAmount >= rme.stack));
+    if(rAllIn && typeof playAllIn === "function") playAllIn();
+    else if(action === "fold" && typeof playFold === "function") playFold();
     else if(action === "raise" && typeof playRaise === "function") playRaise();
     else if(action === "check" && typeof playCheck === "function") playCheck();
     else if(action === "call" && typeof playCall === "function") playCall();
@@ -1561,7 +1569,11 @@ function pokHeroAct(action, amount){
   pokSpeak(0, say);
   if(spend > 0) pokChipMove(pokSeatStackPt(0), pokSeatBetPt(0), pokStackH(spend)+1, "#c9a227");
   if(pok.T.stage !== wasStage && pok.T.stage !== "done") pokSweepBets(snap);
-  if(action === "raise" && typeof playRaise === "function") playRaise();
+  /* Asked of the engine rather than worked out beforehand: a player who is
+     all in cannot act, so finding yourself all in straight after acting can
+     only mean that move was what did it. */
+  if(pok.T.players[0].allIn && typeof playAllIn === "function") playAllIn();
+  else if(action === "raise" && typeof playRaise === "function") playRaise();
   else if(action === "call" && typeof playCall === "function") playCall();
   else if(action === "fold" && typeof playFold === "function") playFold();
   else if(action === "check" && typeof playCheck === "function") playCheck();

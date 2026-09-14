@@ -297,8 +297,19 @@ function mpOnState(state){
      between them that says what happened. Your own is skipped: it was heard
      as you sent it. */
   if(!fresh && mpState){
-    var mine = mpMySeat(), was = {}, wasBet = {};
-    mpState.players.forEach(function(p){ was[p.seat] = p.inHand; wasBet[p.seat] = p.bet; });
+    var mine = mpMySeat(), was = {}, wasBet = {}, wasAllIn = {}, allInNow = {};
+    mpState.players.forEach(function(p){
+      was[p.seat] = p.inHand; wasBet[p.seat] = p.bet; wasAllIn[p.seat] = p.allIn;
+    });
+    /* All in first, and the seat is then left out of everything below: it is
+       a raise or a call as well, and only the bigger of the two should be
+       heard. The state says so outright, so nothing has to be inferred. */
+    state.players.forEach(function(p){
+      if(!wasAllIn[p.seat] && p.allIn){
+        allInNow[p.seat] = true;
+        if(p.seat !== mine && typeof playAllIn === "function") playAllIn(true);
+      }
+    });
     state.players.forEach(function(p){
       if(was[p.seat] && !p.inHand && p.seat !== mine && typeof playFold === "function") playFold(true);
     });
@@ -310,7 +321,7 @@ function mpOnState(state){
       state.players.forEach(function(p){
         if(p.bet === state.currentBet && p.bet > (wasBet[p.seat] || 0)) by = p.seat;
       });
-      if(by !== null && by !== mine) playRaise(true);
+      if(by !== null && by !== mine && !allInNow[by]) playRaise(true);
     }
     /* A check leaves almost no mark at all. What gives it away is the player
        whose turn it was: still in the hand, the turn moved on, nothing more
@@ -318,7 +329,7 @@ function mpOnState(state){
        read rather than `bet`, because bets are swept to nothing when a
        betting round closes and a check is often what closes it. */
     var actor = mpState.toAct;
-    if(actor >= 0 && actor !== mine && state.toAct !== actor){
+    if(actor >= 0 && actor !== mine && state.toAct !== actor && !allInNow[actor]){
       var before = null, after = null;
       mpState.players.forEach(function(p){ if(p.seat === actor) before = p; });
       state.players.forEach(function(p){ if(p.seat === actor) after = p; });
