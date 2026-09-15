@@ -209,6 +209,17 @@ var playFlop     = function(){
     tone(ctx, 330, t + 0.11, 0.16, "triangle", 0.024);
   });
 };
+/* One card turned over. A shorter, lighter sweep than the flop's -- three
+   cards is the bigger moment and should stay it -- with a note under it that
+   drops for the river, because there is nothing coming after that one. The
+   note sits between a bare card's and the flop's, so a street is plainly more
+   than the card landing and plainly less than three of them. */
+var playStreet   = function(last){
+  sfx(function(ctx, t){
+    noiseBurst(ctx, t, 0.12, 0.034, 1700);
+    tone(ctx, last ? 165 : 294, t + 0.01, last ? 0.24 : 0.13, "triangle", 0.030);
+  });
+};
 var playThink    = function(far){
   var k = far ? 0.6 : 1;
   sfx(function(ctx, t){
