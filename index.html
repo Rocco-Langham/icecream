@@ -4,16 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>xyzcasino</title>
-<link rel="icon" type="image/svg+xml" href="icon.svg?v=54">
-<link rel="icon" type="image/png" sizes="64x64" href="icon.png?v=54">
-<link rel="apple-touch-icon" href="icon-180.png?v=54">
+<link rel="icon" type="image/svg+xml" href="icon.svg?v=55">
+<link rel="icon" type="image/png" sizes="64x64" href="icon.png?v=55">
+<link rel="apple-touch-icon" href="icon-180.png?v=55">
 <!-- ?v= on every local file is a cache buster, and it has to be bumped in
      this one place whenever any of them changes. GitHub Pages re-checks
      the page itself quickly but will happily hand a browser the same
      app.js for a long time afterwards, so without this a deploy can sit
      there fixed on the server and broken in the only browser that
      matters -- which looks exactly like the fix never worked. -->
-<link rel="stylesheet" href="style.css?v=54">
+<link rel="stylesheet" href="style.css?v=55">
 </head>
 <body>
 <div class="app-shell">
@@ -42,7 +42,9 @@
         <button class="sidebar-link" data-tab="plinko"><span class="ic">&#128315;</span>Plinko</button>
         <button class="sidebar-link" data-tab="flappy"><span class="ic">&#128038;</span>Flappy</button>
         <button class="sidebar-link" data-tab="snake"><span class="ic">&#128013;</span>Snake</button>
+        <button class="sidebar-link" data-tab="breakout"><span class="ic">&#129521;</span>Breakout</button>
         <button class="sidebar-link" data-tab="mines"><span class="ic">&#128163;</span>Mines</button>
+        <button class="sidebar-link" data-tab="crash"><span class="ic">&#128640;</span>Crash</button>
         <button class="sidebar-link" data-tab="poker"><span class="ic">&#9824;&#65039;</span>Poker</button>
         <button class="sidebar-link" data-tab="online"><span class="ic">&#128101;</span>Poker Online</button>
       </div>
@@ -345,6 +347,14 @@
     </div>
   </section>
 
+  <!-- ================= BREAKOUT ================= -->
+  <section class="game" id="tab-breakout">
+    <div class="table">
+      <h2 class="title">Breakout</h2>
+      <!-- BREAKOUT-MARKUP (breakout.js) -->
+    </div>
+  </section>
+
   <!-- A grid of tiles, not a canvas -- there is nothing here that moves on its
        own, so a static board and a redraw on every click is all it needs. The
        tiles themselves are built in JS (mnBuildBoard), the same way the
@@ -389,6 +399,14 @@
         <div class="stake" id="mnStake">25</div>
         <button class="btn ghost sm" id="mnClear">Clear</button>
       </div>
+    </div>
+  </section>
+
+  <!-- ================= CRASH ================= -->
+  <section class="game" id="tab-crash">
+    <div class="table">
+      <h2 class="title">Crash</h2>
+      <!-- CRASH-MARKUP (crash.js) -->
     </div>
   </section>
 
@@ -1091,16 +1109,18 @@
 <!-- The one external dependency in the file. Only reachable over http(s), which
      is why the offline file:// copy keeps working with cloud saves switched off. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=54"></script>
-<script src="games.js?v=54"></script>
+<script src="app.js?v=55"></script>
+<script src="games.js?v=55"></script>
+<script src="breakout.js?v=55"></script>
+<script src="crash.js?v=55"></script>
 <!-- Poker in three parts, loaded in dependency order: the rules, then the
      opponents that consult them, then the table that shows it all. -->
-<script src="poker/engine.js?v=54"></script>
-<script src="poker/bots.js?v=54"></script>
-<script src="poker/table.js?v=54"></script>
-<script src="poker/check.js?v=54"></script>
-<script src="poker/online.js?v=54"></script>
-<script src="poker/online-game.js?v=54"></script>
+<script src="poker/engine.js?v=55"></script>
+<script src="poker/bots.js?v=55"></script>
+<script src="poker/table.js?v=55"></script>
+<script src="poker/check.js?v=55"></script>
+<script src="poker/online.js?v=55"></script>
+<script src="poker/online-game.js?v=55"></script>
 <script>
 "use strict";
 /* Everything above only declares things. This is the part that runs, so it

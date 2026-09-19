@@ -41,6 +41,7 @@ function saveLocal(){
   var data = {
     bank:bank, stats:stats, gameNet:gameNet, streak:streak,
     flappyBest:flappyBest, snakeBest:snakeBest, minesBest:minesBest,
+    breakoutBest:breakoutBest, crashBest:crashBest,
     theme:currentTheme, font:currentFont, soundOn:soundOn,
     soundVolume:soundVolume, devUnlocked:devUnlocked,
     rigUser:rigUser, rigHost:rigHost, irlPoker:irlPoker, keybinds:keybinds,
@@ -65,7 +66,9 @@ var GAMES = [
   {key:"plinko",    name:"Plinko",     icon:"&#128315;"},
   {key:"flappy",    name:"Flappy",     icon:"&#128038;"},
   {key:"snake",     name:"Snake",      icon:"&#128013;"},
+  {key:"breakout",  name:"Breakout",   icon:"&#129521;"},
   {key:"mines",     name:"Mines",      icon:"&#128163;"},
+  {key:"crash",     name:"Crash",      icon:"&#128640;"},
   {key:"poker",     name:"Poker",      icon:"&#9824;&#65039;"}
 ];
 
@@ -107,6 +110,10 @@ var snakeBest    = (saved && typeof saved.snakeBest  === "number") ? saved.snake
    Local only, like snakeBest, and for the same reason: no column for it in
    the scores row, so it is a property of the device rather than the account. */
 var minesBest    = (saved && typeof saved.minesBest  === "number") ? saved.minesBest  : 0;
+/* Breakout counts bricks, like Snake counts bites; Crash keeps the multiplier,
+   like Mines. Both local only, for the same reason as those two. */
+var breakoutBest = (saved && typeof saved.breakoutBest === "number") ? saved.breakoutBest : 0;
+var crashBest    = (saved && typeof saved.crashBest    === "number") ? saved.crashBest    : 0;
 /* Display only, and no longer cached locally: the redemptions table is the one
    source of truth, fetched on sign-in. A stale local copy could only ever
    disagree with it. */
@@ -142,7 +149,9 @@ var KEY_ACTIONS = [
   {id:"bj.double",   game:"Blackjack", label:"Double",         keys:["KeyD", ""]},
   {id:"flappy.flap", game:"Flappy",    label:"Flap",           keys:["Space", ""]},
   {id:"flappy.go",   game:"Flappy",    label:"Bet / cash out", keys:["KeyK", ""]},
+  {id:"breakout.go", game:"Breakout",  label:"Bet / cash out", keys:["KeyK", ""]},
   {id:"mines.go",    game:"Mines",     label:"Bet / cash out", keys:["KeyK", ""]},
+  {id:"crash.go",    game:"Crash",     label:"Bet / cash out", keys:["KeyK", ""]},
   {id:"poker.fold",  game:"Poker",     label:"Fold",           keys:["KeyF", ""]},
   {id:"poker.call",  game:"Poker",     label:"Check / call",   keys:["KeyC", ""]},
   {id:"poker.chip1", game:"Poker",     label:"Raise chip 1",   keys:["Digit1", ""], chip:0},
@@ -954,6 +963,8 @@ function renderKeyHints(){
     .forEach(function(b){ var el = $(b[0]); if(el) el.textContent = b[1] + keyTag(b[2]); });
   if(typeof syncFlappyUI === "function") syncFlappyUI();
   if(typeof syncMinesUI === "function") syncMinesUI();
+  if(typeof syncBreakoutUI === "function") syncBreakoutUI();   /* these two write their own key hints */
+  if(typeof syncCrashUI === "function") syncCrashUI();
   if(typeof pokRenderActions === "function") pokRenderActions();
 }
 
@@ -1604,12 +1615,16 @@ function resetAllStats(){
   flappyBest = 0;
   snakeBest = 0;
   minesBest = 0;
+  breakoutBest = 0;
+  crashBest = 0;
   GAMES.forEach(function(g){ gameNet[g.key] = 0; });
   renderStats();
   renderStatsPanel();
   renderLeaderboard();
   if(typeof syncFlappyUI === "function") syncFlappyUI();
   if(typeof syncMinesUI === "function") syncMinesUI();   /* or its Best box goes on showing the old figure */
+  if(typeof syncBreakoutUI === "function") syncBreakoutUI();
+  if(typeof syncCrashUI === "function") syncCrashUI();
   save();
   /* Straight up rather than through the two-second coalescer: a reset is the
      one change a player may well close the tab immediately after. */

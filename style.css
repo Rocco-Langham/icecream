@@ -1294,6 +1294,9 @@
   }
   .fb-action.cash:hover:not(:disabled){box-shadow:0 12px 28px rgba(87,224,141,.42)}
 
+  /* ---------- breakout ---------- */
+  /* BREAKOUT-CSS */
+
   /* ---------- mines ---------- */
   /* Square, five across, and capped in width so it does not sprawl on a wide
      desktop card -- a grid this size reads fine small, and letting it grow
@@ -1330,6 +1333,10 @@
     20%{transform:translateX(-4px)} 40%{transform:translateX(4px)}
     60%{transform:translateX(-3px)} 80%{transform:translateX(3px)}
   }
+
+  /* ---------- crash ---------- */
+  /* CRASH-CSS */
+
   .segmented{display:flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden}
   .segmented button{
     padding:8px 16px;background:transparent;border:none;cursor:pointer;
