@@ -1449,23 +1449,36 @@
        what used to make this bar three times taller than the bar beneath it. */
     /* flex-basis 220px is a width in the desktop row layout, but the shell is a
        column here — leave it set and it pins the bar to a 220px *height*. */
+    /* A grid rather than a row, so the streak badge can sit under the name
+       instead of beside it. The bar is 76px tall and everything in it is 38px,
+       so the height was free -- the width was not: in one row, the badge and
+       its gap took the 60px the name needed, and "xyzcasino" came out as
+       "XYZ..." on a 375px phone. Columns: name over badge, the divider, the
+       menu button, empty space, the settings group. */
     .sidebar{
       flex:0 0 auto;position:relative;
-      flex-direction:row;flex-wrap:nowrap;align-items:center;
-      padding:10px 14px;gap:8px;min-height:76px;
+      display:grid;grid-template-columns:minmax(0,max-content) auto auto 1fr auto;
+      align-content:center;align-items:center;
+      padding:10px 14px;gap:0;min-height:76px;
+    }
+    /* the divider that used to be the name's right border, as its own column
+       so it runs the height of name and badge together */
+    .sidebar::before{
+      content:"";grid-column:2;grid-row:1 / span 2;align-self:stretch;
+      width:1px;margin:0 10px 0 12px;background:rgba(var(--gold-rgb),.15);
     }
     /* no scrolling strip to protect any more, so the name keeps its natural
        width and only ellipsises if the bar genuinely runs out */
-    .sidebar-brand{display:flex;align-items:center;gap:8px;padding:0 12px 0 0;margin-bottom:0;margin-right:0;border-bottom:none;border-right:1px solid rgba(var(--gold-rgb),.15);flex:0 1 auto;min-width:0}
+    .sidebar-brand{grid-column:1;grid-row:1;display:flex;align-items:center;gap:8px;padding:0;margin:0;border-bottom:none;min-width:0}
     .sidebar-brand h1{margin:0;font-size:14px;letter-spacing:calc(1px * var(--ui-track));min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .sidebar-brand small{display:none}
     /* The sheet is the navigation here, so the inline rail goes entirely —
        keeping both would put two nav systems in one 76px bar. That also hands
        the freed width back to the casino name. */
-    .iconbtn.menu-btn{display:flex;flex:0 0 auto}
+    .iconbtn.menu-btn{display:flex;flex:0 0 auto;grid-column:3;grid-row:1 / span 2}
     .navsheet-overlay{display:flex}
     .sidebar-nav{display:none}
-    .sidebar-bottom{margin-left:auto}
+    .sidebar-bottom{grid-column:5;grid-row:1 / span 2;margin-left:8px}
     .sidebar-label{display:none}
     .sidebar-link{width:auto;padding:8px 10px;font-size:11px;flex:0 0 auto;white-space:nowrap}
     .sidebar-link .ic{font-size:14px;width:auto}
@@ -1480,10 +1493,12 @@
     }
     .lb-refresh{width:38px;height:38px;font-size:17px}
     .sidebar-spacer{display:none}
-    /* back into the flow here, centred in the gap the auto-margin opens up
-       between the menu button and the settings pair */
-    /* relative, not static: it lays out the same but gives the ready dot something to hang off */
-    .streak{position:relative;margin:0 auto}
+    /* back into the flow here, under the name */
+    /* relative, not static: it lays out the same but gives the ready dot
+       something to hang off. The desktop top/right have to be cleared with it --
+       on a relative box they are an offset, and they were nudging the badge
+       16px down and 14px left of its place, half over the menu button. */
+    .streak{position:relative;top:auto;right:auto;grid-column:1;grid-row:2;justify-self:start;margin:5px 0 0}
     .sidebar-bottom{border-top:none;margin-top:0;padding:0;flex:0 0 auto;flex-direction:row;align-items:center;gap:8px}
     /* out of flow: stacked in flow it would push this bar past 76px and it would
        stop sitting flush with the chips bar below */

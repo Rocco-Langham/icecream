@@ -19,7 +19,7 @@
    at the right number and still pays the right amount. Frames only draw. */
 var crCanvas = $("crashCanvas"), crCtx = crCanvas.getContext("2d");
 var CR_VIEW_H = 240;                                   // the height the graph is drawn for
-var CR_RATE = 0.12;                                    // m(t) = e^(0.12 t): 2x at 5.8s, 10x at 19s, 100x at 38s
+var CR_RATE = 0.06;                                    // m(t) = e^(0.06 t): 2x at 11.6s, 10x at 38s, 100x at 77s
 var CR_EDGE = 0.99;                                    // P(crash >= m) = 0.99 / m
 var CR_MAX = 1000000;                                  // the ceiling on any round
 var CR_AUTO_MIN = 1.01;
@@ -28,7 +28,7 @@ var CR_TICK_GAP = 0.3;                                 // seconds between climb 
 var CR_HISTORY = 12;
 /* The graph always shows at least this much, so the opening second of a round
    is a gentle slope rather than a line going straight up the side. */
-var CR_VIEW_T = 8, CR_VIEW_M = 2;
+var CR_VIEW_T = 16, CR_VIEW_M = 2;
 
 var crW = 480, crH = 240, crCssW = 0, crCssH = 0;
 var crStake = 25, crState = "idle";                    // idle | live

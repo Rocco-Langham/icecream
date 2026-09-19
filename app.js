@@ -68,7 +68,9 @@ var GAMES = [
   {key:"snake",     name:"Snake",      icon:"&#128013;"},
   {key:"breakout",  name:"Breakout",   icon:"&#129521;"},
   {key:"mines",     name:"Mines",      icon:"&#128163;"},
-  {key:"crash",     name:"Crash",      icon:"&#128640;"},
+  /* Crash is off the menu (see index.html) -- pulled off the leaderboard with
+     it, or a table nobody can play would sit there anyway. */
+  // {key:"crash",     name:"Crash",      icon:"&#128640;"},
   {key:"poker",     name:"Poker",      icon:"&#9824;&#65039;"}
 ];
 
@@ -151,7 +153,7 @@ var KEY_ACTIONS = [
   {id:"flappy.go",   game:"Flappy",    label:"Bet / cash out", keys:["KeyK", ""]},
   {id:"breakout.go", game:"Breakout",  label:"Bet / cash out", keys:["KeyK", ""]},
   {id:"mines.go",    game:"Mines",     label:"Bet / cash out", keys:["KeyK", ""]},
-  {id:"crash.go",    game:"Crash",     label:"Bet / cash out", keys:["KeyK", ""]},
+  // {id:"crash.go", game:"Crash",     label:"Bet / cash out", keys:["KeyK", ""]},  -- Crash is off the menu, see index.html
   {id:"poker.fold",  game:"Poker",     label:"Fold",           keys:["KeyF", ""]},
   {id:"poker.call",  game:"Poker",     label:"Check / call",   keys:["KeyC", ""]},
   {id:"poker.chip1", game:"Poker",     label:"Raise chip 1",   keys:["Digit1", ""], chip:0},
