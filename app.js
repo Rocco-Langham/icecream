@@ -634,7 +634,7 @@ function chipRow(container, get, set, onChange, step){
    or lost at a table, so it stays out of the win stats and the leaderboard.
    The tab's subtitle quotes the limit and the rate, so change them together. */
 var LOAN_LIMIT = 2000;                               // the most you can owe before the bank stops lending
-var LOAN_RATE  = 0.05;                               // 5% a day, compounding
+var LOAN_RATE  = 0.10;                               // 10% a day, compounding
 /* A ceiling on the interest alone, so a debt ignored for a season prints a
    number rather than running on towards infinity. Borrowing never gets near
    it -- that stops at LOAN_LIMIT. */
