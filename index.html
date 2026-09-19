@@ -4,16 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>xyzcasino</title>
-<link rel="icon" type="image/svg+xml" href="icon.svg?v=58">
-<link rel="icon" type="image/png" sizes="64x64" href="icon.png?v=58">
-<link rel="apple-touch-icon" href="icon-180.png?v=58">
+<link rel="icon" type="image/svg+xml" href="icon.svg?v=59">
+<link rel="icon" type="image/png" sizes="64x64" href="icon.png?v=59">
+<link rel="apple-touch-icon" href="icon-180.png?v=59">
 <!-- ?v= on every local file is a cache buster, and it has to be bumped in
      this one place whenever any of them changes. GitHub Pages re-checks
      the page itself quickly but will happily hand a browser the same
      app.js for a long time afterwards, so without this a deploy can sit
      there fixed on the server and broken in the only browser that
      matters -- which looks exactly like the fix never worked. -->
-<link rel="stylesheet" href="style.css?v=58">
+<link rel="stylesheet" href="style.css?v=59">
 </head>
 <body>
 <div class="app-shell">
@@ -56,6 +56,7 @@
       <div class="sidebar-section">
         <span class="sidebar-label">Other</span>
         <button class="sidebar-link" data-tab="leaderboard"><span class="ic">&#127942;</span>Leaderboard</button>
+        <button class="sidebar-link" data-tab="bank"><span class="ic">&#127974;</span>Bank</button>
         <!-- Off the menu until it is switched on from the dev console. -->
         <button class="sidebar-link" id="navPokerCheck" data-tab="pokercheck" hidden><span class="ic">&#9827;</span>Poker Check</button>
       </div>
@@ -701,6 +702,55 @@
     </div>
   </section>
 
+  <!-- ================= BANK ================= -->
+  <!-- Not a table: nothing is staked here, so it sits under Other beside the
+       leaderboard, and the chips it moves count towards neither. Two bet bars
+       in one tab, so each carries an id and chipRow is scoped to that, not to
+       the tab -- scoped to the tab, each row would grab the other's chips. -->
+  <section class="game" id="tab-bank">
+    <div class="table">
+      <h2 class="title">Bank</h2>
+      <p class="sub">Borrow up to 2,000 chips &middot; 5% interest a day on whatever you owe, until you pay it back</p>
+
+      <div class="field-inline">
+        <span class="lbl">You owe</span>
+        <div class="stake" id="bkOwed" style="min-width:130px">0</div>
+
+        <span class="lbl">Credit limit</span>
+        <div class="stake" id="bkLimit" style="min-width:130px">2,000</div>
+
+        <span class="lbl">Available</span>
+        <div class="stake" id="bkAvail" style="min-width:130px">2,000</div>
+      </div>
+
+      <div class="msg info" id="bkMsg">Short of chips? Borrow some, and pay it back before the interest adds up.</div>
+
+      <div class="betbar" id="bkBorrowBar">
+        <span class="lbl">Borrow</span>
+        <button class="chipbtn" data-v="100">100</button>
+        <button class="chipbtn" data-v="250">250</button>
+        <button class="chipbtn" data-v="500">500</button>
+        <button class="chipbtn" data-v="1000">1000</button>
+        <input type="number" class="custom-bet" id="bkBorrowCustom" min="1" step="1" placeholder="Custom">
+        <div class="stake" id="bkBorrowStake">500</div>
+        <button class="btn ghost sm" id="bkBorrowMax">Max</button>
+        <button class="btn" id="bkBorrowGo">Borrow</button>
+      </div>
+
+      <div class="betbar" id="bkRepayBar">
+        <span class="lbl">Repay</span>
+        <button class="chipbtn" data-v="100">100</button>
+        <button class="chipbtn" data-v="250">250</button>
+        <button class="chipbtn" data-v="500">500</button>
+        <button class="chipbtn" data-v="1000">1000</button>
+        <input type="number" class="custom-bet" id="bkRepayCustom" min="1" step="1" placeholder="Custom">
+        <div class="stake" id="bkRepayStake">100</div>
+        <button class="btn ghost sm" id="bkRepayMax">Max</button>
+        <button class="btn" id="bkRepayGo">Repay</button>
+      </div>
+    </div>
+  </section>
+
   <section class="game" id="tab-poker">
     <div class="table">
       <h2 class="title">Texas Hold'em</h2>
@@ -1181,18 +1231,18 @@
 <!-- The one external dependency in the file. Only reachable over http(s), which
      is why the offline file:// copy keeps working with cloud saves switched off. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=58"></script>
-<script src="games.js?v=58"></script>
-<script src="breakout.js?v=58"></script>
-<script src="crash.js?v=58"></script>
+<script src="app.js?v=59"></script>
+<script src="games.js?v=59"></script>
+<script src="breakout.js?v=59"></script>
+<script src="crash.js?v=59"></script>
 <!-- Poker in three parts, loaded in dependency order: the rules, then the
      opponents that consult them, then the table that shows it all. -->
-<script src="poker/engine.js?v=58"></script>
-<script src="poker/bots.js?v=58"></script>
-<script src="poker/table.js?v=58"></script>
-<script src="poker/check.js?v=58"></script>
-<script src="poker/online.js?v=58"></script>
-<script src="poker/online-game.js?v=58"></script>
+<script src="poker/engine.js?v=59"></script>
+<script src="poker/bots.js?v=59"></script>
+<script src="poker/table.js?v=59"></script>
+<script src="poker/check.js?v=59"></script>
+<script src="poker/online.js?v=59"></script>
+<script src="poker/online-game.js?v=59"></script>
 <script>
 "use strict";
 /* Everything above only declares things. This is the part that runs, so it
