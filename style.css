@@ -355,6 +355,17 @@
     transition:.18s;
   }
   .iconbtn:hover{background:rgba(var(--gold-rgb),.12);border-color:var(--gold);transform:rotate(35deg)}
+  /* Someone has asked to be your friend and is waiting on an answer. The hover
+     spins the whole button, so the dot turns back the other way about the
+     button's centre (18,18 in the 36px padding box, which is -10px,19px from
+     the dot's own corner) and stays pinned top right while the icon moves. */
+  #friendsBtn{position:relative}
+  #friendsBtn.has-req::after{
+    content:"";position:absolute;top:-1px;right:-1px;width:9px;height:9px;border-radius:50%;
+    background:var(--red);box-shadow:0 0 0 2px var(--bg2);
+    transform-origin:-10px 19px;transition:transform .18s;
+  }
+  #friendsBtn.has-req:hover::after{transform:rotate(-35deg)}
 
   /* ---------- poker ---------- */
   /* the positioning context for the hand-strength readout, which is an

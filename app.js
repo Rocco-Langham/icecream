@@ -1138,7 +1138,29 @@ function loadFriends(){
     });
   });
 }
+/* The red dot on the friends button. Friendships are not on the realtime
+   publication, so this is a head-only count rather than a subscription: on
+   sign-in, whenever the panel reloads, when the tab comes back, and once a
+   minute while it is in front. */
+function markFriendReqs(n){ $("friendsBtn").classList.toggle("has-req", n > 0); }
+function checkFriendReqs(){
+  if(!CLOUD_OK || !sbUser) return markFriendReqs(0);
+  var uid = sbUser.id;
+  sb.from("friendships").select("requester", {count:"exact", head:true})
+    .eq("addressee", uid).eq("status", "pending")
+    .then(function(res){
+      /* signed out, or into someone else, while this was in flight */
+      if(res.error || !sbUser || sbUser.id !== uid) return;
+      markFriendReqs(res.count || 0);
+    });
+}
+if(CLOUD_OK){
+  setInterval(function(){ if(!document.hidden) checkFriendReqs(); }, 60000);
+  document.addEventListener("visibilitychange", function(){ if(!document.hidden) checkFriendReqs(); });
+}
+
 function renderFriends(reqs, mates){
+  markFriendReqs(reqs.length);
   $("friendReqWrap").hidden = reqs.length === 0;
   $("friendReqs").innerHTML = reqs.map(function(f){
     return '<div class="person"><span class="who">' + f.name + '</span>' +
@@ -1883,6 +1905,7 @@ if(CLOUD_OK){
 
     sbUser = session ? session.user : null;
     renderAccount();
+    checkFriendReqs();                               /* clears it too, on the way out */
     if(sbUser){
       if(evt === "SIGNED_IN") authStamp();
       gateClose();
