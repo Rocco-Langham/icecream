@@ -1302,7 +1302,7 @@
      paddle. touch-action:none because the paddle follows a dragged finger, and
      the page must not scroll out from under it. */
   #breakoutCanvas{
-    display:block;width:100%;height:380px;touch-action:none;cursor:none;
+    display:block;width:100%;height:380px;touch-action:none;
     max-width:var(--play-max,860px);margin-left:auto;margin-right:auto;
     border-radius:14px;border:1px solid var(--edge);background:#08121c;
     user-select:none;-webkit-user-select:none;

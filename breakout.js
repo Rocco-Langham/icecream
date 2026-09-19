@@ -192,6 +192,12 @@ function boStep(dt){
   if(boDrop > 0) boDrop = Math.max(0, boDrop - dt*2.4);
   if(boWallMsg > 0) boWallMsg = Math.max(0, boWallMsg - dt);
   if(boState === "dead"){
+    /* The round ended the moment the ball got past the paddle, but it is left
+       to finish its fall so the miss is seen rather than the ball vanishing. */
+    var d = boBall;
+    d.x += d.vx*dt; d.y += d.vy*dt;
+    if(d.x - BO_R < 0){ d.x = BO_R; d.vx = Math.abs(d.vx); }
+    else if(d.x + BO_R > boW){ d.x = boW - BO_R; d.vx = -Math.abs(d.vx); }
     if(boClock - boDeadAt > 1.1){ boState = "idle"; boReset(); syncBreakoutUI(); }
     return;
   }
@@ -317,7 +323,11 @@ function boSub(h){
     }
   }
 
-  if(b.y - BO_R > boH){ boLose(); return false; }
+  /* Past the paddle line on the way down and not sent back up, the miss is
+     certain -- nothing below the line can catch it -- so the round is lost
+     there and then. Waiting for it to leave the board would leave a moment in
+     which a round already lost could still be cashed out. */
+  if(b.vy > 0 && b.y + BO_R >= py){ boLose(); return false; }
   return true;
 }
 
@@ -445,7 +455,10 @@ function boRender(){
   c.fillRect(0, 0, boW, boH);
 
   /* Bricks: one gradient per row rather than per brick, lighter along the top
-     edge so each reads as a tile and not a flat swatch. */
+     edge so each reads as a tile and not a flat swatch. A fresh wall dropping
+     in is clipped to below the band, or it would slide across the multiplier
+     just when the player most wants to read it. */
+  if(boDrop > 0){ c.save(); c.beginPath(); c.rect(0, BO_TOP - 4, boW, boH); c.clip(); }
   for(var row = 0; row < BO_ROWS; row++){
     var y0 = boBrickAt(row*boCols).y;
     if(y0 + BO_BRICK_H < 0) continue;
@@ -463,6 +476,7 @@ function boRender(){
       c.fill();
     }
   }
+  if(boDrop > 0) c.restore();
 
   for(var p = 0; p < BO_PARTS; p++){
     var q = boParts[p];
@@ -487,7 +501,7 @@ function boRender(){
   c.fill();
   c.restore();
 
-  if(boState !== "dead"){
+  if(boState !== "dead" || boBall.y - BO_R < boH){
     c.fillStyle = "#ffffff";
     c.beginPath(); c.arc(boBall.x, boBall.y, BO_R, 0, Math.PI*2); c.fill();
   }
@@ -538,7 +552,7 @@ function syncBreakoutUI(){
   $("boCustom").disabled = live;
   $("boClear").disabled  = live;
   var k = keyName("breakout.go");
-  $("boKeyHint").textContent = "Mouse, arrows or A/D to move" + (k ? " · " + k + " to bet & cash out" : "");
+  $("boKeyHint").textContent = "Mouse, drag, arrows or A/D to move" + (k ? " · " + k + " to bet & cash out" : "");
   /* The paddle is the pointer while a ball is in play; a cursor on top of it
      only hides what you are aiming with. */
   boCanvas.style.cursor = live ? "none" : "";
