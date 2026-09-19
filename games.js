@@ -348,6 +348,27 @@ function settleBJ(){
 }
 renderBJ();
 
+/* Space deals, then H, S and D, each changeable in Settings > Keybinds. A key
+   presses its button and nothing else, so it can only do what the button could
+   right then: no hitting while the dealer draws, no doubling on three cards,
+   no dealing mid-hand. */
+var BJ_KEYS = [["bj.deal", "dealBtn"], ["bj.hit", "hitBtn"], ["bj.stand", "standBtn"], ["bj.double", "dblBtn"]];
+document.addEventListener("keydown", function(e){
+  if(!$("tab-blackjack").classList.contains("on") || keyBlocked(e)) return;
+  for(var i = 0; i < BJ_KEYS.length; i++){
+    if(!keyIs(e, BJ_KEYS[i][0])) continue;
+    e.preventDefault();                                      /* Space must not scroll the page */
+    if(e.repeat) return;                                     /* holding H must not hit you into a bust */
+    var b = $(BJ_KEYS[i][1]);
+    if(b.disabled || !b.offsetParent) return;                /* not on offer right now */
+    /* Otherwise Space would also press whichever button still has focus from
+       the last click, and play a second move nobody asked for. */
+    if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    b.click();
+    return;
+  }
+});
+
 /* ================= ROULETTE ================= */
 var REDS = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
 function isRed(n){ return REDS.indexOf(n) !== -1; }
@@ -2467,7 +2488,7 @@ function syncSnakeUI(){
   $("snEatVal").textContent  = snEaten;
   $("snBestVal").textContent = fmt(snakeBest);
   var go = $("snGo");
-  go.textContent = live ? "Cash out " + fmt(snCashValue()) + keyTag("snake.go") : "Play" + keyTag("snake.go");
+  go.textContent = live ? "Cash out " + fmt(snCashValue()) + " (K)" : "Play (K)";
   go.classList.toggle("cash", live);
   go.disabled = snState === "dead";
   Array.prototype.forEach.call(snBtns, function(b){ b.disabled = live; });
@@ -2508,16 +2529,18 @@ snCanvas.addEventListener("pointermove", function(e){
 });
 window.addEventListener("pointerup", function(){ snTouch = null; });
 
-/* Arrows and WASD by default, each changeable in Settings > Keybinds. */
-var SN_STEER = [["snake.left", -1, 0], ["snake.right", 1, 0], ["snake.up", 0, -1], ["snake.down", 0, 1]];
+/* Fixed keys: Snake is not in Settings > Keybinds. */
+var SN_KEYS = {
+  ArrowLeft:[-1,0], KeyA:[-1,0], ArrowRight:[1,0], KeyD:[1,0],
+  ArrowUp:[0,-1],   KeyW:[0,-1], ArrowDown:[0,1],  KeyS:[0,1]
+};
 document.addEventListener("keydown", function(e){
   if(!$("tab-snake").classList.contains("on") || keyBlocked(e)) return;
-  for(var i = 0; i < SN_STEER.length; i++){
-    if(keyIs(e, SN_STEER[i][0])){ e.preventDefault(); snTurn(SN_STEER[i][1], SN_STEER[i][2]); return; }  /* arrows must not scroll the page */
-  }
-  if(keyIs(e, "snake.go")){
+  var d = SN_KEYS[e.code];
+  if(d){ e.preventDefault(); snTurn(d[0], d[1]); return; }   /* arrows must not scroll the page */
+  if(e.code === "KeyK"){
     e.preventDefault();
-    if(e.repeat) return;                                     /* holding the bet key must not re-bet */
+    if(e.repeat) return;                                     /* holding K must not re-bet */
     snToggle();
   }
 });

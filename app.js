@@ -116,29 +116,37 @@ var soundVolume  = saved && typeof saved.soundVolume === "number" ? saved.soundV
 var CASINO_NAME  = saved && typeof saved.casinoName === "string" ? saved.casinoName : "SparxMaths";
 
 /* ============ keybinds ============ */
-/* Every keyboard shortcut in the casino, in one list, so Settings can show
-   them and let them be changed, and every button and hint that names a key can
-   ask here rather than having "(K)" typed into it.
+/* The keyboard shortcuts you can change, in one list, so Settings can show
+   them, and every button and hint that names a key can ask here rather than
+   having "(K)" typed into it. Snake is not in it: its arrows, WASD and K are
+   fixed.
 
-   Each action has two slots: the key, and an optional second one, which is how
-   Snake can steer on the arrows and on WASD at once. Stored as KeyboardEvent
-   codes -- the physical key, not the letter it types -- the same as the games
-   have always read them, so WASD stays where your fingers are on any layout.
-   A key only has to be unique within its own game: K is Flappy's, Snake's and
-   Mines' at once without any trouble, because only one of them is ever on. */
+   Each action has two slots: the key, and an optional second one. Stored as
+   KeyboardEvent codes -- the physical key, not the letter it types -- the same
+   as the games have always read them, so a key stays where your fingers are on
+   any layout. A key only has to be unique within its own game: K is Flappy's
+   and Mines' at once without any trouble, because only one of them is ever on.
+
+   The poker chip keys go by place in the row, not by value, because the row
+   changes with the buy-in: 1 is always the smallest chip on the table, 5 the
+   biggest. */
 var KEY_ACTIONS = [
-  {id:"flappy.flap", game:"Flappy", label:"Flap",           keys:["Space", ""]},
-  {id:"flappy.go",   game:"Flappy", label:"Bet / cash out", keys:["KeyK", ""]},
-  {id:"snake.up",    game:"Snake",  label:"Steer up",       keys:["ArrowUp", "KeyW"]},
-  {id:"snake.left",  game:"Snake",  label:"Steer left",     keys:["ArrowLeft", "KeyA"]},
-  {id:"snake.down",  game:"Snake",  label:"Steer down",     keys:["ArrowDown", "KeyS"]},
-  {id:"snake.right", game:"Snake",  label:"Steer right",    keys:["ArrowRight", "KeyD"]},
-  {id:"snake.go",    game:"Snake",  label:"Bet / cash out", keys:["KeyK", ""]},
-  {id:"mines.go",    game:"Mines",  label:"Bet / cash out", keys:["KeyK", ""]},
-  {id:"poker.fold",  game:"Poker",  label:"Fold",           keys:["KeyF", ""]},
-  {id:"poker.call",  game:"Poker",  label:"Check / call",   keys:["KeyC", ""]},
-  {id:"poker.raise", game:"Poker",  label:"Raise",          keys:["KeyR", ""]},
-  {id:"poker.next",  game:"Poker",  label:"Next hand",      keys:["KeyN", ""]}
+  {id:"bj.deal",     game:"Blackjack", label:"Deal",           keys:["Space", ""]},
+  {id:"bj.hit",      game:"Blackjack", label:"Hit",            keys:["KeyH", ""]},
+  {id:"bj.stand",    game:"Blackjack", label:"Stand",          keys:["KeyS", ""]},
+  {id:"bj.double",   game:"Blackjack", label:"Double",         keys:["KeyD", ""]},
+  {id:"flappy.flap", game:"Flappy",    label:"Flap",           keys:["Space", ""]},
+  {id:"flappy.go",   game:"Flappy",    label:"Bet / cash out", keys:["KeyK", ""]},
+  {id:"mines.go",    game:"Mines",     label:"Bet / cash out", keys:["KeyK", ""]},
+  {id:"poker.fold",  game:"Poker",     label:"Fold",           keys:["KeyF", ""]},
+  {id:"poker.call",  game:"Poker",     label:"Check / call",   keys:["KeyC", ""]},
+  {id:"poker.chip1", game:"Poker",     label:"Raise chip 1",   keys:["Digit1", ""], chip:0},
+  {id:"poker.chip2", game:"Poker",     label:"Raise chip 2",   keys:["Digit2", ""], chip:1},
+  {id:"poker.chip3", game:"Poker",     label:"Raise chip 3",   keys:["Digit3", ""], chip:2},
+  {id:"poker.chip4", game:"Poker",     label:"Raise chip 4",   keys:["Digit4", ""], chip:3},
+  {id:"poker.chip5", game:"Poker",     label:"Raise chip 5",   keys:["Digit5", ""], chip:4},
+  {id:"poker.raise", game:"Poker",     label:"Raise",          keys:["KeyR", ""]},
+  {id:"poker.next",  game:"Poker",     label:"Next hand",      keys:["KeyN", ""]}
 ];
 /* Merged over the defaults rather than taken whole, so an action added in a
    later version arrives with its default key instead of with nothing. */
@@ -929,29 +937,17 @@ function keyBlocked(e){
   return !!document.querySelector(".modal-overlay.on");
 }
 
-/* Snake steers on four keys a slot, and the hint reads better as "Arrows" or
-   "WASD" than as four symbols -- this names a slot's set the way you would. */
-function kbSteerSet(slot){
-  var codes = ["snake.up", "snake.left", "snake.down", "snake.right"].map(function(id){ return keybinds[id][slot]; });
-  if(codes.every(function(c){ return !c; })) return "";
-  if(codes.join() === "ArrowUp,ArrowLeft,ArrowDown,ArrowRight") return "Arrows";
-  var names = codes.map(function(c){ return keyLabel(c) || "–"; });
-  return names.every(function(n){ return n.length === 1; }) ? names.join("") : names.join(" ");
-}
 /* Every place in the page that names a key, brought back in line with the
    bindings. Run at boot and after every change. */
 function renderKeyHints(){
   var and = function(id, what){ var n = keyName(id); return n ? " · " + n + " " + what : ""; };
   var flap = keyName("flappy.flap");
-  var fb = $("fbKeyHint"), sn = $("snKeyHint"), mn = $("mnKeyHint");
+  var fb = $("fbKeyHint"), mn = $("mnKeyHint");
   if(fb) fb.textContent = "Tap the sky" + (flap ? " or press " + flap : "") + " to flap" + and("flappy.go", "to bet & cash out");
-  if(sn){
-    var sets = [kbSteerSet(0), kbSteerSet(1)].filter(Boolean);
-    sn.textContent = (sets.length ? sets.join(", ") + " or swipe" : "Swipe") + " to steer" + and("snake.go", "to bet & cash out");
-  }
   if(mn) mn.textContent = "Click tiles to turn them" + and("mines.go", "to bet & cash out");
+  [["dealBtn", "Deal", "bj.deal"], ["hitBtn", "Hit", "bj.hit"], ["standBtn", "Stand", "bj.stand"], ["dblBtn", "Double", "bj.double"]]
+    .forEach(function(b){ var el = $(b[0]); if(el) el.textContent = b[1] + keyTag(b[2]); });
   if(typeof syncFlappyUI === "function") syncFlappyUI();
-  if(typeof syncSnakeUI === "function") syncSnakeUI();
   if(typeof syncMinesUI === "function") syncMinesUI();
   if(typeof pokRenderActions === "function") pokRenderActions();
 }
@@ -968,7 +964,10 @@ function renderKeybinds(){
   var html = '<div class="kb-row kb-head"><span></span><span>Key</span><span>Second key</span></div>', game = "";
   KEY_ACTIONS.forEach(function(a){
     if(a.game !== game){ game = a.game; html += '<div class="section-title">' + game + '</div>'; }
-    html += '<div class="kb-row"><span class="kb-act">' + a.label + '</span>';
+    /* what that chip adds at the buy-in poker is on now, since it moves with it */
+    var worth = a.chip !== undefined && typeof pokChipSet === "function" ? pokChipSet()[a.chip] : 0;
+    html += '<div class="kb-row"><span class="kb-act">' + a.label +
+            (worth ? ' <span class="kb-worth">+' + fmt(worth) + '</span>' : '') + '</span>';
     [0, 1].forEach(function(slot){
       var code = keybinds[a.id][slot];
       var wait = kbListening && kbListening.id === a.id && kbListening.slot === slot;

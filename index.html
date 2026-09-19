@@ -10,7 +10,7 @@
      app.js for a long time afterwards, so without this a deploy can sit
      there fixed on the server and broken in the only browser that
      matters -- which looks exactly like the fix never worked. -->
-<link rel="stylesheet" href="style.css?v=51">
+<link rel="stylesheet" href="style.css?v=52">
 </head>
 <body>
 <div class="app-shell">
@@ -130,12 +130,12 @@
         <input type="number" class="custom-bet" id="bjCustom" min="1" step="1" placeholder="Custom">
         <div class="stake" id="bjStake">25</div>
         <button class="btn ghost sm" id="bjClear">Clear</button>
-        <button class="btn" id="dealBtn">Deal</button>
+        <button class="btn" id="dealBtn">Deal (Space)</button>
       </div>
       <div class="betbar" id="bjActions" style="display:none">
-        <button class="btn" id="hitBtn">Hit</button>
-        <button class="btn" id="standBtn">Stand</button>
-        <button class="btn ghost" id="dblBtn">Double</button>
+        <button class="btn" id="hitBtn">Hit (H)</button>
+        <button class="btn" id="standBtn">Stand (S)</button>
+        <button class="btn ghost" id="dblBtn">Double (D)</button>
       </div>
     </div>
   </section>
@@ -324,7 +324,7 @@
         <span class="lbl">Best</span>
         <div class="stake" id="snBestVal" style="min-width:88px">0</div>
 
-        <span class="lbl" id="snKeyHint">Arrows, WASD or swipe to steer &middot; K to bet &amp; cash out</span>
+        <span class="lbl">Arrows, WASD or swipe to steer &middot; K to bet &amp; cash out</span>
       </div>
 
       <div class="msg info" id="snMsg">Set your stake and set off.</div>
@@ -815,7 +815,8 @@
         <p class="modal-note">Backspace clears a key and Esc cancels. A key only has to be different
           from the others in the same game, so one key can do a job in several. Nothing
           happens on a key while you are typing, while a box like this one is open, or
-          while Cmd, Ctrl or Alt is held.</p>
+          while Cmd, Ctrl or Alt is held. The poker chip keys go along the raise chips left
+          to right, whatever each one is worth at your buy-in.</p>
       </div>
 
       <div class="subpanel" id="sub-account">
@@ -1087,16 +1088,16 @@
 <!-- The one external dependency in the file. Only reachable over http(s), which
      is why the offline file:// copy keeps working with cloud saves switched off. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=51"></script>
-<script src="games.js?v=51"></script>
+<script src="app.js?v=52"></script>
+<script src="games.js?v=52"></script>
 <!-- Poker in three parts, loaded in dependency order: the rules, then the
      opponents that consult them, then the table that shows it all. -->
-<script src="poker/engine.js?v=51"></script>
-<script src="poker/bots.js?v=51"></script>
-<script src="poker/table.js?v=51"></script>
-<script src="poker/check.js?v=51"></script>
-<script src="poker/online.js?v=51"></script>
-<script src="poker/online-game.js?v=51"></script>
+<script src="poker/engine.js?v=52"></script>
+<script src="poker/bots.js?v=52"></script>
+<script src="poker/table.js?v=52"></script>
+<script src="poker/check.js?v=52"></script>
+<script src="poker/online.js?v=52"></script>
+<script src="poker/online-game.js?v=52"></script>
 <script>
 "use strict";
 /* Everything above only declares things. This is the part that runs, so it

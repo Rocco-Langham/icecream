@@ -1391,9 +1391,10 @@ function pokRenderActions(){
     $("pokRaise").textContent = "Raise" + keyTag("poker.raise");
   }
   pokTuneRaiseChips();
-  Array.prototype.forEach.call(document.querySelectorAll("#pokRaiseChips .pok-chip"), function(b){
+  Array.prototype.forEach.call(document.querySelectorAll("#pokRaiseChips .pok-chip"), function(b, i){
     /* a chip that could not be added without going past all-in is spent */
     b.disabled = !canRaise || (pok.raiseTo >= lg.maxRaiseTo);
+    b.setAttribute("data-key", keyName("poker.chip" + (i + 1)));   /* the badge on its rim */
   });
   $("pokRaiseCustom").disabled = !canRaise;
   $("pokRaiseClear").disabled  = !canRaise;
@@ -1754,10 +1755,11 @@ $("pokRaiseClear").addEventListener("click", pokRaiseReset);
   });
 })();
 
-/* F, C, R and N by default, each changeable in Settings > Keybinds. The same
-   keys work at the online table while it has the felt on loan: it is the same
-   four buttons, labelled with the same keys, and they used to be dead there.
-   The one exception is the next hand, which online is the dealer's to start. */
+/* F, C, R, N and 1 to 5 by default, each changeable in Settings > Keybinds.
+   The same keys work at the online table while it has the felt on loan: it is
+   the same buttons, labelled with the same keys, and they used to be dead
+   there. The one exception is the next hand, which online is the dealer's to
+   start. */
 document.addEventListener("keydown", function(e){
   if(!pok.T || keyBlocked(e)) return;
   var sec = document.querySelector(".game.on");
@@ -1774,7 +1776,17 @@ document.addEventListener("keydown", function(e){
   if(pok.T.toAct !== 0) return;
   var lg = pokLegal(pok.T);
   if(!lg) return;
-  if(keyIs(e, "poker.fold")){ e.preventDefault(); pokHeroAct("fold"); }
-  else if(keyIs(e, "poker.call")){ e.preventDefault(); pokHeroAct(lg.check ? "check" : "call"); }
-  else if(keyIs(e, "poker.raise") && lg.raise){ e.preventDefault(); pokHeroAct("raise", pokRaiseValue()); }
+  if(keyIs(e, "poker.fold")){ e.preventDefault(); pokHeroAct("fold"); return; }
+  if(keyIs(e, "poker.call")){ e.preventDefault(); pokHeroAct(lg.check ? "check" : "call"); return; }
+  if(keyIs(e, "poker.raise") && lg.raise){ e.preventDefault(); pokHeroAct("raise", pokRaiseValue()); return; }
+  /* 1 to 5 add the chips in the raise row, left to right, whatever each is worth
+     at this buy-in -- the same as clicking it, including doing nothing once the
+     raise is already all in. */
+  var chips = document.querySelectorAll("#pokRaiseChips .pok-chip");
+  for(var i = 0; i < chips.length; i++){
+    if(!keyIs(e, "poker.chip" + (i + 1))) continue;
+    e.preventDefault();
+    if(!chips[i].disabled) chips[i].click();
+    return;
+  }
 });
