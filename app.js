@@ -43,7 +43,7 @@ function saveLocal(){
     flappyBest:flappyBest, snakeBest:snakeBest, minesBest:minesBest,
     theme:currentTheme, font:currentFont, soundOn:soundOn,
     soundVolume:soundVolume, casinoName:CASINO_NAME,
-    rigUser:rigUser, rigHost:rigHost, irlPoker:irlPoker,
+    rigUser:rigUser, rigHost:rigHost, irlPoker:irlPoker, keybinds:keybinds,
     pokerStack:pokerStack, syncToken:syncToken
   };
   mem = data;
@@ -114,6 +114,44 @@ var redeemed     = [];
 var soundOn      = saved && typeof saved.soundOn === "boolean" ? saved.soundOn : true;
 var soundVolume  = saved && typeof saved.soundVolume === "number" ? saved.soundVolume : 45;
 var CASINO_NAME  = saved && typeof saved.casinoName === "string" ? saved.casinoName : "SparxMaths";
+
+/* ============ keybinds ============ */
+/* Every keyboard shortcut in the casino, in one list, so Settings can show
+   them and let them be changed, and every button and hint that names a key can
+   ask here rather than having "(K)" typed into it.
+
+   Each action has two slots: the key, and an optional second one, which is how
+   Snake can steer on the arrows and on WASD at once. Stored as KeyboardEvent
+   codes -- the physical key, not the letter it types -- the same as the games
+   have always read them, so WASD stays where your fingers are on any layout.
+   A key only has to be unique within its own game: K is Flappy's, Snake's and
+   Mines' at once without any trouble, because only one of them is ever on. */
+var KEY_ACTIONS = [
+  {id:"flappy.flap", game:"Flappy", label:"Flap",           keys:["Space", ""]},
+  {id:"flappy.go",   game:"Flappy", label:"Bet / cash out", keys:["KeyK", ""]},
+  {id:"snake.up",    game:"Snake",  label:"Steer up",       keys:["ArrowUp", "KeyW"]},
+  {id:"snake.left",  game:"Snake",  label:"Steer left",     keys:["ArrowLeft", "KeyA"]},
+  {id:"snake.down",  game:"Snake",  label:"Steer down",     keys:["ArrowDown", "KeyS"]},
+  {id:"snake.right", game:"Snake",  label:"Steer right",    keys:["ArrowRight", "KeyD"]},
+  {id:"snake.go",    game:"Snake",  label:"Bet / cash out", keys:["KeyK", ""]},
+  {id:"mines.go",    game:"Mines",  label:"Bet / cash out", keys:["KeyK", ""]},
+  {id:"poker.fold",  game:"Poker",  label:"Fold",           keys:["KeyF", ""]},
+  {id:"poker.call",  game:"Poker",  label:"Check / call",   keys:["KeyC", ""]},
+  {id:"poker.raise", game:"Poker",  label:"Raise",          keys:["KeyR", ""]},
+  {id:"poker.next",  game:"Poker",  label:"Next hand",      keys:["KeyN", ""]}
+];
+/* Merged over the defaults rather than taken whole, so an action added in a
+   later version arrives with its default key instead of with nothing. */
+function loadKeybinds(stored){
+  var out = {};
+  KEY_ACTIONS.forEach(function(a){
+    var got = stored && stored[a.id];
+    out[a.id] = (got && got.length === 2 && typeof got[0] === "string" && typeof got[1] === "string")
+      ? got.slice() : a.keys.slice();
+  });
+  return out;
+}
+var keybinds     = loadKeybinds(saved && saved.keybinds);
 
 /* ============ rigging (dev console) ============ */
 /* 0 = untouched RNG, 100 = every round forced. Values in between are the
@@ -805,8 +843,10 @@ volumeSlider.addEventListener("change", function(){ playClick(); });
 
 /* ---- subtab switching ---- */
 function switchSubtab(name){
+  kbStop();                                          /* a half-finished rebind does not follow you to another tab */
   Array.prototype.forEach.call(document.querySelectorAll(".subtab"), function(o){ o.classList.toggle("on", o.dataset.subtab === name); });
   Array.prototype.forEach.call(document.querySelectorAll(".subpanel"), function(o){ o.classList.toggle("on", o.id === "sub-" + name); });
+  if(name === "keybinds") renderKeybinds();
 }
 
 $("settingsBtn").addEventListener("click", function(){
@@ -819,10 +859,11 @@ $("settingsBtn").addEventListener("click", function(){
   settingsOverlay.classList.add("on");
 });
 $("settingsClose").addEventListener("click", function(){
+  kbStop();
   settingsOverlay.classList.remove("on");
 });
 settingsOverlay.addEventListener("click", function(e){
-  if(e.target === settingsOverlay) settingsOverlay.classList.remove("on");
+  if(e.target === settingsOverlay){ kbStop(); settingsOverlay.classList.remove("on"); }
 });
 
 Array.prototype.forEach.call(document.querySelectorAll(".subtab"), function(b){
@@ -830,6 +871,176 @@ Array.prototype.forEach.call(document.querySelectorAll(".subtab"), function(b){
     playClick();
     switchSubtab(b.dataset.subtab);
   });
+});
+
+/* ---- keybinds ---- */
+/* How a code reads on a key. Letters and digits are worked out; the rest are
+   the ones worth a nicer name than the code, and anything else -- F5, Home --
+   is already readable as it comes. */
+var KEY_NAMES = {
+  Space:"Space", Enter:"Enter", NumpadEnter:"Num Enter",
+  ArrowUp:"↑", ArrowDown:"↓", ArrowLeft:"←", ArrowRight:"→",
+  Minus:"-", Equal:"=", BracketLeft:"[", BracketRight:"]", Backslash:"\\",
+  IntlBackslash:"\\", Semicolon:";", Quote:"'", Backquote:"`",
+  Comma:",", Period:".", Slash:"/"
+};
+function keyLabel(code){
+  if(!code) return "";
+  if(KEY_NAMES[code]) return KEY_NAMES[code];
+  var m = /^Key([A-Z])$/.exec(code) || /^Digit([0-9])$/.exec(code);
+  if(m) return m[1];
+  if(/^Numpad/.test(code)) return "Num " + code.slice(6);
+  return code;
+}
+function keyIs(e, id){
+  var k = keybinds[id];
+  return !!(k && e.code && (k[0] === e.code || k[1] === e.code));
+}
+/* The key a button or hint should name: the first slot, or the second if the
+   first has been cleared. Empty when the action has no key at all, and then
+   the label simply leaves the bracket off rather than showing a blank one. */
+function keyName(id){
+  var k = keybinds[id];
+  return k ? keyLabel(k[0] || k[1]) : "";
+}
+function keyTag(id){ var n = keyName(id); return n ? " (" + n + ")" : ""; }
+/* A game only hears a key when nothing else should: not while a box is open
+   over it, not while you are typing, not mid-rebind, and not with Cmd, Ctrl or
+   Alt held -- those belong to the browser. Before this, Poker took Cmd+R, Cmd+F
+   and Cmd+C as raise, fold and call, and swallowed the reload, find and copy
+   they were meant to be. */
+function keyBlocked(e){
+  if(e.ctrlKey || e.metaKey || e.altKey) return true;
+  var t = e.target;
+  if(t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return true;
+  if(kbListening) return true;
+  return !!document.querySelector(".modal-overlay.on");
+}
+
+/* Snake steers on four keys a slot, and the hint reads better as "Arrows" or
+   "WASD" than as four symbols -- this names a slot's set the way you would. */
+function kbSteerSet(slot){
+  var codes = ["snake.up", "snake.left", "snake.down", "snake.right"].map(function(id){ return keybinds[id][slot]; });
+  if(codes.every(function(c){ return !c; })) return "";
+  if(codes.join() === "ArrowUp,ArrowLeft,ArrowDown,ArrowRight") return "Arrows";
+  var names = codes.map(function(c){ return keyLabel(c) || "–"; });
+  return names.every(function(n){ return n.length === 1; }) ? names.join("") : names.join(" ");
+}
+/* Every place in the page that names a key, brought back in line with the
+   bindings. Run at boot and after every change. */
+function renderKeyHints(){
+  var and = function(id, what){ var n = keyName(id); return n ? " · " + n + " " + what : ""; };
+  var flap = keyName("flappy.flap");
+  var fb = $("fbKeyHint"), sn = $("snKeyHint"), mn = $("mnKeyHint");
+  if(fb) fb.textContent = "Tap the sky" + (flap ? " or press " + flap : "") + " to flap" + and("flappy.go", "to bet & cash out");
+  if(sn){
+    var sets = [kbSteerSet(0), kbSteerSet(1)].filter(Boolean);
+    sn.textContent = (sets.length ? sets.join(", ") + " or swipe" : "Swipe") + " to steer" + and("snake.go", "to bet & cash out");
+  }
+  if(mn) mn.textContent = "Click tiles to turn them" + and("mines.go", "to bet & cash out");
+  if(typeof syncFlappyUI === "function") syncFlappyUI();
+  if(typeof syncSnakeUI === "function") syncSnakeUI();
+  if(typeof syncMinesUI === "function") syncMinesUI();
+  if(typeof pokRenderActions === "function") pokRenderActions();
+}
+
+var kbListening = null;                              /* {id, slot} while waiting for a key */
+function kbAction(id){
+  for(var i = 0; i < KEY_ACTIONS.length; i++) if(KEY_ACTIONS[i].id === id) return KEY_ACTIONS[i];
+  return null;
+}
+function kbSay(text){ var n = $("kbNote"); if(n) n.textContent = text || ""; }
+function renderKeybinds(){
+  var list = $("kbList");
+  if(!list) return;
+  var html = '<div class="kb-row kb-head"><span></span><span>Key</span><span>Second key</span></div>', game = "";
+  KEY_ACTIONS.forEach(function(a){
+    if(a.game !== game){ game = a.game; html += '<div class="section-title">' + game + '</div>'; }
+    html += '<div class="kb-row"><span class="kb-act">' + a.label + '</span>';
+    [0, 1].forEach(function(slot){
+      var code = keybinds[a.id][slot];
+      var wait = kbListening && kbListening.id === a.id && kbListening.slot === slot;
+      var text = wait ? "Press a key…" : (keyLabel(code) || "—");
+      html += '<button type="button" class="kb-key' + (wait ? " listening" : "") + (!code && !wait ? " empty" : "") +
+              '" data-id="' + a.id + '" data-slot="' + slot + '" aria-label="' + a.game + ' ' + a.label +
+              (slot ? ', second key' : ', key') + '">' + text.replace(/</g, "&lt;") + '</button>';
+    });
+    html += '</div>';
+  });
+  list.innerHTML = html;
+}
+function kbStart(id, slot){
+  kbListening = {id: id, slot: slot};
+  kbSay("");
+  renderKeybinds();
+}
+function kbStop(){
+  if(!kbListening) return;
+  kbListening = null;
+  renderKeybinds();
+}
+/* Anything else in the same game already on this key gives it up, and takes
+   the key this slot had in exchange -- so a clash swaps the two over rather
+   than leaving something with no key it did not ask to lose. */
+function kbAssign(id, slot, code){
+  var act = kbAction(id), before = keybinds[id][slot], note = "";
+  if(code){
+    KEY_ACTIONS.forEach(function(o){
+      if(o.game !== act.game) return;
+      [0, 1].forEach(function(s){
+        if(o.id === id && s === slot) return;
+        if(keybinds[o.id][s] !== code) return;
+        keybinds[o.id][s] = before;
+        note = o.id === id
+          ? act.label + "’s two keys have swapped over."
+          : keyLabel(code) + " was " + o.game + " " + o.label.toLowerCase() + "’s — " +
+            (before ? "that has " + keyLabel(before) + " now." : "that has no key now.");
+      });
+    });
+  }
+  keybinds[id][slot] = code;
+  kbListening = null;
+  save();
+  renderKeybinds();
+  renderKeyHints();
+  kbSay(note);
+  playClick();
+}
+/* Capture phase on the document, so a key pressed to bind is seen here before
+   any game can act on it, and goes no further. */
+document.addEventListener("keydown", function(e){
+  if(!kbListening) return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  if(/^(Shift|Control|Alt|Meta)(Left|Right)$|^CapsLock$|^Fn/.test(e.code)) return;  /* wait for the real key */
+  if(e.ctrlKey || e.metaKey || e.altKey) return;     /* a browser shortcut, not a key to bind */
+  if(e.code === "Escape" || e.code === "Tab"){ kbStop(); return; }
+  if(e.code === "Backspace" || e.code === "Delete"){ kbAssign(kbListening.id, kbListening.slot, ""); return; }
+  kbAssign(kbListening.id, kbListening.slot, e.code);
+}, true);
+$("kbList").addEventListener("click", function(e){
+  var b = e.target.closest(".kb-key");
+  if(!b) return;
+  /* Focus is taken off the button, or the Space or Enter pressed to bind would
+     also click it, and start listening all over again. */
+  b.blur();
+  var id = b.dataset.id, slot = Number(b.dataset.slot);
+  if(kbListening && kbListening.id === id && kbListening.slot === slot){ kbStop(); return; }
+  playClick();
+  kbStart(id, slot);
+});
+/* A click anywhere else in the panel is a change of mind. */
+$("sub-keybinds").addEventListener("click", function(e){
+  if(kbListening && !e.target.closest(".kb-key")) kbStop();
+});
+$("kbReset").addEventListener("click", function(){
+  keybinds = loadKeybinds(null);
+  kbListening = null;
+  save();
+  renderKeybinds();
+  renderKeyHints();
+  kbSay("Every key is back to its default.");
+  playClick();
 });
 
 /* ---- beta notice ---- */
@@ -1877,12 +2088,12 @@ function openDevPopup(){
     '      print("&nbsp;&nbsp;<b>reset codes</b> &mdash; make every code claimable again");',
 '      print("&nbsp;&nbsp;<b>reset stats</b> &mdash; wipe hands, chips won, high scores, the leaderboard");',
     '      print("&nbsp;&nbsp;<b>clear</b> &mdash; clear this console");',
-    '      print("&nbsp;&nbsp;<b>exit</b> &mdash; close this window");',
+    '      print("&nbsp;&nbsp;<b>x</b> or <b>exit</b> &mdash; close this window");',
     '      print("Chip amounts take k/m/b &mdash; e.g. chips add 1.5m", "out-dim");',
     '      return;',
     '    }',
     '    if(cmd === "clear"){ body.innerHTML = ""; return; }',
-    '    if(cmd === "exit" || cmd === "close"){',
+    '    if(cmd === "exit" || cmd === "close" || cmd === "x"){',
     '      print("Closing…", "out-dim");',
     '      setTimeout(function(){ window.close(); }, 250);',
     '      return;',

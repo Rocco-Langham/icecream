@@ -10,7 +10,7 @@
      app.js for a long time afterwards, so without this a deploy can sit
      there fixed on the server and broken in the only browser that
      matters -- which looks exactly like the fix never worked. -->
-<link rel="stylesheet" href="style.css?v=49">
+<link rel="stylesheet" href="style.css?v=50">
 </head>
 <body>
 <div class="app-shell">
@@ -286,7 +286,7 @@
         <span class="lbl">Best</span>
         <div class="stake" id="fbBestVal" style="min-width:88px">0</div>
 
-        <span class="lbl">Tap the sky or press space to flap &middot; K to bet &amp; cash out</span>
+        <span class="lbl" id="fbKeyHint">Tap the sky or press Space to flap &middot; K to bet &amp; cash out</span>
       </div>
 
       <div class="msg info" id="fbMsg">Set your stake and take off.</div>
@@ -324,7 +324,7 @@
         <span class="lbl">Best</span>
         <div class="stake" id="snBestVal" style="min-width:88px">0</div>
 
-        <span class="lbl">Arrows, WASD or swipe to steer &middot; K to bet &amp; cash out</span>
+        <span class="lbl" id="snKeyHint">Arrows, WASD or swipe to steer &middot; K to bet &amp; cash out</span>
       </div>
 
       <div class="msg info" id="snMsg">Set your stake and set off.</div>
@@ -367,7 +367,7 @@
         <span class="lbl">Best</span>
         <div class="stake" id="mnBestVal" style="min-width:150px">&mdash;</div>
 
-        <span class="lbl">Click tiles to turn them &middot; K to bet &amp; cash out</span>
+        <span class="lbl" id="mnKeyHint">Click tiles to turn them &middot; K to bet &amp; cash out</span>
       </div>
 
       <div class="mn-board" id="mnBoard"></div>
@@ -725,6 +725,7 @@
       <button class="subtab on" data-subtab="general">General</button>
       <button class="subtab" data-subtab="sound">Sound</button>
       <button class="subtab" data-subtab="appearance">Appearance</button>
+      <button class="subtab" data-subtab="keybinds">Keybinds</button>
       <button class="subtab subtab-foot" data-subtab="account">Account</button>
       <!-- who you are and the one action that goes with it, so signing in or
            out doesn't mean opening the tab first -->
@@ -799,6 +800,22 @@
             <div class="font-grid" id="fontGrid"></div>
           </div>
         </div>
+      </div>
+
+      <!-- The rows are drawn by renderKeybinds from KEY_ACTIONS in app.js, so a
+           shortcut added to a game shows up here by being added to that list. -->
+      <div class="subpanel" id="sub-keybinds">
+        <div class="panel-head">
+          <h2>Keybinds</h2>
+          <button class="btn ghost sm" id="kbReset">Reset to defaults</button>
+        </div>
+        <p class="sub">Click a key, then press the one you want instead.</p>
+        <div id="kbList"></div>
+        <p class="modal-note kb-note" id="kbNote" aria-live="polite"></p>
+        <p class="modal-note">Backspace clears a key and Esc cancels. A key only has to be different
+          from the others in the same game, so one key can do a job in several. Nothing
+          happens on a key while you are typing, while a box like this one is open, or
+          while Cmd, Ctrl or Alt is held.</p>
       </div>
 
       <div class="subpanel" id="sub-account">
@@ -1070,16 +1087,16 @@
 <!-- The one external dependency in the file. Only reachable over http(s), which
      is why the offline file:// copy keeps working with cloud saves switched off. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=49"></script>
-<script src="games.js?v=49"></script>
+<script src="app.js?v=50"></script>
+<script src="games.js?v=50"></script>
 <!-- Poker in three parts, loaded in dependency order: the rules, then the
      opponents that consult them, then the table that shows it all. -->
-<script src="poker/engine.js?v=49"></script>
-<script src="poker/bots.js?v=49"></script>
-<script src="poker/table.js?v=49"></script>
-<script src="poker/check.js?v=49"></script>
-<script src="poker/online.js?v=49"></script>
-<script src="poker/online-game.js?v=49"></script>
+<script src="poker/engine.js?v=50"></script>
+<script src="poker/bots.js?v=50"></script>
+<script src="poker/table.js?v=50"></script>
+<script src="poker/check.js?v=50"></script>
+<script src="poker/online.js?v=50"></script>
+<script src="poker/online-game.js?v=50"></script>
 <script>
 "use strict";
 /* Everything above only declares things. This is the part that runs, so it
@@ -1103,6 +1120,7 @@ renderCodes();
    broken rather than out of date, which is a far worse thing to debug. */
 if(typeof irlPokerFromUrl === "function") irlPokerFromUrl();
 if(typeof renderIrlPoker === "function") renderIrlPoker();
+if(typeof renderKeyHints === "function") renderKeyHints();   /* every "(K)" in the page, from the saved keybinds */
 $("versionTag").textContent = VERSION;
 $("betaVersion").textContent = VERSION;
 betaOverlay.classList.add("on");
