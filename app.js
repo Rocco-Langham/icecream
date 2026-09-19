@@ -40,7 +40,7 @@ var applyingCloudRow = false;
 function saveLocal(){
   var data = {
     bank:bank, stats:stats, gameNet:gameNet, streak:streak,
-    flappyBest:flappyBest, snakeBest:snakeBest,
+    flappyBest:flappyBest, snakeBest:snakeBest, minesBest:minesBest,
     theme:currentTheme, font:currentFont, soundOn:soundOn,
     soundVolume:soundVolume, casinoName:CASINO_NAME,
     rigUser:rigUser, rigHost:rigHost, irlPoker:irlPoker,
@@ -65,6 +65,7 @@ var GAMES = [
   {key:"plinko",    name:"Plinko",     icon:"&#128315;"},
   {key:"flappy",    name:"Flappy",     icon:"&#128038;"},
   {key:"snake",     name:"Snake",      icon:"&#128013;"},
+  {key:"mines",     name:"Mines",      icon:"&#128163;"},
   {key:"poker",     name:"Poker",      icon:"&#9824;&#65039;"}
 ];
 
@@ -101,6 +102,11 @@ var streak       = (saved && saved.streak) || {count:0, best:0, last:null, claim
    so a 5-chip run and a 500-chip run rank on the same scale. */
 var flappyBest   = (saved && typeof saved.flappyBest === "number") ? saved.flappyBest : 0;
 var snakeBest    = (saved && typeof saved.snakeBest  === "number") ? saved.snakeBest  : 0;
+/* Best multiplier ever cashed out at, not a chip amount -- same reasoning as
+   the other two: a 5-chip round and a 500-chip round land on the same scale.
+   Local only, like snakeBest, and for the same reason: no column for it in
+   the scores row, so it is a property of the device rather than the account. */
+var minesBest    = (saved && typeof saved.minesBest  === "number") ? saved.minesBest  : 0;
 /* Display only, and no longer cached locally: the redemptions table is the one
    source of truth, fetched on sign-in. A stale local copy could only ever
    disagree with it. */
@@ -1368,11 +1374,13 @@ $("resetStatsGo").addEventListener("click", function(){
   stats.peak = bank;                 /* a high-water mark restarts from today's balance, not 0 */
   flappyBest = 0;
   snakeBest = 0;
+  minesBest = 0;
   GAMES.forEach(function(g){ gameNet[g.key] = 0; });
   renderStats();
   renderStatsPanel();
   renderLeaderboard();
   if(typeof syncFlappyUI === "function") syncFlappyUI();
+  if(typeof syncMinesUI === "function") syncMinesUI();   /* or its Best box goes on showing the old figure */
   save();
   /* Straight up rather than through the two-second coalescer: a reset is the
      one change a player may well close the tab immediately after. */

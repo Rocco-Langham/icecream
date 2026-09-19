@@ -1257,6 +1257,43 @@
     border-color:#57e08d;box-shadow:0 8px 22px rgba(87,224,141,.28);
   }
   .fb-action.cash:hover:not(:disabled){box-shadow:0 12px 28px rgba(87,224,141,.42)}
+
+  /* ---------- mines ---------- */
+  /* Square, five across, and capped in width so it does not sprawl on a wide
+     desktop card -- a grid this size reads fine small, and letting it grow
+     just means more empty distance between one tile and the next. zoom picks
+     it up along with the rest of the table (see .game.on > .table below), so
+     nothing here needs its own resize handling the way a canvas does. */
+  .mn-board{
+    display:grid;grid-template-columns:repeat(5,1fr);gap:7px;
+    width:100%;max-width:360px;aspect-ratio:1;margin:8px auto 4px;
+  }
+  .mn-tile{
+    aspect-ratio:1;border-radius:9px;padding:0;cursor:pointer;position:relative;
+    font:inherit;font-size:20px;display:flex;align-items:center;justify-content:center;
+    border:1px solid var(--edge);background:rgba(var(--panel-tint-rgb),.4);
+    transition:.12s;user-select:none;
+  }
+  .mn-tile:hover:not(:disabled){transform:translateY(-2px);border-color:var(--gold)}
+  .mn-tile:disabled{cursor:default}
+  /* A gem, popped in rather than just appearing -- the one bit of motion a
+     static grid gets, and worth it for the tile that means "you are still in". */
+  .mn-tile.safe{
+    background:linear-gradient(180deg,#2e9d63,#146339);border-color:#57e08d;
+    animation:mnPop .28s ease;
+  }
+  /* The bomb that ended it shakes; the rest, revealed alongside it so you can
+     see the board you were actually playing against, do not -- one shake
+     reads as the moment it happened, five would read as an earthquake. */
+  .mn-tile.bomb{background:linear-gradient(180deg,#d04045,#8f2226);border-color:#ff8a8a}
+  .mn-tile.bomb.hit{animation:mnShake .4s ease}
+  .mn-tile.ghost{opacity:.4}
+  @keyframes mnPop{0%{transform:scale(.7)}60%{transform:scale(1.1)}100%{transform:scale(1)}}
+  @keyframes mnShake{
+    0%,100%{transform:translateX(0)}
+    20%{transform:translateX(-4px)} 40%{transform:translateX(4px)}
+    60%{transform:translateX(-3px)} 80%{transform:translateX(3px)}
+  }
   .segmented{display:flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden}
   .segmented button{
     padding:8px 16px;background:transparent;border:none;cursor:pointer;

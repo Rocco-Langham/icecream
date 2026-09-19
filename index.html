@@ -10,7 +10,7 @@
      app.js for a long time afterwards, so without this a deploy can sit
      there fixed on the server and broken in the only browser that
      matters -- which looks exactly like the fix never worked. -->
-<link rel="stylesheet" href="style.css?v=46">
+<link rel="stylesheet" href="style.css?v=47">
 </head>
 <body>
 <div class="app-shell">
@@ -39,6 +39,7 @@
         <button class="sidebar-link" data-tab="plinko"><span class="ic">&#128315;</span>Plinko</button>
         <button class="sidebar-link" data-tab="flappy"><span class="ic">&#128038;</span>Flappy</button>
         <button class="sidebar-link" data-tab="snake"><span class="ic">&#128013;</span>Snake</button>
+        <button class="sidebar-link" data-tab="mines"><span class="ic">&#128163;</span>Mines</button>
         <button class="sidebar-link" data-tab="poker"><span class="ic">&#9824;&#65039;</span>Poker</button>
         <button class="sidebar-link" data-tab="online"><span class="ic">&#128101;</span>Poker Online</button>
       </div>
@@ -337,6 +338,53 @@
         <input type="number" class="custom-bet" id="snCustom" min="1" step="1" placeholder="Custom">
         <div class="stake" id="snStake">25</div>
         <button class="btn ghost sm" id="snClear">Clear</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- A grid of tiles, not a canvas -- there is nothing here that moves on its
+       own, so a static board and a redraw on every click is all it needs. The
+       tiles themselves are built in JS (mnBuildBoard), the same way the
+       roulette board is, rather than laid out by hand here. -->
+  <section class="game" id="tab-mines">
+    <div class="table">
+      <h2 class="title">Mines</h2>
+      <p class="sub">Clear the grid, tile by tile &middot; cash out whenever you like, one bomb ends it</p>
+
+      <div class="field-inline">
+        <span class="lbl">Mines</span>
+        <div class="segmented" id="mnMineSeg">
+          <button data-n="1">1</button>
+          <button class="on" data-n="3">3</button>
+          <button data-n="5">5</button>
+          <button data-n="10">10</button>
+          <button data-n="24">24</button>
+        </div>
+
+        <span class="lbl">Multiplier</span>
+        <div class="stake" id="mnMultVal" style="min-width:150px">1.00x</div>
+
+        <span class="lbl">Best</span>
+        <div class="stake" id="mnBestVal" style="min-width:150px">&mdash;</div>
+
+        <span class="lbl">Click tiles to turn them &middot; K to bet &amp; cash out</span>
+      </div>
+
+      <div class="mn-board" id="mnBoard"></div>
+
+      <button class="btn fb-action" id="mnGo">Play</button>
+
+      <div class="msg info" id="mnMsg">Set your stake, pick your mine count, and start clearing.</div>
+
+      <div class="betbar">
+        <span class="lbl">Bet</span>
+        <button class="chipbtn" data-v="5">5</button>
+        <button class="chipbtn" data-v="25">25</button>
+        <button class="chipbtn" data-v="100">100</button>
+        <button class="chipbtn" data-v="500">500</button>
+        <input type="number" class="custom-bet" id="mnCustom" min="1" step="1" placeholder="Custom">
+        <div class="stake" id="mnStake">25</div>
+        <button class="btn ghost sm" id="mnClear">Clear</button>
       </div>
     </div>
   </section>
@@ -1022,16 +1070,16 @@
 <!-- The one external dependency in the file. Only reachable over http(s), which
      is why the offline file:// copy keeps working with cloud saves switched off. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=46"></script>
-<script src="games.js?v=46"></script>
+<script src="app.js?v=47"></script>
+<script src="games.js?v=47"></script>
 <!-- Poker in three parts, loaded in dependency order: the rules, then the
      opponents that consult them, then the table that shows it all. -->
-<script src="poker/engine.js?v=46"></script>
-<script src="poker/bots.js?v=46"></script>
-<script src="poker/table.js?v=46"></script>
-<script src="poker/check.js?v=46"></script>
-<script src="poker/online.js?v=46"></script>
-<script src="poker/online-game.js?v=46"></script>
+<script src="poker/engine.js?v=47"></script>
+<script src="poker/bots.js?v=47"></script>
+<script src="poker/table.js?v=47"></script>
+<script src="poker/check.js?v=47"></script>
+<script src="poker/online.js?v=47"></script>
+<script src="poker/online-game.js?v=47"></script>
 <script>
 "use strict";
 /* Everything above only declares things. This is the part that runs, so it

@@ -2527,3 +2527,250 @@ document.addEventListener("keydown", function(e){
 snResize();
 snReset();
 syncSnakeUI();
+
+/* ================= MINES ================= */
+/* A five-by-five grid with some number of bombs hidden in it. Every tile you
+   turn over without hitting one compounds the multiplier; you can cash out at
+   any point once you have turned at least one; the first bomb ends the round
+   and takes the stake with it.
+
+   Unlike Snake and Flappy there is no haircut for leaving early -- every tile
+   survived is worth more than the stake, even with a single mine on the
+   board -- because nothing here decays with time. The risk is entirely in the
+   next click, never in the waiting.
+
+   The multiplier is the fair price of the run so far with the house's cut
+   taken off the top: the chance of getting through k picks untouched is the
+   product of (safe tiles left) / (tiles left) at each step, so paying out its
+   reciprocal breaks even, and 3% off that is the same edge Plinko solves for. */
+var MN_TOTAL = 25;
+var MN_EDGE  = 0.97;
+
+var mnStake = 25, mnCount = 3, mnState = "idle";       /* idle | live | dead */
+var mnCells = [], mnTiles = [], mnPicks = 0, mnMult = 1, mnRig = null;
+
+function mnMultAt(mines, picks){
+  if(picks <= 0) return 1;
+  var m = MN_EDGE;
+  for(var i = 0; i < picks; i++) m *= (MN_TOTAL - i) / (MN_TOTAL - mines - i);
+  return m;
+}
+/* Two decimals while the numbers are small and the difference between one and
+   the next matters; fewer as they climb, where they stop meaning anything.
+   Both readouts are sized for the biggest this can print -- a full clear with
+   ten mines down, 3,170,697x -- since the boxes are fixed-width and clip. */
+function mnMultText(m){
+  return (m >= 100 ? fmt(Math.round(m)) : m >= 10 ? m.toFixed(1) : m.toFixed(2)) + "x";
+}
+function mnCashValue(){ return Math.floor(mnStake * mnMult); }
+
+/* `picked` is a tile you turned over yourself. `shown` is every tile once the
+   round is over, so the board you were actually playing against is laid out
+   for you either way -- the ones you did not choose are drawn faded, so it is
+   plain which of them were yours. */
+function mnFreshCells(){
+  var cells = [];
+  for(var i = 0; i < MN_TOTAL; i++) cells.push({bomb:false, picked:false, shown:false});
+  return cells;
+}
+function mnPlaceBombs(cells, n){
+  var idx = [];
+  for(var i = 0; i < MN_TOTAL; i++) idx.push(i);
+  for(i = idx.length - 1; i > 0; i--){                   /* Fisher-Yates */
+    var j = rnd(i + 1), t = idx[i]; idx[i] = idx[j]; idx[j] = t;
+  }
+  for(i = 0; i < n; i++) cells[idx[i]].bomb = true;
+}
+/* For the rig, which swaps a bomb from one hidden tile to another so the total
+   on the board never changes: somewhere to move it to, and somewhere to take
+   it from. Always finds one mid-round -- a round ends the moment the last safe
+   tile is turned, so there is never a live board with none left. */
+function mnHiddenIndex(skip, wantBomb){
+  for(var i = 0; i < MN_TOTAL; i++)
+    if(i !== skip && !mnCells[i].picked && mnCells[i].bomb === wantBomb) return i;
+  return -1;
+}
+
+function mnPaintTile(i){
+  var c = mnCells[i], el = mnTiles[i];
+  if(!el) return;
+  el.classList.remove("safe", "bomb", "hit", "ghost");
+  el.disabled = mnState !== "live" || c.picked;
+  if(!c.picked && !c.shown){ el.textContent = ""; return; }
+  el.textContent = c.bomb ? "💣" : "💎";
+  el.classList.add(c.bomb ? "bomb" : "safe");
+  if(c.shown && !c.picked) el.classList.add("ghost");
+}
+function mnPaintAll(){ for(var i = 0; i < MN_TOTAL; i++) mnPaintTile(i); }
+
+function mnNewBoard(){
+  mnCells = mnFreshCells();
+  mnPicks = 0; mnMult = 1;
+  mnPaintAll();
+}
+function mnBuildBoard(){
+  var board = $("mnBoard"), html = "";
+  for(var i = 0; i < MN_TOTAL; i++) html += '<button type="button" class="mn-tile" data-i="' + i + '"></button>';
+  board.innerHTML = html;
+  mnTiles = Array.prototype.slice.call(board.querySelectorAll(".mn-tile"));
+  board.addEventListener("click", function(e){
+    var t = e.target.closest(".mn-tile");
+    if(t) mnReveal(Number(t.dataset.i));
+  });
+}
+
+function mnStart(){
+  if(mnState !== "idle") return;
+  if(mnStake > bank){ msg($("mnMsg"), "Not enough chips for that bet.", "lose"); return; }
+  wager(mnStake, "mines");
+  stats.hands++;
+  /* Decided once for the whole round, as every other game does -- then applied
+     as a single swap at the one click it bears on, below, rather than
+     re-rolled with every tile. */
+  mnRig = rigRoll();
+  mnState = "live";
+  mnNewBoard();
+  mnPlaceBombs(mnCells, mnCount);
+  playChip();
+  msg($("mnMsg"), "Pick a tile — " + mnCount + " " + (mnCount === 1 ? "mine" : "mines") + " hidden in the grid.", "info");
+  syncMinesUI();
+}
+function mnReveal(i){
+  if(mnState !== "live") return;
+  var c = mnCells[i];
+  if(!c || c.picked) return;
+
+  /* A forced round the way every other game forces one: the player's round
+     cannot bust at all, or the house's goes off on the very first tile. Done
+     by moving a bomb between two hidden tiles, so there is always a real board
+     underneath to show at the end, and it always has the count you chose. */
+  if(mnRig === "user" && c.bomb){
+    var to = mnHiddenIndex(i, false);
+    if(to !== -1){ c.bomb = false; mnCells[to].bomb = true; }
+  }else if(mnRig === "host" && !c.bomb && mnPicks === 0){
+    var from = mnHiddenIndex(i, true);
+    if(from !== -1){ c.bomb = true; mnCells[from].bomb = false; }
+  }
+
+  c.picked = true;
+  if(c.bomb){ mnBust(i); return; }
+
+  mnPicks++;
+  mnMult = mnMultAt(mnCount, mnPicks);
+  playCoin();
+  mnPaintTile(i);
+  /* Every safe tile turned: there is nothing left to risk, so it pays out at
+     once rather than leaving a board with only bombs on it to click. */
+  if(mnPicks >= MN_TOTAL - mnCount){ mnCashOut(); return; }
+  syncMinesUI();
+}
+function mnBust(i){
+  mnState = "dead";
+  for(var k = 0; k < MN_TOTAL; k++) mnCells[k].shown = true;
+  mnPaintAll();
+  mnTiles[i].classList.add("hit");
+  playLose();
+  var when = mnPicks === 0 ? "on the first tile"
+           : "after " + mnPicks + " safe " + (mnPicks === 1 ? "pick" : "picks");
+  msg($("mnMsg"), "Hit a mine " + when + " — " + fmt(mnStake) + " chips gone.", "lose");
+  syncMinesUI();
+  /* Long enough to take in the board you lost on, then it clears for the next. */
+  setTimeout(function(){
+    if(mnState !== "dead") return;
+    mnState = "idle";
+    mnNewBoard();
+    syncMinesUI();
+  }, 1400);
+}
+function mnCashOut(){
+  if(mnState !== "live" || mnPicks <= 0) return;
+  var ret = mnCashValue(), net = ret - mnStake;
+  var cleared = mnPicks >= MN_TOTAL - mnCount;
+  var best = mnMult > minesBest;
+  if(best){ minesBest = mnMult; save(); }
+
+  mnState = "idle";
+  for(var k = 0; k < MN_TOTAL; k++) mnCells[k].shown = true;
+  mnPaintAll();
+  payout(ret, "mines");
+
+  var head = (cleared ? "Cleared the board" : "Cashed out") + " at " + mnMultText(mnMult);
+  if(net > 0){
+    playWin(mnMult >= 20 ? "jackpot" : mnMult >= 3 ? "big" : "small");
+    if(mnMult >= 3) setTimeout(playCoin, 90);
+    msg($("mnMsg"), head + " — " + fmt(ret) + " chips (+" + fmt(net) + ").", "win");
+  }else if(net < 0){
+    playLose();
+    msg($("mnMsg"), head + " — " + fmt(ret) + " chips back (" + fmt(net) + ").", "lose");
+  }else{
+    playClick();
+    msg($("mnMsg"), head + " — " + fmt(ret) + " chips back.", "info");
+  }
+  if(best) msg($("mnMsg"), $("mnMsg").textContent + " New best!", "win");
+  syncMinesUI();
+}
+function mnToggle(){ if(mnState === "live") mnCashOut(); else mnStart(); }
+
+function syncMinesUI(){
+  var live = mnState === "live";
+  $("mnMultVal").textContent = mnMultText(mnMult);
+  $("mnBestVal").textContent = minesBest > 0 ? mnMultText(minesBest) : "—";
+  var go = $("mnGo");
+  if(live){
+    go.textContent = mnPicks > 0 ? "Cash out " + fmt(mnCashValue()) + " (K)" : "Pick a tile first";
+    go.disabled = mnPicks <= 0;
+  }else{
+    go.textContent = "Play (K)";
+    go.disabled = mnState === "dead";
+  }
+  go.classList.toggle("cash", live && mnPicks > 0);
+  Array.prototype.forEach.call(mnBtns, function(b){ b.disabled = live; });
+  $("mnCustom").disabled = live;
+  $("mnClear").disabled  = live;
+  Array.prototype.forEach.call(document.querySelectorAll("#mnMineSeg button"), function(b){
+    b.classList.toggle("on", Number(b.dataset.n) === mnCount);
+    b.disabled = live;
+  });
+}
+
+var mnBtns = chipRow($("tab-mines"), null, function(v){
+  mnStake = v;
+  $("mnStake").textContent = fmt(mnStake);
+}, null);
+mnBtns[1].classList.add("sel");
+
+$("mnClear").addEventListener("click", function(){
+  playClick();
+  mnStake = 5;
+  $("mnStake").textContent = "5";
+  Array.prototype.forEach.call(mnBtns, function(o){ o.classList.toggle("sel", o.dataset.v === "5"); });
+  $("mnCustom").value = "";
+  $("mnCustom").classList.remove("sel");
+});
+$("mnGo").addEventListener("click", function(){ mnToggle(); });
+Array.prototype.forEach.call(document.querySelectorAll("#mnMineSeg button"), function(b){
+  b.addEventListener("click", function(){
+    if(mnState === "live") return;
+    playClick();
+    mnCount = Number(b.dataset.n);
+    mnNewBoard();
+    syncMinesUI();
+  });
+});
+
+/* K to bet and to cash out, as in Flappy and Snake -- the other two games where
+   the whole decision is when to stop. */
+document.addEventListener("keydown", function(e){
+  if(!$("tab-mines").classList.contains("on")) return;
+  var t = e.target;
+  if(t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
+  if(e.code === "KeyK"){
+    e.preventDefault();
+    if(e.repeat) return;                                     /* holding K must not re-bet */
+    mnToggle();
+  }
+});
+
+mnBuildBoard();
+mnNewBoard();
+syncMinesUI();
