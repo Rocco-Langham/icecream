@@ -8,7 +8,9 @@
    The crash point is decided at the bet and never touched again: with U
    uniform in [0,1), 0.99 / (1 - U), floored to the cent. The chance it reaches
    any m is then 0.99 / m, which is a flat 1% house edge whatever you aim for,
-   and it is also why about one round in a hundred goes at 1.00x on the pad.
+   and it is also why about two rounds in a hundred go at 1.00x on the pad:
+   the one in a hundred that comes out under 1 and is held up to it, plus the
+   one in a hundred that lands in [1.00, 1.01) and floors down to it.
 
    Everything runs off timestamps. The multiplier at any moment is worked out
    from how long the round has been going, never added up frame by frame, and
@@ -35,6 +37,10 @@ var crT0 = 0, crPoint = 1, crAutoAt = 0, crRig = null;
 var crCashM = 0, crCashT = 0, crCashNet = 0, crCashAuto = false;
 var crEndT = 0, crRound = false;                       // a finished round is left on the graph until the next bet
 var crTickT = 0, crTimer = 0;
+/* After a crash that took the stake, the button and key sit out this long, as
+   Mines' dead state does: presses meant as a cash-out that land just after
+   the crash would otherwise each place a fresh bet. */
+var CR_DEAD_MS = 700, crDeadUntil = 0;
 var crHist = [];
 
 function crMult(t){ return Math.exp(CR_RATE * t); }
@@ -44,7 +50,10 @@ function crElapsed(now){ return Math.max(0, ((now === undefined ? performance.no
    figure on the button is then exactly the figure that gets paid -- rounding
    could show 2.35x a hair before it was really there. */
 function crCut(m){ return Math.floor(m * 100 + 1e-9) / 100; }
-function crCashValue(m){ return Math.floor(crStake * m); }
+/* In whole cents, because 100 * 1.15 is 114.99999999999999 in floating point
+   and would floor a chip short. Stake times a whole number of cents is exact,
+   and so is dividing it by 100 whenever the answer is a whole chip. */
+function crCashValue(m){ return Math.floor(crStake * Math.round(m * 100) / 100); }
 /* What the round is showing right now, for the readouts: the live figure, or
    where the last one ended. */
 function crNowMult(){
@@ -124,7 +133,8 @@ function crTick(now){
      the ceiling still stands, so it pays there rather than climbing forever. */
   if(crIn && crPoint > CR_MAX && t >= crTimeOf(CR_MAX)){ crSettle(CR_MAX, crTimeOf(CR_MAX), false); tc = crTimeOf(crPoint); }
   if(t >= tc){ crCrash(); return; }
-  if(crIn && t - crTickT >= CR_TICK_GAP){
+  /* The round carries on behind another game's tab, but its ticks stay here. */
+  if(crIn && t - crTickT >= CR_TICK_GAP && $("tab-crash").classList.contains("on")){
     crTickT = t;
     crPlayTick(crMult(t));
   }
@@ -176,6 +186,8 @@ function crCrash(){
   crRenderHistory();
   crPlayBoom(wasIn);
   if(wasIn){
+    crDeadUntil = performance.now() + CR_DEAD_MS;
+    setTimeout(syncCrashUI, CR_DEAD_MS + 20);
     playLose();
     msg($("crMsg"), (crPoint <= 1 ? "Busted on the pad at 1.00x" : "Crashed at " + mnMultText(crPoint)) +
                     " — " + fmt(crStake) + " chips gone.", "lose");
@@ -188,7 +200,11 @@ function crCrash(){
   syncCrashUI();
   crDraw();
 }
-function crToggle(){ if(crState === "live") crCashOut(); else crStart(); }
+function crDead(){ return crState !== "live" && performance.now() < crDeadUntil; }
+function crToggle(){
+  if(crState === "live") crCashOut();
+  else if(!crDead()) crStart();
+}
 
 /* ---- sound ---- */
 /* A short rising whoosh: air, and three quick notes climbing under it. */
@@ -227,8 +243,24 @@ function crStep(span, lines){
   for(var i = 0; i < s.length; i++) if(s[i]*p >= raw) return s[i]*p;
   return 10*p;
 }
+/* Short past ten thousand: the labels sit in a narrow margin, and "200kx"
+   says as much as "200,000x" in half the room. */
 function crAxisText(m){
+  if(m >= 1e6) return parseFloat((m / 1e6).toFixed(2)) + "Mx";
+  if(m >= 1e4) return parseFloat((m / 1e3).toFixed(1)) + "kx";
   return (m >= 1000 ? fmt(Math.round(m)) : String(parseFloat(m.toFixed(2)))) + "x";
+}
+/* The y gridlines. Under a whole step they count up from the 1x baseline
+   (1.5, 2, 2.5 ...); from a step of 1 up they sit on multiples of it, so the
+   labels read 100,000x rather than 100,001x, with the baseline kept. */
+function crGridLines(mMax, step){
+  var out = [1], gi;
+  if(step < 1){
+    for(gi = 1; 1 + gi*step <= mMax + 1e-9; gi++) out.push(1 + gi*step);
+  }else{
+    for(gi = Math.floor(1 / step) + 1; gi*step <= mMax + 1e-9; gi++) out.push(gi*step);
+  }
+  return out;
 }
 function crDraw(){
   var ctx = crCtx, W = crW, H = crH;
@@ -240,8 +272,6 @@ function crDraw(){
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
 
-  var L = 40, R = 14, T = 12, B = 22;
-  var pw = W - L - R, ph = H - T - B;
   var live = crState === "live";
   var tNow = live ? crElapsed() : crRound ? crEndT : 0;
   var mNow = crMult(tNow);
@@ -249,18 +279,23 @@ function crDraw(){
      it, so they rescale smoothly rather than jumping when a line is passed. */
   var tMax = Math.max(CR_VIEW_T, tNow / 0.82);
   var mMax = Math.max(CR_VIEW_M, 1 + (mNow - 1) / 0.78);
-  var X = function(t){ return L + t / tMax * pw; };
-  var Y = function(m){ return T + ph - (m - 1) / (mMax - 1) * ph; };
+  var my = crStep(mMax - 1, 4), grid = crGridLines(mMax, my);
 
   ctx.lineWidth = 1;
   ctx.font = "600 9px system-ui, sans-serif";
+  /* The left margin is as wide as the widest label needs, so none runs off
+     the edge of the canvas. */
+  var lw = 0;
+  for(var gi = 0; gi < grid.length; gi++) lw = Math.max(lw, ctx.measureText(crAxisText(grid[gi])).width);
+  var L = Math.max(40, Math.ceil(lw) + 12), R = 14, T = 12, B = 22;
+  var pw = W - L - R, ph = H - T - B;
+  var X = function(t){ return L + t / tMax * pw; };
+  var Y = function(m){ return T + ph - (m - 1) / (mMax - 1) * ph; };
+
   ctx.textBaseline = "middle";
-  var my = crStep(mMax - 1, 4);
   ctx.textAlign = "right";
-  /* counted in whole steps rather than summed, so 0.1 + 0.1 + ... cannot
-     drift a line off its label */
-  for(var gi = 0; 1 + gi*my <= mMax + 1e-9; gi++){
-    var g = 1 + gi*my, y = Math.round(Y(g)) + 0.5;
+  for(gi = 0; gi < grid.length; gi++){
+    var g = grid[gi], y = Math.round(Y(g)) + 0.5;
     ctx.strokeStyle = g === 1 ? "rgba(255,255,255,.22)" : "rgba(255,255,255,.07)";
     ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(W - R, y); ctx.stroke();
     ctx.fillStyle = "rgba(255,255,255,.45)";
@@ -279,6 +314,20 @@ function crDraw(){
   ctx.beginPath(); ctx.moveTo(L + 0.5, T); ctx.lineTo(L + 0.5, T + ph); ctx.stroke();
 
   var crashed = !live && crRound;
+  /* The big number's box is placed before the curve is drawn so the cash-out
+     label below can keep out of it; it is painted last, over the curve. */
+  var sub = "", subCol = "rgba(255,255,255,.6)";
+  if(crashed){ sub = "CRASHED AT " + mnMultText(crPoint); subCol = "#ff8a8a"; }
+  else if(live && crIn) sub = "CASH OUT NOW: " + fmt(crCashValue(crCut(mNow)));
+  else if(live){ sub = "CASHED OUT AT " + mnMultText(crCashM); subCol = "#6fe3a0"; }
+  else sub = "PLACE A BET TO LAUNCH";
+  var big = mnMultText(crashed ? crPoint : live ? crCut(mNow) : 1);
+  ctx.font = "800 40px system-ui, sans-serif";
+  var bw = ctx.measureText(big).width;
+  ctx.font = "700 11px system-ui, sans-serif";
+  var boxW = Math.max(bw, ctx.measureText(sub).width) + 20, boxH = 66;
+  var cxm = Math.max(L + 4 + boxW/2, Math.min(W - R - 4 - boxW/2, L + pw*0.32));
+  var cym = T + Math.max(boxH/2 + 2, ph*0.3);
   var col = crashed ? "#ff5a5a" : crIn ? "#ffc34d" : "#6fe3a0";
   if(crRound && tNow > 0){
     var n = 90, pts = [];
@@ -309,12 +358,22 @@ function crDraw(){
       ctx.strokeStyle = "#062014"; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI*2); ctx.fill(); ctx.stroke();
       ctx.font = "700 11px system-ui, sans-serif";
-      ctx.textBaseline = "bottom";
-      var lab = "+" + fmt(crCashNet);
-      /* Up and to the left of the dot: the curve leaves it rising to the
-         right, so that side is always clear of the line. */
-      ctx.textAlign = "right";
-      ctx.fillText(lab, cx - 7, cy - 7);
+      var lab = "+" + fmt(crCashNet), lw2 = ctx.measureText(lab).width, lh = 13;
+      /* Up and to the left of the dot, where the curve rising away to the
+         right leaves it clear -- unless that is inside the big number's box
+         (a narrow phone graph), in which case below and to the right, under
+         the curve. */
+      var bx0 = cxm - boxW/2, by0 = cym - 30;
+      var hits = function(x0, y0){
+        return x0 < bx0 + boxW && x0 + lw2 > bx0 && y0 < by0 + boxH && y0 + lh > by0;
+      };
+      if(!hits(cx - 7 - lw2, cy - 7 - lh) || cy + 7 + lh > T + ph){
+        ctx.textAlign = "right"; ctx.textBaseline = "bottom";
+        ctx.fillText(lab, cx - 7, cy - 7);
+      }else{
+        ctx.textAlign = "left"; ctx.textBaseline = "top";
+        ctx.fillText(lab, cx + 7, cy + 7);
+      }
     }
 
     /* the tip */
@@ -333,18 +392,6 @@ function crDraw(){
      line from the origin to the tip and that corner is the part of the plot it
      crosses least. On a narrow phone graph it can still clip the caption, so
      the pair gets a dark backing, pulled in to stay inside the plot. */
-  var sub = "", subCol = "rgba(255,255,255,.6)";
-  if(crashed){ sub = "CRASHED AT " + mnMultText(crPoint); subCol = "#ff8a8a"; }
-  else if(live && crIn) sub = "CASH OUT NOW: " + fmt(crCashValue(crCut(mNow)));
-  else if(live){ sub = "CASHED OUT AT " + mnMultText(crCashM); subCol = "#6fe3a0"; }
-  else sub = "PLACE A BET TO LAUNCH";
-  var big = mnMultText(crashed ? crPoint : live ? crCut(mNow) : 1);
-  ctx.font = "800 40px system-ui, sans-serif";
-  var bw = ctx.measureText(big).width;
-  ctx.font = "700 11px system-ui, sans-serif";
-  var boxW = Math.max(bw, ctx.measureText(sub).width) + 20, boxH = 66;
-  var cxm = Math.max(L + 4 + boxW/2, Math.min(W - R - 4 - boxW/2, L + pw*0.32));
-  var cym = T + Math.max(boxH/2 + 2, ph*0.3);
   if(crRound){
     ctx.fillStyle = "rgba(6,9,19,.62)";
     ctx.beginPath();
@@ -382,7 +429,10 @@ function syncCrashUI(){
   if(live && crIn) crSetText(go, "Cash out " + fmt(crCashValue(crNowMult())) + keyTag("crash.go"));
   else if(live)    crSetText(go, "Cashed out " + (crCashNet > 0 ? "+" + fmt(crCashNet) : fmt(crCashNet)));
   else             crSetText(go, "Play" + keyTag("crash.go"));
-  go.disabled = live && !crIn;
+  go.disabled = (live && !crIn) || crDead();
+  /* Out and waiting for the crash: the green, faded, so what you took still
+     reads on every theme's gradient. */
+  go.classList.toggle("out", live && !crIn);
   /* Any cash-out here returns at least the stake, so it is green from the off. */
   go.classList.toggle("cash", live && crIn);
   Array.prototype.forEach.call(crBtns, function(b){ b.disabled = live; });

@@ -1402,6 +1402,12 @@
   /* Sized for the biggest either can print, 1,000,000x -- the boxes are
      fixed-width and clip. */
   .cr-read{min-width:160px}
+  /* Cashed out and waiting on the crash: disabled, but the plain disabled
+     look is dark text on the theme's gradient, unreadable on some. */
+  #crGo.out:disabled{
+    opacity:.75;color:#04120a;background:linear-gradient(135deg,#57e08d,#1c9c55);
+    border-color:#57e08d;box-shadow:none;
+  }
   /* the hint on its own row, for the reason Flappy's is */
   #tab-crash .field-inline > .lbl:last-child{flex:0 0 100%;text-align:center}
   @media(max-width:560px){
