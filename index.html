@@ -351,7 +351,37 @@
   <section class="game" id="tab-breakout">
     <div class="table">
       <h2 class="title">Breakout</h2>
-      <!-- BREAKOUT-MARKUP (breakout.js) -->
+      <p class="sub">Every brick compounds the multiplier &middot; one ball, so cash out before you drop it</p>
+
+      <canvas class="playfield" id="breakoutCanvas"></canvas>
+
+      <button class="btn fb-action" id="boGo">Play</button>
+
+      <div class="field-inline">
+        <span class="lbl">Multiplier</span>
+        <div class="stake" id="boMultVal" style="min-width:136px">0.50x</div>
+
+        <span class="lbl">Bricks</span>
+        <div class="stake" id="boBrickVal" style="min-width:100px">0</div>
+
+        <span class="lbl">Best</span>
+        <div class="stake" id="boBestVal" style="min-width:100px">0</div>
+
+        <span class="lbl" id="boKeyHint">Mouse, arrows or A/D to move &middot; K to bet &amp; cash out</span>
+      </div>
+
+      <div class="msg info" id="boMsg">Set your stake and serve.</div>
+
+      <div class="betbar">
+        <span class="lbl">Bet</span>
+        <button class="chipbtn" data-v="5">5</button>
+        <button class="chipbtn" data-v="25">25</button>
+        <button class="chipbtn" data-v="100">100</button>
+        <button class="chipbtn" data-v="500">500</button>
+        <input type="number" class="custom-bet" id="boCustom" min="1" step="1" placeholder="Custom">
+        <div class="stake" id="boStake">25</div>
+        <button class="btn ghost sm" id="boClear">Clear</button>
+      </div>
     </div>
   </section>
 

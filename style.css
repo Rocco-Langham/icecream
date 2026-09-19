@@ -1295,7 +1295,26 @@
   .fb-action.cash:hover:not(:disabled){box-shadow:0 12px 28px rgba(87,224,141,.42)}
 
   /* ---------- breakout ---------- */
-  /* BREAKOUT-CSS */
+  /* A board, like Snake's, but taller than it is wide is no good on a desk and
+     wider than 16:9 leaves the paddle a long way to travel, so the box keeps a
+     5:3 shape wherever it can. On a phone the width is the phone's, and the
+     height is fixed a little over it so there is room between the wall and the
+     paddle. touch-action:none because the paddle follows a dragged finger, and
+     the page must not scroll out from under it. */
+  #breakoutCanvas{
+    display:block;width:100%;height:380px;touch-action:none;cursor:none;
+    max-width:var(--play-max,860px);margin-left:auto;margin-right:auto;
+    border-radius:14px;border:1px solid var(--edge);background:#08121c;
+    user-select:none;-webkit-user-select:none;
+  }
+  /* The hint gets its own row, as Flappy's does, so a readout gaining a digit
+     cannot re-wrap the row and shift everything under it. */
+  #tab-breakout .field-inline > .lbl:last-child{flex:0 0 100%;text-align:center}
+  @media(min-width:761px){
+    /* Height-driven like the other playfields, so fitGame can trade it away on
+       a short window; the width is capped against it to hold the shape. */
+    #breakoutCanvas{height:calc(var(--play-h) * 1.5);max-width:calc(var(--play-h) * 2.5)}
+  }
 
   /* ---------- mines ---------- */
   /* Square, five across, and capped in width so it does not sprawl on a wide
