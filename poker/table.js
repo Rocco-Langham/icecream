@@ -1364,7 +1364,11 @@ function pokRenderActions(){
   $("pokRaise").disabled = !on || !lg.raise;
   $("pokCheck").style.display = on && !lg.check ? "none" : "";
   $("pokCall").style.display  = on && lg.call ? "" : "none";
-  if(on && lg.call) $("pokCall").textContent = "Call " + fmt(lg.callAmount) + " (C)";
+  /* Every key on these buttons is whatever Settings > Keybinds says it is. */
+  $("pokFold").textContent  = "Fold" + keyTag("poker.fold");
+  $("pokCheck").textContent = "Check" + keyTag("poker.call");
+  $("pokNext").textContent  = "Next hand" + keyTag("poker.next");
+  if(on && lg.call) $("pokCall").textContent = "Call " + fmt(lg.callAmount) + keyTag("poker.call");
 
   var canRaise = on && lg.raise;
   if(canRaise){
@@ -1379,12 +1383,12 @@ function pokRenderActions(){
     }
     pok.raiseTo = pokSnapRaise(pok.raiseTo === null ? lg.minRaiseTo : pok.raiseTo, lg);
     $("pokRaise").textContent = pok.raiseTo >= lg.maxRaiseTo
-      ? "All in " + fmt(pok.raiseTo) + " (R)"
-      : "Raise to " + fmt(pok.raiseTo) + " (R)";
+      ? "All in " + fmt(pok.raiseTo) + keyTag("poker.raise")
+      : "Raise to " + fmt(pok.raiseTo) + keyTag("poker.raise");
   }else{
     pok.raiseKey = null;
     pok.raiseTo = null;
-    $("pokRaise").textContent = "Raise (R)";
+    $("pokRaise").textContent = "Raise" + keyTag("poker.raise");
   }
   pokTuneRaiseChips();
   Array.prototype.forEach.call(document.querySelectorAll("#pokRaiseChips .pok-chip"), function(b){
@@ -1750,18 +1754,27 @@ $("pokRaiseClear").addEventListener("click", pokRaiseReset);
   });
 })();
 
+/* F, C, R and N by default, each changeable in Settings > Keybinds. The same
+   keys work at the online table while it has the felt on loan: it is the same
+   four buttons, labelled with the same keys, and they used to be dead there.
+   The one exception is the next hand, which online is the dealer's to start. */
 document.addEventListener("keydown", function(e){
-  if(!pok.seated || !pok.T) return;
+  if(!pok.T || keyBlocked(e)) return;
   var sec = document.querySelector(".game.on");
-  if(!sec || sec.id !== "tab-poker") return;
-  var t = e.target.tagName;
-  if(t === "INPUT" || t === "TEXTAREA" || t === "SELECT") return;
-  var k = e.key.toLowerCase();
-  if(pok.T.stage === "done"){ if(k === "n"){ e.preventDefault(); pokDeal(); } return; }
+  if(!sec) return;
+  var here = (sec.id === "tab-poker" && pok.seated) || (sec.id === "tab-online" && pokLent && !!pokRemote);
+  if(!here) return;
+  /* A held key would otherwise act again the moment the turn came back round:
+     hold C through the bots' turns and it would check for you without asking. */
+  if(e.repeat) return;
+  if(pok.T.stage === "done"){
+    if(!pokRemote && keyIs(e, "poker.next")){ e.preventDefault(); pokDeal(); }
+    return;
+  }
   if(pok.T.toAct !== 0) return;
   var lg = pokLegal(pok.T);
   if(!lg) return;
-  if(k === "f"){ e.preventDefault(); pokHeroAct("fold"); }
-  else if(k === "c"){ e.preventDefault(); pokHeroAct(lg.check ? "check" : "call"); }
-  else if(k === "r" && lg.raise){ e.preventDefault(); pokHeroAct("raise", pokRaiseValue()); }
+  if(keyIs(e, "poker.fold")){ e.preventDefault(); pokHeroAct("fold"); }
+  else if(keyIs(e, "poker.call")){ e.preventDefault(); pokHeroAct(lg.check ? "check" : "call"); }
+  else if(keyIs(e, "poker.raise") && lg.raise){ e.preventDefault(); pokHeroAct("raise", pokRaiseValue()); }
 });

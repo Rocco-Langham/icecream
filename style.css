@@ -841,6 +841,30 @@
     padding-right:34px;
   }
   .section-head .section-title{margin:0}
+  /* ---------- keybinds ---------- */
+  /* One row per action: its name, then two keycaps, the second optional. The
+     caps are fixed-width so the columns line up down the whole list whatever
+     is bound, and a cleared one is drawn faint rather than removed, so there is
+     still something to click to put a key back. */
+  .kb-row{display:grid;grid-template-columns:1fr 96px 96px;gap:8px;align-items:center;padding:3px 0}
+  .kb-head span{font-size:9px;letter-spacing:calc(2px * var(--ui-track));text-transform:var(--ui-case);
+    color:rgba(var(--cream-rgb),.4);text-align:center}
+  .kb-act{font-size:13px;color:var(--cream)}
+  .kb-key{
+    padding:7px 6px;border-radius:8px;cursor:pointer;font:inherit;font-size:13px;font-weight:700;
+    color:var(--gold);background:rgba(var(--panel-tint-rgb),.4);border:1px solid var(--edge);
+    border-bottom-width:3px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:.12s;
+  }
+  .kb-key:hover{border-color:var(--gold)}
+  .kb-key.empty{color:rgba(var(--cream-rgb),.3);font-weight:400}
+  /* Waiting for a key: it has to be unmistakable which cap is listening. */
+  .kb-key.listening{
+    color:var(--ink);background:linear-gradient(135deg,var(--gold),var(--pop));border-color:var(--gold);
+    font-size:11px;animation:kbPulse 1s ease-in-out infinite;
+  }
+  @keyframes kbPulse{50%{box-shadow:0 0 0 3px rgba(var(--gold-rgb),.28)}}
+  .kb-note:empty{display:none}
+  .kb-note{color:var(--gold)}
   /* 92px min fits all five across the panel; the label tracking comes in to
      match, because "Biggest hit" at the old spacing wrapped inside the cell */
   .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px}

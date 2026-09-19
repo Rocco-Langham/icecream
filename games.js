@@ -2107,7 +2107,9 @@ function fbRender(){
   if(fbState === "flying"){
     fbCtx.fillText(fbPassed + (fbPassed === 1 ? " PIPE · " : " PIPES · ") + fmt(fbCashValue()) + " CHIPS", fbW/2, 56);
   }else if(fbState === "idle"){
-    fbCtx.fillText("FLY OR K TO BET · TAP SKY OR SPACE TO FLAP", fbW/2, 56);
+    var fbGoKey = keyName("flappy.go"), fbFlapKey = keyName("flappy.flap");
+    fbCtx.fillText(((fbGoKey ? "Fly or " + fbGoKey : "Fly") + " to bet \u00b7 tap sky" +
+                    (fbFlapKey ? " or " + fbFlapKey : "") + " to flap").toUpperCase(), fbW/2, 56);
   }else{
     fbCtx.fillStyle = "rgba(255,140,140,.85)";
     fbCtx.fillText("CRASHED", fbW/2, 56);
@@ -2121,7 +2123,7 @@ function syncFlappyUI(){
   $("fbPipeVal").textContent = fbPassed;
   $("fbBestVal").textContent = fmt(flappyBest);
   var go = $("fbGo");
-  go.textContent = flying ? "Cash out " + fmt(fbCashValue()) + " (K)" : "Fly (K)";
+  go.textContent = flying ? "Cash out " + fmt(fbCashValue()) + keyTag("flappy.go") : "Fly" + keyTag("flappy.go");
   go.classList.toggle("cash", flying);
   go.disabled = fbState === "dead";
   Array.prototype.forEach.call(fbBtns, function(b){ b.disabled = flying; });
@@ -2157,16 +2159,15 @@ fbCanvas.addEventListener("pointerdown", function(e){
 });
 
 /* Space flaps; K bets and cashes out, so the whole round can be played from the
-   keyboard without reaching for the button mid-flight. */
+   keyboard without reaching for the button mid-flight. Both are changeable in
+   Settings > Keybinds. */
 document.addEventListener("keydown", function(e){
-  if(e.code !== "Space" && e.code !== "KeyK") return;
-  if(!$("tab-flappy").classList.contains("on")) return;
-  var t = e.target;
-  if(t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
+  if(!$("tab-flappy").classList.contains("on") || keyBlocked(e)) return;
+  var go = keyIs(e, "flappy.go");
+  if(!go && !keyIs(e, "flappy.flap")) return;
   e.preventDefault();
-  if(e.repeat && e.code === "KeyK") return;              // holding K must not re-bet
-  if(e.code === "Space") fbFlap();
-  else fbToggle();
+  if(go){ if(!e.repeat) fbToggle(); return; }            // holding the bet key must not re-bet
+  fbFlap();
 });
 
 fbResize();
@@ -2466,7 +2467,7 @@ function syncSnakeUI(){
   $("snEatVal").textContent  = snEaten;
   $("snBestVal").textContent = fmt(snakeBest);
   var go = $("snGo");
-  go.textContent = live ? "Cash out " + fmt(snCashValue()) + " (K)" : "Play (K)";
+  go.textContent = live ? "Cash out " + fmt(snCashValue()) + keyTag("snake.go") : "Play" + keyTag("snake.go");
   go.classList.toggle("cash", live);
   go.disabled = snState === "dead";
   Array.prototype.forEach.call(snBtns, function(b){ b.disabled = live; });
@@ -2507,19 +2508,16 @@ snCanvas.addEventListener("pointermove", function(e){
 });
 window.addEventListener("pointerup", function(){ snTouch = null; });
 
-var SN_KEYS = {
-  ArrowLeft:[-1,0], KeyA:[-1,0], ArrowRight:[1,0], KeyD:[1,0],
-  ArrowUp:[0,-1],   KeyW:[0,-1], ArrowDown:[0,1],  KeyS:[0,1]
-};
+/* Arrows and WASD by default, each changeable in Settings > Keybinds. */
+var SN_STEER = [["snake.left", -1, 0], ["snake.right", 1, 0], ["snake.up", 0, -1], ["snake.down", 0, 1]];
 document.addEventListener("keydown", function(e){
-  if(!$("tab-snake").classList.contains("on")) return;
-  var t = e.target;
-  if(t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
-  var d = SN_KEYS[e.code];
-  if(d){ e.preventDefault(); snTurn(d[0], d[1]); return; }   /* arrows must not scroll the page */
-  if(e.code === "KeyK"){
+  if(!$("tab-snake").classList.contains("on") || keyBlocked(e)) return;
+  for(var i = 0; i < SN_STEER.length; i++){
+    if(keyIs(e, SN_STEER[i][0])){ e.preventDefault(); snTurn(SN_STEER[i][1], SN_STEER[i][2]); return; }  /* arrows must not scroll the page */
+  }
+  if(keyIs(e, "snake.go")){
     e.preventDefault();
-    if(e.repeat) return;                                     /* holding K must not re-bet */
+    if(e.repeat) return;                                     /* holding the bet key must not re-bet */
     snToggle();
   }
 });
@@ -2746,10 +2744,10 @@ function syncMinesUI(){
   $("mnBestVal").textContent = minesBest > 0 ? mnMultText(minesBest) : "—";
   var go = $("mnGo");
   if(live){
-    go.textContent = mnPicks > 0 ? "Cash out " + fmt(mnCashValue()) + " (K)" : "Pick a tile first";
+    go.textContent = mnPicks > 0 ? "Cash out " + fmt(mnCashValue()) + keyTag("mines.go") : "Pick a tile first";
     go.disabled = mnPicks <= 0;
   }else{
-    go.textContent = "Play (K)";
+    go.textContent = "Play" + keyTag("mines.go");
     go.disabled = mnState === "dead";
   }
   /* Green means cashing out now is a win. Short of the profit tile it would
@@ -2791,14 +2789,12 @@ Array.prototype.forEach.call(document.querySelectorAll("#mnMineSeg button"), fun
 });
 
 /* K to bet and to cash out, as in Flappy and Snake -- the other two games where
-   the whole decision is when to stop. */
+   the whole decision is when to stop. Changeable in Settings > Keybinds. */
 document.addEventListener("keydown", function(e){
-  if(!$("tab-mines").classList.contains("on")) return;
-  var t = e.target;
-  if(t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
-  if(e.code === "KeyK"){
+  if(!$("tab-mines").classList.contains("on") || keyBlocked(e)) return;
+  if(keyIs(e, "mines.go")){
     e.preventDefault();
-    if(e.repeat) return;                                     /* holding K must not re-bet */
+    if(e.repeat) return;                                     /* holding the bet key must not re-bet */
     mnToggle();
   }
 });

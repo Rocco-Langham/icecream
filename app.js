@@ -847,6 +847,18 @@ function switchSubtab(name){
   Array.prototype.forEach.call(document.querySelectorAll(".subtab"), function(o){ o.classList.toggle("on", o.dataset.subtab === name); });
   Array.prototype.forEach.call(document.querySelectorAll(".subpanel"), function(o){ o.classList.toggle("on", o.id === "sub-" + name); });
   if(name === "keybinds") renderKeybinds();
+  subtabIntoView(name);
+}
+/* On a phone the tabs are one strip you scroll sideways, with the close button
+   sitting over its right end. A picked tab is scrolled clear of it, rather
+   than left with its name under the x. */
+function subtabIntoView(name){
+  var b = document.querySelector('.subtab[data-subtab="' + name + '"]'), strip = b && b.closest(".modal-sidebar");
+  if(!strip || strip.scrollWidth <= strip.clientWidth) return;
+  var s = strip.getBoundingClientRect(), r = b.getBoundingClientRect();
+  var right = s.right - (parseFloat(getComputedStyle(strip).paddingRight) || 0);
+  if(r.right > right) strip.scrollLeft += r.right - right;
+  else if(r.left < s.left) strip.scrollLeft -= s.left - r.left;
 }
 
 $("settingsBtn").addEventListener("click", function(){
