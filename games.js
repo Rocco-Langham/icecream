@@ -2530,35 +2530,61 @@ syncSnakeUI();
 
 /* ================= MINES ================= */
 /* A five-by-five grid with some number of bombs hidden in it. Every tile you
-   turn over without hitting one compounds the multiplier; you can cash out at
+   turn over without hitting one raises the multiplier; you can cash out at
    any point once you have turned at least one; the first bomb ends the round
    and takes the stake with it.
 
-   Unlike Snake and Flappy there is no haircut for leaving early -- every tile
-   survived is worth more than the stake, even with a single mine on the
-   board -- because nothing here decays with time. The risk is entirely in the
-   next click, never in the waiting.
+   Cashing out comes out ahead only from a certain tile on, and which tile
+   depends on how many mines are down (MN_PROFIT_AT). Before it the multiplier
+   is under 1x, so leaving early hands back less than you put in -- the same
+   haircut Snake and Flappy have for bailing out at the start.
 
-   The multiplier is the fair price of the run so far with the house's cut
-   taken off the top: the chance of getting through k picks untouched is the
-   product of (safe tiles left) / (tiles left) at each step, so paying out its
-   reciprocal breaks even, and 3% off that is the same edge Plinko solves for. */
+   From that tile on it pays the fair price of the run: the chance of getting
+   through k picks untouched is the product of (safe tiles left) / (tiles left)
+   at each step, and paying back its reciprocal breaks exactly even. That is
+   the ceiling, not a round number picked for being big. Pay more than fair and
+   the rule above turns into a way to farm chips -- "turn tiles up to the
+   profit tile, then cash out" would win on average every single round. So the
+   house takes nothing from a run that gets there, and makes its money on the
+   ones that cash out before it. MN_PAYBACK is that ratio, if it is ever to be
+   turned up anyway: above 1, a player who stops at the profit tile wins that
+   much of the stake, on average, every round. */
 var MN_TOTAL = 25;
-var MN_EDGE  = 0.97;
+var MN_PAYBACK = 1;
+/* The first tile at which a cash-out is worth more than the stake. Every mine
+   count on the picker has to be here. */
+var MN_PROFIT_AT = {1:4, 3:3, 5:3, 10:2, 24:1};
 
 var mnStake = 25, mnCount = 3, mnState = "idle";       /* idle | live | dead */
 var mnCells = [], mnTiles = [], mnPicks = 0, mnMult = 1, mnRig = null;
 
+/* One over the chance of turning that many tiles without hitting a mine. */
+function mnFair(mines, picks){
+  var f = 1;
+  for(var i = 0; i < picks; i++) f *= (MN_TOTAL - i) / (MN_TOTAL - mines - i);
+  return f;
+}
+function mnProfitAt(mines){ return MN_PROFIT_AT[mines] || 1; }
+/* Before the profit tile the fair curve is divided through by its own value at
+   that tile, so it climbs the same way, as fast as the risk does, but lands
+   under 1x on every tile short of it. From the profit tile on it is the fair
+   price itself. The step between the two is the moment you go into profit. */
 function mnMultAt(mines, picks){
   if(picks <= 0) return 1;
-  var m = MN_EDGE;
-  for(var i = 0; i < picks; i++) m *= (MN_TOTAL - i) / (MN_TOTAL - mines - i);
-  return m;
+  var at = mnProfitAt(mines);
+  if(picks >= at) return MN_PAYBACK * mnFair(mines, picks);
+  return mnFair(mines, picks) / mnFair(mines, at);
+}
+function mnOrdinal(n){ return ["", "1st", "2nd", "3rd"][n] || n + "th"; }
+function mnProfitHint(){
+  var at = mnProfitAt(mnCount);
+  return at <= 1 ? "any safe tile puts you ahead"
+                 : "cash out from the " + mnOrdinal(at) + " tile to come out ahead";
 }
 /* Two decimals while the numbers are small and the difference between one and
    the next matters; fewer as they climb, where they stop meaning anything.
    Both readouts are sized for the biggest this can print -- a full clear with
-   ten mines down, 3,170,697x -- since the boxes are fixed-width and clip. */
+   ten mines down, 3,268,760x -- since the boxes are fixed-width and clip. */
 function mnMultText(m){
   return (m >= 100 ? fmt(Math.round(m)) : m >= 10 ? m.toFixed(1) : m.toFixed(2)) + "x";
 }
@@ -2632,7 +2658,7 @@ function mnStart(){
   mnNewBoard();
   mnPlaceBombs(mnCells, mnCount);
   playChip();
-  msg($("mnMsg"), "Pick a tile — " + mnCount + " " + (mnCount === 1 ? "mine" : "mines") + " hidden in the grid.", "info");
+  msg($("mnMsg"), mnCount + " " + (mnCount === 1 ? "mine" : "mines") + " hidden — " + mnProfitHint() + ".", "info");
   syncMinesUI();
 }
 function mnReveal(i){
@@ -2686,7 +2712,9 @@ function mnCashOut(){
   if(mnState !== "live" || mnPicks <= 0) return;
   var ret = mnCashValue(), net = ret - mnStake;
   var cleared = mnPicks >= MN_TOTAL - mnCount;
-  var best = mnMult > minesBest;
+  /* A best is a run that paid. Cashing out under 1x is a loss, and calling it a
+     new best on the same line that tells you what it cost would be absurd. */
+  var best = net > 0 && mnMult > minesBest;
   if(best){ minesBest = mnMult; save(); }
 
   mnState = "idle";
@@ -2701,7 +2729,8 @@ function mnCashOut(){
     msg($("mnMsg"), head + " — " + fmt(ret) + " chips (+" + fmt(net) + ").", "win");
   }else if(net < 0){
     playLose();
-    msg($("mnMsg"), head + " — " + fmt(ret) + " chips back (" + fmt(net) + ").", "lose");
+    msg($("mnMsg"), head + " — " + fmt(ret) + " chips back (" + fmt(net) + "). With " + mnCount + " " +
+                    (mnCount === 1 ? "mine" : "mines") + ", " + mnProfitHint() + ".", "lose");
   }else{
     playClick();
     msg($("mnMsg"), head + " — " + fmt(ret) + " chips back.", "info");
@@ -2723,7 +2752,10 @@ function syncMinesUI(){
     go.textContent = "Play (K)";
     go.disabled = mnState === "dead";
   }
-  go.classList.toggle("cash", live && mnPicks > 0);
+  /* Green means cashing out now is a win. Short of the profit tile it would
+     hand back less than the stake, so the button stays the plain one until
+     then -- it turning green is how you can tell you have got there. */
+  go.classList.toggle("cash", live && mnPicks > 0 && mnMult > 1);
   Array.prototype.forEach.call(mnBtns, function(b){ b.disabled = live; });
   $("mnCustom").disabled = live;
   $("mnClear").disabled  = live;
