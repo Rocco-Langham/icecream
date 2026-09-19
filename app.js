@@ -1366,8 +1366,10 @@ $("resetStatsClose2").addEventListener("click", closeReset2);
 $("resetStatsCancel2").addEventListener("click", function(){ playClick(); closeReset2(); });
 resetStats2.addEventListener("click", function(e){ if(e.target === resetStats2) closeReset2(); });
 
-$("resetStatsGo").addEventListener("click", function(){
-  playClick();
+/* Shared by the button below and the dev console's `reset stats` -- a
+   confirmed click and a typed command both have to land in exactly the same
+   place, or the two could drift into resetting different things. */
+function resetAllStats(){
   stats.hands = 0;
   stats.won = 0;
   stats.big = 0;
@@ -1386,6 +1388,10 @@ $("resetStatsGo").addEventListener("click", function(){
      one change a player may well close the tab immediately after. */
   clearTimeout(cloudTimer);
   if(sbUser) cloudPush();
+}
+$("resetStatsGo").addEventListener("click", function(){
+  playClick();
+  resetAllStats();
   closeReset2();
 });
 
@@ -1869,6 +1875,7 @@ function openDevPopup(){
     '      print("&nbsp;&nbsp;<b>rig</b> &mdash; show current rig levels");',
     '      print("&nbsp;&nbsp;<b>rig off</b> &mdash; back to fair odds");',
     '      print("&nbsp;&nbsp;<b>reset codes</b> &mdash; make every code claimable again");',
+'      print("&nbsp;&nbsp;<b>reset stats</b> &mdash; wipe hands, chips won, high scores, the leaderboard");',
     '      print("&nbsp;&nbsp;<b>clear</b> &mdash; clear this console");',
     '      print("&nbsp;&nbsp;<b>exit</b> &mdash; close this window");',
     '      print("Chip amounts take k/m/b &mdash; e.g. chips add 1.5m", "out-dim");',
@@ -1880,7 +1887,7 @@ function openDevPopup(){
     '      setTimeout(function(){ window.close(); }, 250);',
     '      return;',
     '    }',
-    '    if(cmd !== "chips" && cmd !== "rig" && cmd !== "reset" && cmd !== "codes" && cmd !== "irlpoker"){',
+    '    if(cmd !== "chips" && cmd !== "rig" && cmd !== "reset" && cmd !== "codes" && cmd !== "stats" && cmd !== "irlpoker"){',
     '      print("Unknown command: " + esc(cmd) + " (try \\"help\\")", "out-err");',
     '      return;',
     '    }',
@@ -2001,12 +2008,23 @@ window.addEventListener("message", function(e){
     reply("Rig " + who + " set to " + pct + "%" +
           (pct === 0 ? " (normal odds)." : pct === 100 ? " (every round forced)." : "."), "ok");
     reply("Now &mdash; user: " + rigUser + ", host: " + rigHost, "info");
-  }else if(cmd === "reset" || cmd === "codes"){
+  }else if(cmd === "reset" || cmd === "codes" || cmd === "stats"){
     /* Written either way round, because "reset codes" reads like English and
-       "codes reset" matches the verb-second shape of the commands above it. */
+       "codes reset" matches the verb-second shape of the commands above it.
+       "reset stats" gets the same courtesy. */
     var sub = (args[0] || "").toLowerCase();
-    if(!(cmd === "reset" && sub === "codes") && !(cmd === "codes" && sub === "reset")){
-      reply("Usage: reset codes", "err"); return;
+    var wantCodes = (cmd === "reset" && sub === "codes") || (cmd === "codes" && sub === "reset");
+    var wantStats = (cmd === "reset" && sub === "stats") || (cmd === "stats" && sub === "reset");
+    if(!wantCodes && !wantStats){
+      reply("Usage: reset codes | reset stats", "err"); return;
+    }
+    if(wantStats){
+      /* No confirmation, unlike the button in Settings -- typing a command
+         here already is the deliberate step, the way `chips set` and `rig`
+         both act the moment you press enter. */
+      resetAllStats();
+      reply("Stats reset &mdash; hands, chips won, biggest hit, high scores and the leaderboard are all back to zero.", "ok");
+      return;
     }
     /* A claim is a row in the database, not a note in this browser, so this
        cannot be done locally — and that is the whole reason the claim was moved
