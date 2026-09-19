@@ -389,6 +389,10 @@ function mpUnwatchGame(){
   if(mpGameChan){ sb.removeChannel(mpGameChan); mpGameChan = null; }
   clearTimeout(mpClock); clearTimeout(mpNextTimer); clearTimeout(mpBotTimer);
   mpT = null; mpState = null; mpMyCards = null; mpLastSeen = 0; mpWho = []; mpPaidHand = -1;
+  /* Covered cards are for the table you were at. Sitting down at the next one
+     with your hand already face down and no memory of having put it there
+     reads as a bug. */
+  if(typeof pokHideMine !== "undefined") pokHideMine = false;
 }
 
 /* ==========================================================================
@@ -434,10 +438,17 @@ function mpRenderGame(){
      single-player table gives, from the same engine. */
   if(mpFeltOn) return;                               /* the real table draws all of this */
   var mine = document.getElementById("mpMine");
-  mine.innerHTML = mpMyCards ? mpMyCards.map(mpCardHtml).join("")
-                             : '<span class="mp-note">Not in this hand</span>';
-  var note = "";
-  if(mpMyCards && mpMyCards.length === 2){
+  /* Face down here too, and the same flag: cover them on the felt, collapse to
+     the plain list, and they had better still be covered. Read directly rather
+     than through pokHeroFaceDown, which asks whether the felt is on loan --
+     this list only ever appears at the online table anyway. */
+  var hidden = mpMyCards && typeof pokHideMine !== "undefined" && pokHideMine;
+  mine.innerHTML = !mpMyCards ? '<span class="mp-note">Not in this hand</span>'
+                 : hidden     ? mpMyCards.map(function(){ return mpCardHtml(null); }).join("")
+                              : mpMyCards.map(mpCardHtml).join("");
+  mine.style.cursor = mpMyCards ? "pointer" : "";
+  var note = hidden ? "Hidden — click to show" : "";
+  if(!hidden && mpMyCards && mpMyCards.length === 2){
     var hole = mpMyCards.map(mpCardIn), board = mpState.board.map(mpCardIn);
     note = pokDescribeHole(hole);
     if(board.length >= 3){
@@ -622,3 +633,18 @@ function mpFeltUpdate(){
      state arriving is the equivalent moment. */
   if(typeof pokRender === "function") pokRender();
 }
+
+/* The plain list's half of click-to-hide. The felt's own cards are hit-tested
+   on the canvas in table.js; these are real elements, so the click only has to
+   land anywhere on the pair. Delegated from the row itself, which is in the
+   page from the start and never replaced -- only its contents are. */
+(function(){
+  var mine = document.getElementById("mpMine");
+  if(!mine) return;
+  mine.addEventListener("click", function(){
+    if(!mpMyCards || typeof pokHideMine === "undefined") return;
+    pokHideMine = !pokHideMine;
+    if(typeof playCard === "function") playCard();
+    mpRenderGame();
+  });
+})();

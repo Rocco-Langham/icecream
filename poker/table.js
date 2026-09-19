@@ -21,6 +21,20 @@ function pokRenderHandInfo(T){
   var me = T.players[0];
   if(!me.hole.length || !me.inHand){ el.hidden = true; pokHandInfoKey = null; return; }
 
+  /* Turning the cards over is no good while the readout underneath still
+     spells out what they are. It keeps its place rather than disappearing,
+     both so the panel does not jump and so there is something on screen
+     saying how to get the hand back. */
+  if(pokHeroFaceDown()){
+    if(pokHandInfoKey === "hidden") return;
+    pokHandInfoKey = "hidden";
+    el.hidden = false;
+    el.innerHTML = '<div class="pok-hi-title">Your hand</div>' +
+      '<div class="pok-hi-current">Hidden</div>' +
+      '<div class="pok-hi-sub">Click your cards to show them</div>';
+    return;
+  }
+
   var key = me.hole.map(function(c){ return c.r + c.su.s; }).join(",") + "|" +
             T.board.map(function(c){ return c.r + c.su.s; }).join(",");
   if(key === pokHandInfoKey) return;
@@ -150,6 +164,23 @@ var pokMsgId = "pokMsg";
    raise adds up to and what the hand is worth, none of which cares where the
    move ends up being applied. */
 var pokRemote = null;
+/* Your own two cards, turned face down where you sit. Only online: the table
+   there is up on a screen for a while with other people at it, and covering
+   your hand without folding it is the whole point. The single-player game
+   deals to nobody but you, so the click does nothing at that table -- which is
+   also why the flag is read through pokHeroFaceDown rather than on its own.
+   It stays down until clicked again; a hand at a time would mean covering
+   them afresh on every deal. */
+var pokHideMine = false;
+function pokHeroFaceDown(){ return pokHideMine && !!pokRemote; }
+/* The pair of them as one box in scene coordinates, a few pixels proud on
+   every side because it is a target for a finger as much as for a pointer. */
+function pokHeroCardsHit(x, y){
+  var me = pok.T && pok.T.players && pok.T.players[0];
+  if(!me || !me.hole.length) return false;
+  var hs = pokHeroS();
+  return Math.abs(x - TBL.cx) <= 32 + 17*hs + 6 && Math.abs(y - pokHeroY()) <= 24*hs + 6;
+}
 function pokLend(mount, msgId, remote){
   if(!mount || pok.seated) return false;             /* see pokCanLend */
   /* The whole stage moves, not a copy of it: the felt, the controls, the
@@ -183,6 +214,12 @@ function pokUnlend(){
    sitting in, the online game asks first and says so if the answer is no. */
 function pokCanLend(){ return !pok.seated; }
 var POK_W = 900, POK_H = 520, POK_ROOM = 300, pokZ = 1, pokCssW = 0, pokCssH = 0;
+/* Where the scene's own 0,0 sits inside the canvas, in the canvas's pixels.
+   The scene is centred in whatever box it is given, so this is rarely zero,
+   and anything turning a click back into a point on the felt has to take it
+   off again. Held rather than worked out twice: a hit test that recomputed it
+   would be one edit away from disagreeing with what was drawn. */
+var pokOffX = 0, pokOffY = 0;
 var TBL = {cx:450, cy:442, rx:400, ry:176};
 
 /* The scene is composed 900 wide and then laid out down whatever height the box
@@ -209,7 +246,8 @@ function pokResize(){
   pokCssW = rect.width; pokCssH = rect.height;
   pokCanvas.width  = Math.round(rect.width * dpr);
   pokCanvas.height = Math.round(rect.height * dpr);
-  pokCtx.setTransform(dpr*z, 0, 0, dpr*z, (rect.width - POK_W*z)*dpr/2, (rect.height - POK_H*z)*dpr/2);
+  pokOffX = (rect.width - POK_W*z)/2; pokOffY = (rect.height - POK_H*z)/2;
+  pokCtx.setTransform(dpr*z, 0, 0, dpr*z, pokOffX*dpr, pokOffY*dpr);
   pokBuildRoom(POK_ROOM);
 }
 function onFelt(deg, k){
@@ -1217,8 +1255,9 @@ function pokScene(t){
     var hl = c.createRadialGradient(TBL.cx,hy,4,TBL.cx,hy,86);
     hl.addColorStop(0,"rgba(255,240,200,.16)"); hl.addColorStop(1,"rgba(255,240,200,0)");
     c.fillStyle=hl; c.beginPath(); c.ellipse(TBL.cx,hy,86,44,0,0,7); c.fill();
-    if(pokLanded("hole",0,0)) pokCard(c,TBL.cx-32,hy,-0.12,hs,me.hole[0],false);
-    if(pokLanded("hole",0,1)) pokCard(c,TBL.cx+32,hy, 0.12,hs,me.hole[1],false);
+    var down = pokHeroFaceDown();
+    if(pokLanded("hole",0,0)) pokCard(c,TBL.cx-32,hy,-0.12,hs,me.hole[0],down);
+    if(pokLanded("hole",0,1)) pokCard(c,TBL.cx+32,hy, 0.12,hs,me.hole[1],down);
   }
   if(T.dealer === 0){
     c.fillStyle="#f2ead6"; c.beginPath(); c.arc(TBL.cx-110,pokHeroY()-32,9,0,7); c.fill();
@@ -1752,6 +1791,36 @@ $("pokRaiseClear").addEventListener("click", pokRaiseReset);
     if(!v || v < 1){ box.value = ""; return; }
     var set = pokRaiseSet(Math.max(5, Math.round(v / 5) * 5));
     if(set !== null) box.value = set;
+  });
+})();
+
+/* Click your own two cards to turn them face down, and again to turn them
+   back. The scene is one canvas, so there is nothing to hang a listener on but
+   the box the cards are drawn in -- worked out from the same numbers that drew
+   them, which is why the two live next to each other.
+
+   Undoing exactly what pokResize did: take off where the canvas starts, then
+   where the scene starts inside it, then the scale. The zoom the whole table
+   is drawn at needs no undoing of its own -- the rect that set pokZ was
+   measured through the same zoom a click is reported through. */
+(function(){
+  function overCards(e){
+    var rect = pokCanvas.getBoundingClientRect();
+    if(!rect.width || !pokZ) return false;
+    return pokHeroCardsHit((e.clientX - rect.left - pokOffX) / pokZ,
+                           (e.clientY - rect.top  - pokOffY) / pokZ);
+  }
+  pokCanvas.addEventListener("click", function(e){
+    if(!pokRemote || !overCards(e)) return;
+    pokHideMine = !pokHideMine;
+    pokHandInfoKey = null;                             /* the readout below says something else now */
+    if(typeof playCard === "function") playCard();
+  });
+  /* Nothing on the felt is clickable, so the pointer is the only hint that
+     these two are. */
+  pokCanvas.addEventListener("mousemove", function(e){
+    var want = pokRemote && overCards(e) ? "pointer" : "";
+    if(pokCanvas.style.cursor !== want) pokCanvas.style.cursor = want;
   });
 })();
 
