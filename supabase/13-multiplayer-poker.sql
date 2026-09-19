@@ -1,4 +1,4 @@
--- SparxMaths Casino — tables for multiplayer poker.
+-- xyzcasino — tables for multiplayer poker.
 -- Run this in: Supabase dashboard -> SQL Editor -> New query -> Run.
 -- (THIRTEENTH script. Safe to run more than once.)
 --

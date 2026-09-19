@@ -1,4 +1,4 @@
--- SparxMaths Casino — Supabase schema
+-- xyzcasino — Supabase schema
 -- Paste the whole file into: Supabase dashboard -> SQL Editor -> New query -> Run.
 -- Safe to run once. If you need to start over, see the teardown block at the bottom.
 

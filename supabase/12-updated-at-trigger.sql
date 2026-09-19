@@ -1,4 +1,4 @@
--- SparxMaths Casino — let the server stamp scores.updated_at.
+-- xyzcasino — let the server stamp scores.updated_at.
 -- Run this in: Supabase dashboard -> SQL Editor -> New query -> Run.
 -- (TWELFTH script. Safe to run more than once.)
 --

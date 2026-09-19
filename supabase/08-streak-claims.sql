@@ -1,4 +1,4 @@
--- SparxMaths Casino — remember which day's streak chips have been claimed.
+-- xyzcasino — remember which day's streak chips have been claimed.
 -- Run this in: Supabase dashboard -> SQL Editor -> New query -> Run.
 -- (EIGHTH script. Assumes 01 and 03 have been run.)
 --

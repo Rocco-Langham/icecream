@@ -1,4 +1,4 @@
--- SparxMaths Casino — Flappy high scores.
+-- xyzcasino — Flappy high scores.
 -- Run this in: Supabase dashboard -> SQL Editor -> New query -> Run.
 -- (This is the SIXTH script. It assumes 01-schema.sql has already been run.)
 --

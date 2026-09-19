@@ -1,4 +1,4 @@
--- SparxMaths Casino — codes that can be claimed more than once.
+-- xyzcasino — codes that can be claimed more than once.
 -- Run this in: Supabase dashboard -> SQL Editor -> New query -> Run.
 -- (NINTH script. Assumes 07-conditional-codes.sql has been run first.)
 --

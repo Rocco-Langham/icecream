@@ -1,4 +1,4 @@
--- SparxMaths Casino — the dev console's "reset codes".
+-- xyzcasino — the dev console's "reset codes".
 -- Run this in: Supabase dashboard -> SQL Editor -> New query -> Run.
 -- (TENTH script. Assumes 05 has been run.)
 --

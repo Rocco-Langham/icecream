@@ -1,4 +1,4 @@
--- SparxMaths Casino — open "reset codes" to everyone.
+-- xyzcasino — open "reset codes" to everyone.
 -- Run this in: Supabase dashboard -> SQL Editor -> New query -> Run.
 -- (ELEVENTH script. Replaces the function from 10-reset-codes.sql.)
 --

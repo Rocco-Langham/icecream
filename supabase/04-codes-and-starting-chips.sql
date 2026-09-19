@@ -1,4 +1,4 @@
--- SparxMaths Casino — redeemable codes, and a 1000-chip starting balance.
+-- xyzcasino — redeemable codes, and a 1000-chip starting balance.
 -- Run this in: Supabase dashboard -> SQL Editor -> New query -> Run.
 -- (FOURTH script. Assumes 01-schema.sql has already been run.)
 

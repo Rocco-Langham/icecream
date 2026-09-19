@@ -42,7 +42,7 @@ function saveLocal(){
     bank:bank, stats:stats, gameNet:gameNet, streak:streak,
     flappyBest:flappyBest, snakeBest:snakeBest, minesBest:minesBest,
     theme:currentTheme, font:currentFont, soundOn:soundOn,
-    soundVolume:soundVolume, casinoName:CASINO_NAME,
+    soundVolume:soundVolume, devUnlocked:devUnlocked,
     rigUser:rigUser, rigHost:rigHost, irlPoker:irlPoker, keybinds:keybinds,
     pokerStack:pokerStack, syncToken:syncToken
   };
@@ -113,7 +113,12 @@ var minesBest    = (saved && typeof saved.minesBest  === "number") ? saved.mines
 var redeemed     = [];
 var soundOn      = saved && typeof saved.soundOn === "boolean" ? saved.soundOn : true;
 var soundVolume  = saved && typeof saved.soundVolume === "number" ? saved.soundVolume : 45;
-var CASINO_NAME  = saved && typeof saved.casinoName === "string" ? saved.casinoName : "SparxMaths";
+/* The name is fixed. It used to be stored, because entering the dev code
+   renamed the casino -- and the rename doubled as the record that dev mode was
+   on. That record is its own flag now; saves from before carry it as the old
+   name, so "xyz" there still counts as unlocked. */
+var CASINO_NAME  = "xyzcasino";
+var devUnlocked  = !!(saved && (saved.devUnlocked || saved.casinoName === "xyz"));
 
 /* ============ keybinds ============ */
 /* The keyboard shortcuts you can change, in one list, so Settings can show
@@ -1995,15 +2000,14 @@ renderAccount();
 /* ---- dev mode (unlocked by the Code field in General settings) ---- */
 var devCodeInput = $("devCode"), devNote = $("devNote");
 
-function applyCasinoName(name){
-  CASINO_NAME = name;
-  document.title = name.toUpperCase() + " Casino";
-  $("brandName").textContent = name;
+function applyCasinoName(){
+  document.title = CASINO_NAME;
+  $("brandName").textContent = CASINO_NAME;
 }
 
 function openDevPopup(){
   var html = [
-    '<!doctype html><html><head><meta charset="utf-8"><title>xyz — dev console</title><style>',
+    '<!doctype html><html><head><meta charset="utf-8"><title>xyzcasino — dev console</title><style>',
     '*{box-sizing:border-box}',
     'html,body{margin:0;height:100%}',
     'body{',
@@ -2062,7 +2066,7 @@ function openDevPopup(){
     '    <span class="term-title">xyz — dev console</span>',
     '  </div>',
     '  <div class="term-body" id="termBody">',
-    '    <div class="term-line out-info">XYZ dev console connected to the casino window.</div>',
+    '    <div class="term-line out-info">xyzcasino dev console connected to the casino window.</div>',
     '    <div class="term-line out-dim">Type <b>help</b> to see available commands.</div>',
     '  </div>',
     '  <div class="term-inputrow">',
@@ -2295,19 +2299,19 @@ function submitDevCode(){
 
   if(raw.toLowerCase() === "xyz"){
     playWin("big");
-    applyCasinoName("xyz");
+    devUnlocked = true;
     save();
     var opened = openDevPopup();
     devNote.textContent = opened
-      ? "Code accepted — casino renamed. Check the pop-up window."
-      : "Code accepted — casino renamed. No pop-up, so type dev commands here.";
+      ? "Code accepted — dev mode on. Check the pop-up window."
+      : "Code accepted — dev mode on. No pop-up, so type dev commands here.";
     devNote.style.color = "var(--good)";
     /* Only step aside when the console actually opened. A phone blocks the
        pop-up every time, and closing this was then closing the only way left
        to type a command -- you were told the code worked and then shown the
        door, which reads exactly like it did not. */
     if(opened) setTimeout(function(){ settingsOverlay.classList.remove("on"); }, 900);
-  }else if(raw.toLowerCase() === "irlpoker" && CASINO_NAME === "xyz"){
+  }else if(raw.toLowerCase() === "irlpoker" && devUnlocked){
     /* The same switch as the dev console's, reachable from a phone. The
        console lives in a pop-up window that talks back through window.opener,
        and a phone browser either blocks that outright or buries it in another

@@ -1,4 +1,4 @@
--- SparxMaths Casino — multiplayer poker policies, without the helper functions.
+-- xyzcasino — multiplayer poker policies, without the helper functions.
 -- Run this in: Supabase dashboard -> SQL Editor -> New query -> Run.
 -- (FOURTEENTH script. Replaces PART 2 and PART 3 of script 13. Safe to re-run.)
 --

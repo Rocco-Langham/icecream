@@ -3,14 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SparxMaths Casino</title>
+<title>xyzcasino</title>
+<link rel="icon" type="image/svg+xml" href="icon.svg?v=54">
+<link rel="icon" type="image/png" sizes="64x64" href="icon.png?v=54">
+<link rel="apple-touch-icon" href="icon-180.png?v=54">
 <!-- ?v= on every local file is a cache buster, and it has to be bumped in
      this one place whenever any of them changes. GitHub Pages re-checks
      the page itself quickly but will happily hand a browser the same
      app.js for a long time afterwards, so without this a deploy can sit
      there fixed on the server and broken in the only browser that
      matters -- which looks exactly like the fix never worked. -->
-<link rel="stylesheet" href="style.css?v=53">
+<link rel="stylesheet" href="style.css?v=54">
 </head>
 <body>
 <div class="app-shell">
@@ -18,7 +21,7 @@
   <aside class="sidebar">
     <div class="sidebar-brand">
       <div class="suits"><span class="r">&hearts;</span>&spades;<span class="r">&diams;</span>&clubs;</div>
-      <h1 id="brandName">SparxMaths</h1>
+      <h1 id="brandName">xyzcasino</h1>
       <small>Play&nbsp;Money&nbsp;Casino</small>
     </div>
 
@@ -1088,16 +1091,16 @@
 <!-- The one external dependency in the file. Only reachable over http(s), which
      is why the offline file:// copy keeps working with cloud saves switched off. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=53"></script>
-<script src="games.js?v=53"></script>
+<script src="app.js?v=54"></script>
+<script src="games.js?v=54"></script>
 <!-- Poker in three parts, loaded in dependency order: the rules, then the
      opponents that consult them, then the table that shows it all. -->
-<script src="poker/engine.js?v=53"></script>
-<script src="poker/bots.js?v=53"></script>
-<script src="poker/table.js?v=53"></script>
-<script src="poker/check.js?v=53"></script>
-<script src="poker/online.js?v=53"></script>
-<script src="poker/online-game.js?v=53"></script>
+<script src="poker/engine.js?v=54"></script>
+<script src="poker/bots.js?v=54"></script>
+<script src="poker/table.js?v=54"></script>
+<script src="poker/check.js?v=54"></script>
+<script src="poker/online.js?v=54"></script>
+<script src="poker/online-game.js?v=54"></script>
 <script>
 "use strict";
 /* Everything above only declares things. This is the part that runs, so it
@@ -1106,7 +1109,7 @@
 applyTheme((saved && saved.theme) || "emerald");
 applyFont((saved && saved.font) || "segoe");
 syncSoundUI();
-applyCasinoName(CASINO_NAME);
+applyCasinoName();
 setBank(bank, 0);
 renderBets();
 renderLeaderboard();

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- xyzcasino: a gold chip with an x at its heart -->
+  <circle cx="32" cy="32" r="31" fill="#d4af37"/>
+  <g stroke="#7a1f1f" stroke-width="7" stroke-linecap="butt">
+    <path d="M32 1v9M32 54v9M1 32h9M54 32h9M10.1 10.1l6.4 6.4M47.5 47.5l6.4 6.4M53.9 10.1l-6.4 6.4M16.5 47.5l-6.4 6.4"/>
+  </g>
+  <circle cx="32" cy="32" r="20" fill="#0d3b2a" stroke="#f3dc8a" stroke-width="2.5"/>
+  <path d="M24 24l16 16M40 24L24 40" stroke="#f3dc8a" stroke-width="6" stroke-linecap="round"/>
+</svg>

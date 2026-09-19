@@ -1,4 +1,4 @@
--- SparxMaths Casino — allow logging in with a username instead of an email.
+-- xyzcasino — allow logging in with a username instead of an email.
 -- Run this in: Supabase dashboard -> SQL Editor -> New query -> Run.
 -- (This is a SECOND script. It assumes supabase-schema.sql has already been run.)
 --

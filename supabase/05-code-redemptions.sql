@@ -1,4 +1,4 @@
--- SparxMaths Casino — enforce "one claim per account" in the database.
+-- xyzcasino — enforce "one claim per account" in the database.
 -- Run this in: Supabase dashboard -> SQL Editor -> New query -> Run.
 -- (FIFTH script. Assumes 01 and 04 have been run.)
 --

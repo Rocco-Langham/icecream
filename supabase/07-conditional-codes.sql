@@ -1,4 +1,4 @@
--- SparxMaths Casino — codes that only pay under a condition.
+-- xyzcasino — codes that only pay under a condition.
 -- Run this in: Supabase dashboard -> SQL Editor -> New query -> Run.
 -- (SEVENTH script. Assumes 01 and 05 have been run.)
 --

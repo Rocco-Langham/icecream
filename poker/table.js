@@ -427,7 +427,7 @@ function pokDrawTable(c){
   c.strokeStyle="rgba(220,240,225,.10)"; c.lineWidth=2;
   c.beginPath(); c.ellipse(TBL.cx,TBL.cy,TBL.rx*0.72,TBL.ry*0.72,0,0,7); c.stroke();
   c.save(); c.globalAlpha=.12; c.fillStyle="#f4e7c8"; c.textAlign="center";
-  c.font="700 20px Georgia, serif"; c.fillText(CASINO_NAME.toUpperCase(),TBL.cx,TBL.cy+86);
+  c.font="700 20px Georgia, serif"; c.fillText(CASINO_NAME,TBL.cx,TBL.cy+86);
   c.font="10px Georgia, serif"; c.fillText("T E X A S   H O L D ’ E M",TBL.cx,TBL.cy+104);
   c.restore();
 }

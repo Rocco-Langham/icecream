@@ -1,4 +1,4 @@
--- SparxMaths Casino — daily play streaks.
+-- xyzcasino — daily play streaks.
 -- Run this in: Supabase dashboard -> SQL Editor -> New query -> Run.
 -- (This is the THIRD script. It assumes 01-schema.sql has already been run.)
 --
