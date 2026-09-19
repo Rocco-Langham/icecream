@@ -436,7 +436,45 @@
   <section class="game" id="tab-crash">
     <div class="table">
       <h2 class="title">Crash</h2>
-      <!-- CRASH-MARKUP (crash.js) -->
+      <p class="sub">The multiplier climbs until it crashes &middot; cash out before it does</p>
+
+      <div class="cr-history" id="crHistory"></div>
+
+      <canvas class="playfield" id="crashCanvas"></canvas>
+
+      <button class="btn fb-action" id="crGo">Play</button>
+
+      <div class="field-inline">
+        <span class="cr-pair">
+          <span class="lbl">Auto cash-out</span>
+          <input type="number" class="cr-auto" id="crAuto" min="1.01" step="0.01" placeholder="Off (e.g. 2.00)">
+        </span>
+
+        <span class="cr-pair">
+          <span class="lbl">Multiplier</span>
+          <div class="stake cr-read" id="crMultVal">1.00x</div>
+        </span>
+
+        <span class="cr-pair">
+          <span class="lbl">Best</span>
+          <div class="stake cr-read" id="crBestVal">&mdash;</div>
+        </span>
+
+        <span class="lbl" id="crKeyHint">Cash out before it crashes &middot; K to bet &amp; cash out</span>
+      </div>
+
+      <div class="msg info" id="crMsg">Set your stake, and an auto cash-out if you want one, then launch.</div>
+
+      <div class="betbar">
+        <span class="lbl">Bet</span>
+        <button class="chipbtn" data-v="5">5</button>
+        <button class="chipbtn" data-v="25">25</button>
+        <button class="chipbtn" data-v="100">100</button>
+        <button class="chipbtn" data-v="500">500</button>
+        <input type="number" class="custom-bet" id="crCustom" min="1" step="1" placeholder="Custom">
+        <div class="stake" id="crStake">25</div>
+        <button class="btn ghost sm" id="crClear">Clear</button>
+      </div>
     </div>
   </section>
 

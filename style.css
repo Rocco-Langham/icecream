@@ -1354,7 +1354,62 @@
   }
 
   /* ---------- crash ---------- */
-  /* CRASH-CSS */
+  /* A graph rather than a board, so it takes the card's full width at any
+     shape; its height is the dial fitGame turns on desktop (below). */
+  #crashCanvas{
+    display:block;width:100%;height:230px;
+    border-radius:14px;border:1px solid var(--edge);background:#060913;
+  }
+  /* One row, newest on the left. Held at a fixed height so the first pill
+     arriving does not push the graph down, and clipped rather than wrapped on
+     a narrow screen -- the oldest just drop off the end. */
+  .cr-history{
+    display:flex;gap:6px;height:24px;margin:0 0 10px;overflow:hidden;
+    justify-content:flex-start;align-items:center;
+    -webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);
+    mask-image:linear-gradient(90deg,#000 88%,transparent);
+  }
+  .cr-pill{
+    flex:0 0 auto;padding:3px 9px;border-radius:999px;
+    font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;line-height:16px;
+    border:1px solid transparent;
+  }
+  .cr-pill.none{color:rgba(var(--cream-rgb),.4);font-weight:400;padding-left:0}
+  .cr-pill.lo{color:#ff9a9a;background:rgba(224,90,90,.14);border-color:rgba(224,90,90,.3)}
+  .cr-pill.mid{color:#7ef2a8;background:rgba(87,224,141,.13);border-color:rgba(87,224,141,.3)}
+  .cr-pill.hi{color:#ffd46b;background:rgba(255,195,77,.16);border-color:rgba(255,195,77,.45)}
+  :root[data-theme="light"] .cr-pill.lo{color:#b42a2a;background:rgba(224,90,90,.12)}
+  :root[data-theme="light"] .cr-pill.mid{color:#177a41;background:rgba(40,170,95,.12)}
+  :root[data-theme="light"] .cr-pill.hi{color:#8a5a00;background:rgba(230,160,20,.16)}
+  :root[data-theme="light"] .cr-pill.none{color:rgba(24,24,24,.5)}
+  /* The custom-bet look, but its own class: chipRow wires up the first
+     .custom-bet it finds in the tab as the stake box. */
+  .cr-auto{
+    width:118px;padding:10px 10px;border-radius:10px;border:1px solid var(--edge);
+    background:rgba(var(--panel-tint-rgb),.4);color:var(--gold);font:inherit;font-size:14px;font-weight:700;
+    text-align:center;font-variant-numeric:tabular-nums;transition:.15s;
+  }
+  .cr-auto::placeholder{color:rgba(var(--cream-rgb),.4);font-weight:400;font-size:12px}
+  .cr-auto:focus{outline:none;border-color:var(--gold)}
+  .cr-auto:disabled{opacity:.5}
+  .cr-auto::-webkit-outer-spin-button,.cr-auto::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .cr-auto[type="number"]{-moz-appearance:textfield}
+  :root[data-theme="light"] .cr-auto::placeholder{color:rgba(24,24,24,.5)}
+  /* Each label travels with its box, so on a phone the row wraps between
+     pairs rather than leaving a label at the end of one line and its figure
+     on the next. */
+  .cr-pair{display:inline-flex;align-items:center;gap:10px}
+  /* Sized for the biggest either can print, 1,000,000x -- the boxes are
+     fixed-width and clip. */
+  .cr-read{min-width:160px}
+  /* the hint on its own row, for the reason Flappy's is */
+  #tab-crash .field-inline > .lbl:last-child{flex:0 0 100%;text-align:center}
+  @media(max-width:560px){
+    .cr-read{min-width:136px;font-size:17px;padding:10px 12px}
+  }
+  @media(min-width:761px){
+    #crashCanvas{height:calc(var(--play-h) * 1.1);max-height:560px}
+  }
 
   .segmented{display:flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden}
   .segmented button{
