@@ -116,13 +116,14 @@ var minesBest    = (saved && typeof saved.minesBest  === "number") ? saved.mines
    like Mines. Both local only, for the same reason as those two. */
 var breakoutBest = (saved && typeof saved.breakoutBest === "number") ? saved.breakoutBest : 0;
 var crashBest    = (saved && typeof saved.crashBest    === "number") ? saved.crashBest    : 0;
-/* What you owe the bank, and the day interest was last charged on it -- see
-   "the bank" below. Unlike the bests it goes with the account, inside the net
-   column (see cloudNet), because bank does: chips borrowed on one device and
-   owed on none would just be free chips. */
+/* What you owe the bank -- see "the bank" below. Unlike the bests it goes with
+   the account, inside the net column (see cloudNet), because bank does: chips
+   borrowed on one device and owed on none would just be free chips. Saves from
+   when the charge was daily interest also carry the day it was last charged;
+   it is simply ignored, and what was owed on the day of the change stands. */
 var loan = (saved && saved.loan && typeof saved.loan.owed === "number")
-  ? {owed: Math.max(0, saved.loan.owed), since: typeof saved.loan.since === "number" ? saved.loan.since : dayNum()}
-  : {owed: 0, since: dayNum()};
+  ? {owed: Math.max(0, saved.loan.owed)}
+  : {owed: 0};
 /* Display only, and no longer cached locally: the redemptions table is the one
    source of truth, fetched on sign-in. A stale local copy could only ever
    disagree with it. */
@@ -626,40 +627,27 @@ function chipRow(container, get, set, onChange, step){
 
 /* ---- the bank ---- */
 /* Chips on credit. One running balance of what you owe rather than a list of
-   separate loans: borrowing adds to it, repaying takes from it, and interest is
-   charged on the whole of it once per calendar day -- caught up in one jump
-   when the app has been shut for several, the same lazy reckoning as the
-   streak, rather than a timer taking chips with nobody watching. The chips go
-   straight through setBank, like the streak bonus: a loan is not something won
-   or lost at a table, so it stays out of the win stats and the leaderboard.
-   The tab's subtitle quotes the limit and the rate, so change them together. */
-var LOAN_LIMIT = 2000;                               // the most you can owe before the bank stops lending
-var LOAN_RATE  = 0.10;                               // 10% a day, compounding
-/* A ceiling on the interest alone, so a debt ignored for a season prints a
-   number rather than running on towards infinity. Borrowing never gets near
-   it -- that stops at LOAN_LIMIT. */
-var LOAN_CAP   = 100000;
+   separate loans: borrowing adds to it and repaying takes from it. The charge
+   is taken once, at the counter -- borrow 500 and you owe 550 from that second
+   -- rather than accruing while you play, so what you owe only ever moves when
+   you move it, and there is no clock to read, catch up or wind back. The chips
+   go straight through setBank, like the streak bonus: a loan is not something
+   won or lost at a table, so it stays out of the win stats and the leaderboard.
+   The tab's subtitle quotes the limit and the charge, so change them together. */
+var LOAN_LIMIT = 2000;                               // the most you can owe, charge included
+var LOAN_FEE   = 0.10;                               // 10% on top, taken when you borrow
 var bkBorrowAmt = 500, bkRepayAmt = 100;
 
-/* Charges whatever interest has fallen due, and says how much that was. Only
-   writes when a day has actually turned over, so looking at the tab is not a
-   save. */
-function bkAccrue(){
-  var today = dayNum(), days = today - loan.since, before = loan.owed;
-  if(days === 0) return 0;
-  /* days below zero is a clock wound back: nothing is charged, and the count
-     starts again from today rather than waiting for the clock to catch up */
-  if(days > 0 && before > 0) loan.owed = Math.min(LOAN_CAP, Math.round(before * Math.pow(1 + LOAN_RATE, days)));
-  loan.since = today;
-  save();
-  return loan.owed - before;
-}
-function bkAvailable(){ return Math.max(0, LOAN_LIMIT - loan.owed); }
+/* What a loan of this size puts on the tab. */
+function bkCost(amount){ return Math.round(amount * (1 + LOAN_FEE)); }
+/* The most you can borrow now: enough that the charge still lands inside the
+   limit, so borrowing the maximum takes you exactly to it and never past. */
+function bkAvailable(){ return Math.max(0, Math.floor((LOAN_LIMIT - loan.owed) / (1 + LOAN_FEE))); }
 /* The most a repayment can actually be right now: all of it, or all you have. */
 function bkRepayable(){ return Math.min(loan.owed, bank); }
 
 function renderBank(){
-  var added = bkAccrue(), avail = bkAvailable();
+  var avail = bkAvailable();
   $("bkOwed").textContent  = fmt(loan.owed);
   $("bkLimit").textContent = fmt(LOAN_LIMIT);
   $("bkAvail").textContent = fmt(avail);
@@ -667,27 +655,29 @@ function renderBank(){
   $("bkBorrowMax").disabled = avail <= 0;
   $("bkRepayGo").disabled   = loan.owed <= 0;
   $("bkRepayMax").disabled  = bkRepayable() <= 0;
-  if(added > 0) msg($("bkMsg"), "Interest since you were last in: " + fmt(added) + " chips. You owe " + fmt(loan.owed) + ".", "lose");
 }
 
-/* Both re-check at the moment of the click rather than trusting the buttons,
-   so a tab left open across midnight charges the day's interest before it
-   lends or takes anything. */
+/* Both re-check at the moment of the click rather than trusting the buttons. */
 function bkBorrow(){
-  bkAccrue();
   var avail = bkAvailable();
   if(avail <= 0){ msg($("bkMsg"), "You are at your credit limit. Repay some to borrow again.", "lose"); renderBank(); return; }
   if(bkBorrowAmt > avail){ msg($("bkMsg"), "You can borrow up to " + fmt(avail) + " more.", "lose"); return; }
-  loan.owed += bkBorrowAmt;
+  var owe = bkCost(bkBorrowAmt);
+  loan.owed += owe;
   setBank(bank + bkBorrowAmt, 1);                    /* saves -- the loan with it */
   playCash();
-  msg($("bkMsg"), "Borrowed " + fmt(bkBorrowAmt) + " chips. You owe " + fmt(loan.owed) + ".", "info");
+  /* The second sentence only earns its place when there was already something
+     on the tab -- on a first loan the two figures are the same one twice. */
+  var pct = Math.round(LOAN_FEE * 100);
+  msg($("bkMsg"), loan.owed === owe
+    ? "Borrowed " + fmt(bkBorrowAmt) + " chips. With the " + pct + "% charge you owe " + fmt(owe) + "."
+    : "Borrowed " + fmt(bkBorrowAmt) + " chips. With the " + pct + "% charge that is " + fmt(owe) +
+      " on the tab, so you owe " + fmt(loan.owed) + ".", "info")
   renderBank();
 }
 function bkRepay(){
-  bkAccrue();
   if(loan.owed <= 0){ msg($("bkMsg"), "You don't owe anything.", "info"); renderBank(); return; }
-  var amt = Math.min(bkRepayAmt, loan.owed);        /* more than you owe just settles it */
+  var amt = Math.min(bkRepayAmt, loan.owed);         /* more than you owe just settles it */
   if(amt > bank){ msg($("bkMsg"), "Not enough chips to repay that.", "lose"); return; }
   loan.owed -= amt;
   setBank(bank - amt, -1);
@@ -719,13 +709,11 @@ function bkFill(bar, v){
   custom.dispatchEvent(new Event("input"));
 }
 $("bkBorrowMax").addEventListener("click", function(){
-  bkAccrue();
   if(bkAvailable() <= 0) return;
   playClick();
   bkFill($("bkBorrowBar"), bkAvailable());
 });
 $("bkRepayMax").addEventListener("click", function(){
-  bkAccrue();
   if(bkRepayable() <= 0) return;
   playClick();
   bkFill($("bkRepayBar"), bkRepayable());
@@ -779,7 +767,7 @@ function showTab(name){
      either, so it is cancelled the same way. */
   if(typeof pcCloseSuitPopup === "function") pcCloseSuitPopup();
   if(typeof pcEquityCancel === "function") pcEquityCancel();
-  if(name === "bank") renderBank();                  /* interest is only reckoned when someone looks */
+  if(name === "bank") renderBank();
   fitGame();                                         /* each game fills its space by a different amount */
 }
 
@@ -1831,10 +1819,8 @@ function applyCloudRowInner(row){
      guest signing in) the device's figures are someone else's, and like their
      chips, their debt stays behind. */
   var ln = row.net && row.net.loan;
-  if(ln && typeof ln.owed === "number")
-    loan = {owed: Math.max(0, ln.owed), since: typeof ln.since === "number" ? ln.since : dayNum()};
-  else if(!inStep)
-    loan = {owed: 0, since: dayNum()};
+  if(ln && typeof ln.owed === "number") loan = {owed: Math.max(0, ln.owed)};
+  else if(!inStep) loan = {owed: 0};
   /* taken verbatim like every other stat here: this branch only runs when the
      cloud save has won, and max()-ing instead would leak one account's best
      onto the next account signed in on the same device */
@@ -1852,7 +1838,7 @@ function applyCloudRowInner(row){
 function cloudNet(){
   var out = {};
   for(var k in gameNet) out[k] = gameNet[k];
-  out.loan = {owed: loan.owed, since: loan.since};
+  out.loan = {owed: loan.owed};
   return out;
 }
 function cloudPush(){
@@ -1922,7 +1908,7 @@ function resetLocalProgress(){
   pokerStack = 0;
   /* The same goes for a debt, and the other way round: the next player must not
      inherit it, and it is not lost -- it is in the account's own row. */
-  loan = {owed: 0, since: dayNum()};
+  loan = {owed: 0};
   stats = {hands:0, won:0, big:0, peak:1000};
   gameNet = {};
   GAMES.forEach(function(g){ gameNet[g.key] = 0; });
