@@ -86,6 +86,27 @@
   .sidebar-nav{display:flex;flex-direction:column}
   .sidebar-section{display:flex;flex-direction:column;gap:2px;padding:0 10px}
   .sidebar-label{padding:10px 8px 6px;font-size:10px;letter-spacing:calc(2px * var(--ui-track));text-transform:var(--ui-case);color:rgba(var(--cream-rgb),.35)}
+  /* A heading you can fold. Same look as the plain one above -- it is only a
+     button so it can be clicked and read as one -- plus a chevron that turns. */
+  .nav-toggle{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    width:100%;background:none;border:none;cursor:pointer;font:inherit;text-align:left;
+  }
+  .nav-toggle:hover{color:rgba(var(--cream-rgb),.65)}
+  /* Bigger than the heading it sits beside, and brighter: at the label's own
+     size and colour it read as a speck of dust rather than a control. */
+  .nav-toggle .chev{font-size:13px;line-height:1;color:var(--gold-dim);transition:transform .2s ease}
+  .nav-toggle:hover .chev{color:var(--gold)}
+  .nav-toggle[aria-expanded="false"] .chev{transform:rotate(-90deg)}
+  /* The rows fold by the grid track holding them going from 1fr to 0fr, which
+     animates without a height typed in here to be outgrown the next time a
+     game is added. The inner div is what actually clips. */
+  /* min-height:0 because this is also a flex item of .sidebar-section, and a
+     flex item will not go below its content height without being told; without
+     it the track collapses and the box stays exactly as tall as it was. */
+  .sidebar-group{display:grid;grid-template-rows:1fr;min-height:0;transition:grid-template-rows .22s ease}
+  .sidebar-group > div{overflow:hidden;display:flex;flex-direction:column;gap:2px}
+  .nav-toggle[aria-expanded="false"] + .sidebar-group{grid-template-rows:0fr}
   .sidebar-link{
     display:flex;align-items:center;gap:10px;width:100%;
     padding:11px 12px;border-radius:10px;border:none;cursor:pointer;text-align:left;
@@ -205,6 +226,10 @@
     transition:transform .26s cubic-bezier(.2,.9,.3,1.15), opacity .2s ease;
   }
   .navsheet-overlay.on .navsheet{transform:none;opacity:1}
+  /* the sheet's own folding heading: the rail's chevron and hover, at the size
+     the sheet's headings already use */
+  .navsheet-label.nav-toggle{color:inherit}
+  .navsheet-label.nav-toggle:hover{color:var(--cream)}
   .navsheet-label{
     padding:10px 10px 6px;font-size:10px;letter-spacing:calc(2px * var(--ui-track));
     text-transform:var(--ui-case);color:rgba(var(--cream-rgb),.35);

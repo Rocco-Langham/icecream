@@ -45,7 +45,7 @@ function saveLocal(){
     theme:currentTheme, font:currentFont, soundOn:soundOn,
     soundVolume:soundVolume, devUnlocked:devUnlocked,
     rigUser:rigUser, rigHost:rigHost, irlPoker:irlPoker, keybinds:keybinds,
-    pokerStack:pokerStack, loan:loan, syncToken:syncToken
+    pokerStack:pokerStack, loan:loan, navOpen:navOpen, syncToken:syncToken
   };
   mem = data;
   try{ localStorage.setItem(KEY, JSON.stringify(data)); }catch(e){}
@@ -124,6 +124,11 @@ var crashBest    = (saved && typeof saved.crashBest    === "number") ? saved.cra
 var loan = (saved && saved.loan && typeof saved.loan.owed === "number")
   ? {owed: Math.max(0, saved.loan.owed)}
   : {owed: 0};
+/* Which headings in the menu are folded open -- see "folding menu groups".
+   A rail preference like the theme: it stays on this device and never goes
+   near the cloud row. Declared up here with the rest of what gets saved,
+   because saveLocal writes it and can run before the rail is wired. */
+var navOpen = (saved && saved.navOpen && typeof saved.navOpen === "object") ? saved.navOpen : {};
 /* Display only, and no longer cached locally: the redemptions table is the one
    source of truth, fetched on sign-in. A stale local copy could only ever
    disagree with it. */
@@ -885,6 +890,26 @@ Array.prototype.forEach.call(document.querySelectorAll(".sidebar-link[data-tab]"
   });
 });
 
+/* ---- folding menu groups ---- */
+function navGroupOpen(id){ return navOpen[id] !== false; }
+function renderNavGroups(){
+  Array.prototype.forEach.call(document.querySelectorAll(".sidebar-nav .nav-toggle[data-group]"), function(b){
+    b.setAttribute("aria-expanded", navGroupOpen(b.dataset.group) ? "true" : "false");
+  });
+}
+function toggleNavGroup(id){
+  navOpen[id] = !navGroupOpen(id);
+  renderNavGroups();
+  save();
+}
+Array.prototype.forEach.call(document.querySelectorAll(".sidebar-nav .nav-toggle[data-group]"), function(b){
+  b.addEventListener("click", function(){
+    playClick();
+    toggleNavGroup(b.dataset.group);
+  });
+});
+renderNavGroups();
+
 /* ---- mobile nav sheet ---- */
 var navSheet = $("navSheet"), menuBtn = $("menuBtn");
 
@@ -904,10 +929,20 @@ function renderNavSheet(){
   var html = "";
   Array.prototype.forEach.call(document.querySelectorAll(".sidebar-section"), function(sec){
     var label = sec.querySelector(".sidebar-label");
+    var group = label && label.dataset.group;
     var links = Array.prototype.filter.call(sec.querySelectorAll(".sidebar-link[data-tab]"),
       function(b){ return !b.hidden; });     /* a gated entry stays gated here too */
     if(!links.length) return;
-    if(label) html += '<div class="navsheet-label">' + label.textContent + "</div>";
+    if(label){
+      /* the heading's own words, without the chevron sitting beside them */
+      var name = (label.querySelector(".nav-name") || label).textContent;
+      html += group
+        ? '<button type="button" class="navsheet-label nav-toggle" data-group="' + group +
+          '" aria-expanded="' + (navGroupOpen(group) ? "true" : "false") + '"><span>' + name +
+          '</span><span class="chev" aria-hidden="true">&#9662;</span></button>'
+        : '<div class="navsheet-label">' + name + "</div>";
+    }
+    if(group && !navGroupOpen(group)) return;        /* folded on the rail, folded here */
     links.forEach(function(b){
       html += '<button class="navsheet-link' + (b.dataset.tab === active ? " on" : "") +
               '" data-nav="' + b.dataset.tab + '">' + b.innerHTML + "</button>";
@@ -930,6 +965,13 @@ menuBtn.addEventListener("click", function(){
 });
 navSheet.addEventListener("click", function(e){
   if(e.target === navSheet){ closeNav(); return; }   /* backdrop */
+  var fold = e.target.closest && e.target.closest(".navsheet-label[data-group]");
+  if(fold){                                          /* fold it here and on the rail, and stay open */
+    playClick();
+    toggleNavGroup(fold.dataset.group);
+    renderNavSheet();
+    return;
+  }
   var link = e.target.closest && e.target.closest(".navsheet-link");
   if(link){
     playClick();
