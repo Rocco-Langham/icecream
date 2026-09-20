@@ -122,8 +122,8 @@ var crashBest    = (saved && typeof saved.crashBest    === "number") ? saved.cra
    when the charge was daily interest also carry the day it was last charged;
    it is simply ignored, and what was owed on the day of the change stands. */
 var loan = (saved && saved.loan && typeof saved.loan.owed === "number")
-  ? {owed: Math.max(0, saved.loan.owed)}
-  : {owed: 0};
+  ? {owed: Math.max(0, saved.loan.owed), since: bkClock(saved.loan.since)}
+  : {owed: 0, since: Date.now()};
 /* Which headings in the menu are folded open -- see "folding menu groups".
    A rail preference like the theme: it stays on this device and never goes
    near the cloud row. Declared up here with the rest of what gets saved,
@@ -632,19 +632,77 @@ function chipRow(container, get, set, onChange, step){
 
 /* ---- the bank ---- */
 /* Chips on credit. One running balance of what you owe rather than a list of
-   separate loans: borrowing adds to it and repaying takes from it. The charge
-   is taken once, at the counter -- borrow 500 and you owe 550 from that second
-   -- rather than accruing while you play, so what you owe only ever moves when
-   you move it, and there is no clock to read, catch up or wind back. The chips
-   go straight through setBank, like the streak bonus: a loan is not something
-   won or lost at a table, so it stays out of the win stats and the leaderboard.
-   The tab's subtitle quotes the limit and the charge, so change them together. */
+   separate loans: borrowing adds to it and repaying takes from it. Ten per cent
+   goes on at the counter -- borrow 500 and you owe 550 from that second -- and
+   another five goes on every half hour it is still open, so a loan left running
+   costs more the longer it runs. The chips go straight through setBank, like
+   the streak bonus: a loan is not something won or lost at a table, so it stays
+   out of the win stats and the leaderboard. The tab's subtitle quotes the
+   limit, the charge and the half hour, so change them together. */
 var LOAN_LIMIT = 2000;                               // the most you can owe, charge included
 var LOAN_FEE   = 0.10;                               // 10% on top, taken when you borrow
+var LOAN_STEP  = 0.05;                               // and 5% more for every half hour still owing
+var LOAN_EVERY = 30 * 60 * 1000;
+/* A ceiling, because 5% a half hour is 2.6x a day and would otherwise run off
+   into figures that mean nothing. Borrowing never gets near it: that stops at
+   LOAN_LIMIT. */
+var LOAN_CAP   = 100000;
 var bkBorrowAmt = 500, bkRepayAmt = 100;
 
 /* What a loan of this size puts on the tab. */
 function bkCost(amount){ return Math.round(amount * (1 + LOAN_FEE)); }
+/* A loan's clock, or now if what came back cannot be one. It guards two real
+   cases as well as nonsense: a save from the flat-fee version has no clock at
+   all, and one from the day-by-day version before it has a day NUMBER, about
+   20,700 -- which as a millisecond stamp is 1970, and would charge a player
+   every half hour since, straight to the ceiling, for a debt of 500. Anything
+   that is not a plausible recent stamp means "start the clock now". */
+function bkClock(v){ return (typeof v === "number" && isFinite(v) && v > 1.5e12) ? v : Date.now(); }
+/* Charges every half hour that has gone by since the last charge -- all of them
+   at once if the app has been shut since -- and says how much it added. The
+   leftover minutes stay on the clock rather than being forgiven, so the next
+   charge lands when it was always going to. Wall-clock time, not a day number,
+   and it goes up with the loan (see cloudNet), so leaving a debt on one device
+   and picking it up on another does not stop it running. */
+function bkAccrue(){
+  var now = Date.now();
+  loan.since = bkClock(loan.since);                  /* never let a bad stamp reach the arithmetic */
+  if(loan.owed <= 0){ loan.since = now; return 0; }
+  if(now < loan.since){ loan.since = now; save(); return 0; }   /* a clock wound back charges nothing */
+  var periods = Math.floor((now - loan.since) / LOAN_EVERY);
+  if(periods <= 0) return 0;
+  var before = loan.owed;
+  loan.owed = Math.min(LOAN_CAP, Math.round(before * Math.pow(1 + LOAN_STEP, periods)));
+  loan.since += periods * LOAN_EVERY;
+  save();
+  return loan.owed - before;
+}
+/* mm:ss until the next charge, for the readout. */
+function bkClockText(){
+  if(loan.owed <= 0) return "";
+  var left = Math.max(0, LOAN_EVERY - (Date.now() - loan.since));
+  var s = Math.ceil(left / 1000);
+  return Math.floor(s / 60) + ":" + (s % 60 < 10 ? "0" : "") + (s % 60);
+}
+/* The countdown only ticks while the tab is in front. The charge itself does
+   not need the timer -- it is worked out from the clock whenever anything reads
+   the debt -- so nothing is missed while this is stopped. */
+var bkTimer = 0;
+function bkStopClock(){ clearInterval(bkTimer); bkTimer = 0; }
+function bkStartClock(){
+  bkStopClock();
+  if(loan.owed <= 0 || !$("tab-bank").classList.contains("on")) return;
+  bkTimer = setInterval(function(){
+    var added = bkAccrue();
+    if(added > 0){
+      renderBank();
+      msg($("bkMsg"), "Another " + Math.round(LOAN_STEP * 100) + "% just went on: " + fmt(added) +
+          " chips. You owe " + fmt(loan.owed) + ".", "lose");
+    }else{
+      $("bkNext").textContent = bkClockText();
+    }
+  }, 1000);
+}
 /* The most you can borrow now: enough that the charge still lands inside the
    limit, so borrowing the maximum takes you exactly to it and never past. */
 function bkAvailable(){ return Math.max(0, Math.floor((LOAN_LIMIT - loan.owed) / (1 + LOAN_FEE))); }
@@ -652,22 +710,28 @@ function bkAvailable(){ return Math.max(0, Math.floor((LOAN_LIMIT - loan.owed) /
 function bkRepayable(){ return Math.min(loan.owed, bank); }
 
 function renderBank(){
-  var avail = bkAvailable();
+  var added = bkAccrue(), avail = bkAvailable();
   $("bkOwed").textContent  = fmt(loan.owed);
   $("bkLimit").textContent = fmt(LOAN_LIMIT);
   $("bkAvail").textContent = fmt(avail);
+  $("bkNext").textContent  = bkClockText();
+  $("bkNext").hidden = $("bkNextLbl").hidden = loan.owed <= 0;
   $("bkBorrowGo").disabled  = avail <= 0;
   $("bkBorrowMax").disabled = avail <= 0;
   $("bkRepayGo").disabled   = loan.owed <= 0;
   $("bkRepayMax").disabled  = bkRepayable() <= 0;
+  bkStartClock();
+  if(added > 0) msg($("bkMsg"), "Interest since you were last in: " + fmt(added) + " chips. You owe " + fmt(loan.owed) + ".", "lose");
 }
 
 /* Both re-check at the moment of the click rather than trusting the buttons. */
 function bkBorrow(){
+  bkAccrue();
   var avail = bkAvailable();
   if(avail <= 0){ msg($("bkMsg"), "You are at your credit limit. Repay some to borrow again.", "lose"); renderBank(); return; }
   if(bkBorrowAmt > avail){ msg($("bkMsg"), "You can borrow up to " + fmt(avail) + " more.", "lose"); return; }
   var owe = bkCost(bkBorrowAmt);
+  if(loan.owed <= 0) loan.since = Date.now();        /* a fresh debt starts its own half hour */
   loan.owed += owe;
   setBank(bank + bkBorrowAmt, 1);                    /* saves -- the loan with it */
   playCash();
@@ -681,6 +745,7 @@ function bkBorrow(){
   renderBank();
 }
 function bkRepay(){
+  bkAccrue();
   if(loan.owed <= 0){ msg($("bkMsg"), "You don't owe anything.", "info"); renderBank(); return; }
   var amt = Math.min(bkRepayAmt, loan.owed);         /* more than you owe just settles it */
   if(amt > bank){ msg($("bkMsg"), "Not enough chips to repay that.", "lose"); return; }
@@ -772,7 +837,7 @@ function showTab(name){
      either, so it is cancelled the same way. */
   if(typeof pcCloseSuitPopup === "function") pcCloseSuitPopup();
   if(typeof pcEquityCancel === "function") pcEquityCancel();
-  if(name === "bank") renderBank();
+  if(name === "bank") renderBank(); else bkStopClock();
   fitGame();                                         /* each game fills its space by a different amount */
 }
 
@@ -1861,8 +1926,9 @@ function applyCloudRowInner(row){
      guest signing in) the device's figures are someone else's, and like their
      chips, their debt stays behind. */
   var ln = row.net && row.net.loan;
-  if(ln && typeof ln.owed === "number") loan = {owed: Math.max(0, ln.owed)};
-  else if(!inStep) loan = {owed: 0};
+  if(ln && typeof ln.owed === "number")
+    loan = {owed: Math.max(0, ln.owed), since: bkClock(ln.since)};
+  else if(!inStep) loan = {owed: 0, since: Date.now()};
   /* taken verbatim like every other stat here: this branch only runs when the
      cloud save has won, and max()-ing instead would leak one account's best
      onto the next account signed in on the same device */
@@ -1880,7 +1946,7 @@ function applyCloudRowInner(row){
 function cloudNet(){
   var out = {};
   for(var k in gameNet) out[k] = gameNet[k];
-  out.loan = {owed: loan.owed};
+  out.loan = {owed: loan.owed, since: loan.since};
   return out;
 }
 function cloudPush(){
@@ -1950,7 +2016,7 @@ function resetLocalProgress(){
   pokerStack = 0;
   /* The same goes for a debt, and the other way round: the next player must not
      inherit it, and it is not lost -- it is in the account's own row. */
-  loan = {owed: 0};
+  loan = {owed: 0, since: Date.now()};
   stats = {hands:0, won:0, big:0, peak:1000};
   gameNet = {};
   GAMES.forEach(function(g){ gameNet[g.key] = 0; });

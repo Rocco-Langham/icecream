@@ -85,12 +85,23 @@
 
   .sidebar-nav{display:flex;flex-direction:column}
   .sidebar-section{display:flex;flex-direction:column;gap:2px;padding:0 10px}
-  .sidebar-label{padding:10px 8px 6px;font-size:10px;letter-spacing:calc(2px * var(--ui-track));text-transform:var(--ui-case);color:rgba(var(--cream-rgb),.35)}
+  /* A heading centred between two rules that run out to just short of the
+     rail's edges. Lower case on purpose, against the --ui-case the rest of the
+     chrome follows: these are dividers between groups, not labels shouting at
+     the games under them. The rules are the flexible part, so the heading
+     stays centred whatever it says and in whatever typeface. */
+  .sidebar-label{
+    display:flex;align-items:center;gap:8px;
+    padding:12px 4px 7px;font-size:10px;letter-spacing:calc(2px * var(--ui-track));
+    text-transform:lowercase;color:rgba(var(--cream-rgb),.35);
+  }
+  .sidebar-label::before,.sidebar-label::after{
+    content:"";flex:1 1 auto;height:1px;min-width:8px;background:rgba(var(--gold-rgb),.22);
+  }
   /* A heading you can fold. Same look as the plain one above -- it is only a
      button so it can be clicked and read as one -- plus a chevron that turns. */
   .nav-toggle{
-    display:flex;align-items:center;justify-content:space-between;gap:8px;
-    width:100%;background:none;border:none;cursor:pointer;font:inherit;text-align:left;
+    width:100%;background:none;border:none;cursor:pointer;font:inherit;text-align:center;
   }
   .nav-toggle:hover{color:rgba(var(--cream-rgb),.65)}
   /* Bigger than the heading it sits beside, and brighter: at the label's own
@@ -230,9 +241,14 @@
      the sheet's headings already use */
   .navsheet-label.nav-toggle{color:inherit}
   .navsheet-label.nav-toggle:hover{color:var(--cream)}
+  /* the same divider as the rail's, at the sheet's own padding */
   .navsheet-label{
-    padding:10px 10px 6px;font-size:10px;letter-spacing:calc(2px * var(--ui-track));
-    text-transform:var(--ui-case);color:rgba(var(--cream-rgb),.35);
+    display:flex;align-items:center;gap:8px;
+    padding:12px 4px 7px;font-size:10px;letter-spacing:calc(2px * var(--ui-track));
+    text-transform:lowercase;color:rgba(var(--cream-rgb),.35);
+  }
+  .navsheet-label::before,.navsheet-label::after{
+    content:"";flex:1 1 auto;height:1px;min-width:10px;background:rgba(var(--gold-rgb),.22);
   }
   .navsheet-link{
     display:flex;align-items:center;gap:12px;width:100%;
@@ -1639,6 +1655,12 @@
   /* low-alpha greys that were readable on dark are far too faint on white */
   :root[data-theme="light"] p.sub{color:rgba(24,24,24,.62)}
   :root[data-theme="light"] .sidebar-label{color:rgba(24,24,24,.52)}
+  /* gold at .22 all but vanishes on white; the rules take the same ink as the
+     other hairlines in the light theme */
+  :root[data-theme="light"] .sidebar-label::before,:root[data-theme="light"] .sidebar-label::after,
+  :root[data-theme="light"] .navsheet-label::before,:root[data-theme="light"] .navsheet-label::after{
+    background:rgba(15,23,42,.12);
+  }
   :root[data-theme="light"] footer{color:rgba(24,24,24,.58)}
   :root[data-theme="light"] .version-tag{color:rgba(24,24,24,.55)}
   :root[data-theme="light"] .stats{color:rgba(24,24,24,.6)}

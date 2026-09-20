@@ -4,16 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>xyzcasino</title>
-<link rel="icon" type="image/svg+xml" href="icon.svg?v=62">
-<link rel="icon" type="image/png" sizes="64x64" href="icon.png?v=62">
-<link rel="apple-touch-icon" href="icon-180.png?v=62">
+<link rel="icon" type="image/svg+xml" href="icon.svg?v=64">
+<link rel="icon" type="image/png" sizes="64x64" href="icon.png?v=64">
+<link rel="apple-touch-icon" href="icon-180.png?v=64">
 <!-- ?v= on every local file is a cache buster, and it has to be bumped in
      this one place whenever any of them changes. GitHub Pages re-checks
      the page itself quickly but will happily hand a browser the same
      app.js for a long time afterwards, so without this a deploy can sit
      there fixed on the server and broken in the only browser that
      matters -- which looks exactly like the fix never worked. -->
-<link rel="stylesheet" href="style.css?v=62">
+<link rel="stylesheet" href="style.css?v=64">
 </head>
 <body>
 <div class="app-shell">
@@ -729,7 +729,7 @@
   <section class="game" id="tab-bank">
     <div class="table">
       <h2 class="title">Bank</h2>
-      <p class="sub">Borrow up to 2,000 chips &middot; 10% goes on the tab the moment you do, and it never grows after that</p>
+      <p class="sub">Borrow up to 2,000 chips &middot; 10% goes on the tab the moment you do, and another 5% every half hour you leave it</p>
 
       <div class="field-inline">
         <span class="lbl">You owe</span>
@@ -739,10 +739,13 @@
         <div class="stake" id="bkLimit" style="min-width:130px">2,000</div>
 
         <span class="lbl">Can borrow</span>
-        <div class="stake" id="bkAvail" style="min-width:130px">2,000</div>
+        <div class="stake" id="bkAvail" style="min-width:130px">1,818</div>
+
+        <span class="lbl" id="bkNextLbl" hidden>Next charge</span>
+        <div class="stake" id="bkNext" style="min-width:110px" hidden>&mdash;</div>
       </div>
 
-      <div class="msg info" id="bkMsg">Short of chips? Borrow some. Whatever you take, you owe 10% more.</div>
+      <div class="msg info" id="bkMsg">Short of chips? Borrow some. You owe 10% more straight away, and it climbs every half hour until it is paid.</div>
 
       <div class="betbar" id="bkBorrowBar">
         <span class="lbl">Borrow</span>
@@ -1250,18 +1253,18 @@
 <!-- The one external dependency in the file. Only reachable over http(s), which
      is why the offline file:// copy keeps working with cloud saves switched off. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=62"></script>
-<script src="games.js?v=62"></script>
-<script src="breakout.js?v=62"></script>
-<script src="crash.js?v=62"></script>
+<script src="app.js?v=64"></script>
+<script src="games.js?v=64"></script>
+<script src="breakout.js?v=64"></script>
+<script src="crash.js?v=64"></script>
 <!-- Poker in three parts, loaded in dependency order: the rules, then the
      opponents that consult them, then the table that shows it all. -->
-<script src="poker/engine.js?v=62"></script>
-<script src="poker/bots.js?v=62"></script>
-<script src="poker/table.js?v=62"></script>
-<script src="poker/check.js?v=62"></script>
-<script src="poker/online.js?v=62"></script>
-<script src="poker/online-game.js?v=62"></script>
+<script src="poker/engine.js?v=64"></script>
+<script src="poker/bots.js?v=64"></script>
+<script src="poker/table.js?v=64"></script>
+<script src="poker/check.js?v=64"></script>
+<script src="poker/online.js?v=64"></script>
+<script src="poker/online-game.js?v=64"></script>
 <script>
 "use strict";
 /* Everything above only declares things. This is the part that runs, so it
